@@ -1,43 +1,81 @@
-# Plan: [Title]
+---
+title: "[Plan Title]"
+status: NEW
+created: YYYY-MM-DD
+author: "[Author Name]"
+---
 
-> Template — to be finalized
+# Plan: [Plan Title]
+
+## Summary
+
+<!-- 2-3 sentences describing what this plan implements -->
+
+**Goal:** <!-- One-line goal statement -->
 
 ---
 
-## Overview
+## Phases
 
-<!-- Brief description of what this plan covers -->
+### Phase 1: [Phase Title] `[PENDING]`
 
-## Context
-
-<!-- Why is this plan needed? What problem does it solve? -->
-
-## Proposal
-
-<!-- What is the proposed solution? -->
-
-## Alternatives Considered
-
-<!-- What other options were evaluated? Why were they rejected? -->
-
-## Implementation Steps
-
-<!-- Numbered list of implementation steps -->
-
-## Dependencies
-
-<!-- What must be in place before this can be implemented? -->
-
-## Risks
-
-<!-- What could go wrong? How will it be mitigated? -->
-
-## Success Criteria
-
-<!-- How do we know this plan succeeded? -->
+<!-- Description of work to be done -->
 
 ---
 
-*Status: Draft*
-*Created: YYYY-MM-DD*
-*Author: [Name]*
+### Phase 2: [Phase Title] `[PENDING]`
+
+<!-- Description of work to be done -->
+
+---
+
+<!-- Add more phases as needed -->
+
+---
+
+## Phase Status Reference
+
+| Status | Meaning |
+|--------|---------|
+| `[PENDING]` | Not started |
+| `[IN_PROGRESS]` | Currently being worked on |
+| `[DONE]` | Completed and committed |
+| `[CHANGED]` | Implementation differs from original plan |
+| `[REJECTED]` | Phase was not implemented |
+
+### When a phase is DONE:
+
+```markdown
+### Phase 1: [Phase Title] `[DONE]`
+
+<!-- Original description -->
+
+> Commit: abc1234 (2026-03-31)
+```
+
+### When a phase is CHANGED:
+
+```markdown
+### Phase 1: [Phase Title] `[CHANGED]`
+
+**Original plan:**
+<!-- What was originally planned -->
+
+**What changed:**
+<!-- What was actually implemented -->
+
+**Why:**
+<!-- Reason for the change -->
+
+> Commit: abc1234 (2026-03-31)
+```
+
+### When a phase is REJECTED:
+
+```markdown
+### Phase 1: [Phase Title] `[REJECTED]`
+
+<!-- Original description -->
+
+**Reason:** <!-- Why this phase was not implemented -->
+```

@@ -80,7 +80,7 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 
 Location: `docs/implementation-plans/`
 
-### Structure
+### Folder Structure (Plan Status)
 
 ```
 implementation-plans/
@@ -92,12 +92,24 @@ implementation-plans/
 └── TEMPLATE.md     # Template for new plans
 ```
 
+### Phase Statuses (within each plan)
+
+| Status | Meaning |
+|--------|---------|
+| `[PENDING]` | Not started |
+| `[IN_PROGRESS]` | Currently being worked on |
+| `[DONE]` | Completed — include commit hash |
+| `[CHANGED]` | Implementation differs from plan — document what/why |
+| `[REJECTED]` | Phase skipped — document reason |
+
 ### Workflow
 
 1. Create plan from `TEMPLATE.md`, place in `new/`
 2. When plan is complete → move to `ready-for-dev/`
 3. When development starts → move to `in-progress/`
-4. When done → move to `done/` (or `canceled/`)
+4. Update phase statuses as work progresses
+5. For completed phases: add `> Commit: <hash> (<date>)`
+6. When all phases done → move plan to `done/` (or `canceled/`)
 
 Use plans for non-trivial work that benefits from upfront design or user alignment.
 
