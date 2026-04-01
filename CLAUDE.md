@@ -27,10 +27,15 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 - `docker-compose.yml` — Local development environment
 
 ### Next Implementation Phases
-1. ~~Set up Go backend project structure with oapi-codegen~~ ✅ Done
-2. Generate API types from OpenAPI spec (`make generate`)
-3. Implement auth endpoints (register, login, refresh, OAuth)
-4. Set up React frontend with Vite + TypeScript
+1. ~~Set up Go backend project structure~~ ✅ Done (2026-04-01)
+2. **Set up React frontend foundation** ← NEXT SESSION
+   - Vite + TypeScript + React 18
+   - shadcn/ui components
+   - TanStack Query + Zustand
+   - openapi-fetch for API client
+   - Generate types from OpenAPI spec
+3. Generate backend API types (`cd api && make generate`)
+4. Implement auth endpoints (register, login, refresh, OAuth)
 5. Build domain by domain following the workflow order in the specs
 
 ## Tech Stack
