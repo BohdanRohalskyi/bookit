@@ -27,6 +27,8 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development
+  - url: https://api-staging.bookit.app
+    description: Staging
   - url: https://api.bookit.app
     description: Production
 
@@ -53,6 +55,10 @@ tags:
     description: Availability and time slots
   - name: Search
     description: Public search endpoints
+  - name: Payments
+    description: Payment processing and webhooks
+  - name: System
+    description: Health checks and system endpoints
 
 paths:
   # ============================================================
@@ -1172,6 +1178,79 @@ paths:
               schema:
                 $ref: '#/components/schemas/LocationSearchResult'
 
+  # ============================================================
+  # PAYMENTS
+  # ============================================================
+  /api/v1/payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Paysera payment callback
+      description: |
+        Webhook endpoint for Paysera payment notifications.
+        Paysera sends payment status updates to this endpoint.
+        The request is verified using Paysera's signature mechanism.
+      operationId: paymentWebhook
+      security: []  # No JWT auth - verified by Paysera signature
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: Base64 encoded payment data
+                ss1:
+                  type: string
+                  description: MD5 signature
+                ss2:
+                  type: string
+                  description: RSA signature
+              required:
+                - data
+                - ss1
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+        '400':
+          description: Invalid request or signature verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================================
+  # SYSTEM
+  # ============================================================
+  /api/v1/health:
+    get:
+      tags: [System]
+      summary: Health check
+      description: |
+        Health check endpoint for Cloud Run liveness and readiness probes.
+        Returns service health status and basic diagnostics.
+      operationId: healthCheck
+      security: []  # No auth required
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
 # ============================================================
 # COMPONENTS
 # ============================================================
@@ -1314,6 +1393,35 @@ components:
           example:
             email: "Invalid email format"
             phone: "Required"
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-04-01T12:00:00Z"
+        version:
+          type: string
+          description: Application version
+          example: "1.0.0"
+        checks:
+          type: object
+          description: Individual health check results
+          properties:
+            database:
+              type: string
+              enum: [ok, error]
+            pubsub:
+              type: string
+              enum: [ok, error]
 
     Pagination:
       type: object

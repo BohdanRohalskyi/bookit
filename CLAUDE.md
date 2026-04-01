@@ -13,10 +13,6 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 - `docs/FRONTEND-SPEC-Bookit-20260331.md` — React implementation spec
 - `README.md` — Updated with full documentation
 
-### Pending Decisions (awaiting colleague discussion)
-- Database: Neon vs Cloud SQL
-- Event processing: river vs Pub/Sub vs RabbitMQ
-
 ### Next Implementation Phases
 1. Set up Go backend project structure with oapi-codegen
 2. Set up React frontend with Vite + TypeScript
@@ -36,14 +32,20 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 | HTTP Client | openapi-fetch (native fetch, NOT axios) |
 | Router | React Router v6 |
 | API Spec | OpenAPI 3.0.3 |
-| Database | PostgreSQL 15+ (provider TBD) |
+| Database | Cloud SQL (PostgreSQL 15+) |
+| Event Processing | Cloud Pub/Sub |
 | Infrastructure | GCP (Cloud Run, Cloud Storage, Secret Manager) |
+| CI/CD | GitHub Actions |
 | Region | europe-west3 (Frankfurt) |
 
 ## Architecture
 
 - **Style**: Modular monolith with clear domain boundaries
 - **Domains**: Identity, Catalog, Scheduling, Booking, Payment, Notification
+- **Infrastructure**: GCP-native — always prefer GCP services over third-party alternatives
+- **CI/CD**: GitHub Actions deploying to GCP
+- **Environments**: Single GCP project for MVP; resources use `-staging` / `-prod` suffix
+- **Secrets**: Local uses `.env` (gitignored); staging/prod use Secret Manager mounted via Cloud Run `--set-secrets`
 
 ## Key Technical Decisions
 

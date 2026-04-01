@@ -28,8 +28,8 @@ Bookit is a multi-vertical booking platform targeting beauty, sport, and pet car
 - Modular monolith (Go API) serving multiple frontend clients
 - Monorepo structure with shared tooling
 - API-first design for future AI agent integration
-- GCP-native infrastructure (Cloud Run, Cloud SQL/Neon)
-- Single production environment for MVP
+- GCP-native infrastructure (Cloud Run, Cloud SQL, Pub/Sub)
+- Single GCP project with staging + prod environments
 
 ---
 
@@ -60,7 +60,7 @@ Bookit is a multi-vertical booking platform targeting beauty, sport, and pet car
 | Backend language | Go |
 | Frontend framework | React + TypeScript |
 | Mobile framework | React Native + Expo |
-| Database | PostgreSQL |
+| Database | PostgreSQL (Cloud SQL) |
 
 ---
 
@@ -112,8 +112,8 @@ Bookit is a multi-vertical booking platform targeting beauty, sport, and pet car
             │                 │                 │
             ▼                 ▼                 ▼
 ┌───────────────────┐ ┌───────────────┐ ┌───────────────────────────────┐
-│ PostgreSQL        │ │ Cloud Storage │ │ External Services             │
-│ (Cloud SQL/Neon)  │ │ (media files) │ │ - SendGrid (email)            │
+│ Cloud SQL         │ │ Cloud Storage │ │ External Services             │
+│ (PostgreSQL)      │ │ (media files) │ │ - SendGrid (email)            │
 │                   │ │               │ │ - Paysera (payments)          │
 │                   │ │               │ │ - Google/Facebook/Paysera OAuth│
 └───────────────────┘ └───────────────┘ └───────────────────────────────┘
@@ -358,8 +358,8 @@ openapi/spec.yaml (source of truth)
 
 | Attribute | Choice |
 |-----------|--------|
-| Database | PostgreSQL |
-| Hosting | Cloud SQL or Neon (TBD — see docs/stack-comparison.md) |
+| Database | PostgreSQL 15+ |
+| Hosting | Cloud SQL (GCP-native) |
 | Migrations | golang-migrate |
 | Query layer | sqlc (generates type-safe Go from SQL) |
 
@@ -506,10 +506,13 @@ openapi/spec.yaml (source of truth)
 
 ### 6.4 Caching Strategy
 
-| Phase | Approach |
+| Layer | Approach |
 |-------|----------|
-| **MVP** | In-memory cache (ristretto) for catalog data |
-| **Scale** | Redis (Cloud Memorystore) for sessions, rate limiting, shared cache |
+| **Application** | In-memory cache (ristretto) for hot data |
+| **Edge** | Cloud CDN for public read-heavy endpoints |
+| **Database** | Query optimization, proper indexing |
+
+**Note:** No distributed cache for MVP. Each Cloud Run instance has its own in-memory cache. Add distributed caching only when metrics show need.
 
 **Cacheable data:**
 - Business/location listings (5-15 min TTL)
@@ -577,17 +580,18 @@ openapi/spec.yaml (source of truth)
 
 | Environment | Infrastructure |
 |-------------|----------------|
-| **Local** | Docker Compose (PostgreSQL, API) |
-| **Production** | GCP (single project) |
+| **Local** | Docker Compose (PostgreSQL, API), `.env` file |
+| **Staging** | GCP (same project, `-staging` suffix) |
+| **Production** | GCP (same project, `-prod` suffix) |
 
-**Future:** Add staging environment/project when needed.
+**Single GCP project for MVP.** Resources separated by suffix (e.g., `bookit-api-staging`, `bookit-api-prod`). Secrets stored in Secret Manager, mounted via Cloud Run `--set-secrets`.
 
 ### 7.3 CI/CD Pipeline
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         CI/CD Pipeline                                   │
-│                    (GitHub Actions / Cloud Build)                        │
+│                         (GitHub Actions)                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │   ┌─────┐    ┌──────┐    ┌──────┐    ┌─────────────┐    ┌───────┐      │
@@ -643,17 +647,15 @@ openapi/spec.yaml (source of truth)
 
 ---
 
-## 8. Event Processing (TBD)
+## 8. Event Processing
 
-**Decision pending** — see `docs/stack-comparison.md`
+**Cloud Pub/Sub** — GCP-native messaging for async event handling.
 
-### Options Under Consideration
-
-| Option | Description |
-|--------|-------------|
-| **river** | PostgreSQL-based job queue (simplest) |
-| **Pub/Sub + Cloud Tasks** | GCP-native messaging (most integrated) |
-| **RabbitMQ (CloudAMQP)** | Classic message broker (portable) |
+| Component | Purpose |
+|-----------|---------|
+| **Pub/Sub** | Event delivery (booking created, cancelled, etc.) |
+| **Cloud Tasks** | Delayed jobs (send reminder 24h before booking) |
+| **Cloud Scheduler** | Recurring jobs (daily cleanup, report generation) |
 
 ### Events to Handle
 
@@ -740,14 +742,14 @@ log.Info("booking.created",
 
 ---
 
-## 11. Pending Decisions
+## 11. Resolved Decisions
 
-| Decision | Options | Owner | Due |
-|----------|---------|-------|-----|
-| Database hosting | Neon vs Cloud SQL | TBD | Before development |
-| Event processing | river vs Pub/Sub vs RabbitMQ | TBD | Before development |
-
-See `docs/stack-comparison.md` for detailed comparison.
+| Decision | Choice | Date |
+|----------|--------|------|
+| Database hosting | Cloud SQL | 2026-04-01 |
+| Event processing | Cloud Pub/Sub | 2026-04-01 |
+| CI/CD | GitHub Actions | 2026-04-01 |
+| Environment strategy | Single GCP project with `-staging`/`-prod` suffix | 2026-04-01 |
 
 ---
 
@@ -791,13 +793,13 @@ See `docs/stack-comparison.md` for detailed comparison.
 
 ### ADR-004: Single Production Environment for MVP
 
-**Decision:** One GCP project, production only. No staging environment.
+**Decision:** One GCP project with both staging and production environments, separated by resource suffix.
 
-**Context:** Solo developer, MVP phase, limited budget.
+**Context:** Solo developer, MVP phase, limited budget, single GCP project constraint.
 
-**Rationale:** Reduces infrastructure cost and management overhead. Local development sufficient for testing.
+**Rationale:** Separate projects not available for MVP. Suffix-based separation (`-staging`, `-prod`) provides logical isolation within single project. Service accounts per environment enable IAM-based access control.
 
-**Consequences:** No staging for pre-production testing. Add staging project later when team grows.
+**Consequences:** Shared quotas and IAM scope. Requires discipline with naming conventions. May migrate to separate projects post-MVP.
 
 ---
 
@@ -819,7 +821,7 @@ See `docs/stack-comparison.md` for detailed comparison.
 |-----------------|--------------|
 | 99.95% uptime | Cloud Run (managed, auto-scaling, multi-AZ) |
 | < 100ms API response | In-memory caching, sqlc (optimized queries), Cloud SQL same-region |
-| Zero RPO for transactions | Cloud SQL HA or Neon (built-in replication) |
+| Zero RPO for transactions | Cloud SQL HA (built-in replication) |
 | GDPR compliance | EU region (europe-west3), encryption, audit logging |
 | Continuous deployment | CI/CD pipeline with automated deploys |
 | < 30 min RTO | Cloud Run auto-recovery, infrastructure as code |
@@ -833,17 +835,19 @@ See `docs/stack-comparison.md` for detailed comparison.
 | **Backend** | Go 1.22+, Gin |
 | **Frontend (Web)** | React 18+, TypeScript, Vite |
 | **Frontend (Mobile)** | React Native, Expo |
-| **Database** | PostgreSQL 15+ (Cloud SQL or Neon) |
+| **Database** | Cloud SQL (PostgreSQL 15+) |
 | **Migrations** | golang-migrate |
 | **Query Layer** | sqlc |
 | **API Spec** | OpenAPI 3.x |
 | **API Codegen** | oapi-codegen (Go), openapi-typescript (TS) |
-| **Caching** | ristretto (MVP), Redis (future) |
+| **Caching** | ristretto (in-memory), Cloud CDN (edge) |
+| **Events** | Cloud Pub/Sub |
+| **Scheduled Jobs** | Cloud Tasks, Cloud Scheduler |
 | **Email** | SendGrid |
 | **Payments** | Paysera Checkout v3 |
 | **Auth** | JWT, OAuth 2.0 (Google, Facebook, Paysera) |
-| **Cloud** | GCP (Cloud Run, Cloud SQL, Cloud Storage, Secret Manager) |
-| **CI/CD** | GitHub Actions or Cloud Build |
+| **Cloud** | GCP (Cloud Run, Cloud SQL, Cloud Storage, Secret Manager, Pub/Sub) |
+| **CI/CD** | GitHub Actions |
 | **Monitoring** | Cloud Monitoring, Cloud Logging, Cloud Trace |
 
 ---
@@ -881,4 +885,4 @@ volumes:
 
 ---
 
-*Generated from BRD, PRD, and NFR documents. Pending decisions documented in docs/stack-comparison.md.*
+*Generated from BRD, PRD, and NFR documents. All infrastructure decisions resolved (2026-04-01): GCP-native stack with GitHub Actions CI/CD.*
