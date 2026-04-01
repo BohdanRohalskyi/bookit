@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache-dependency-path: api/go.sum
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4
@@ -50,6 +51,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache-dependency-path: api/go.sum
 
       - name: Run tests
         working-directory: api
@@ -76,6 +78,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache-dependency-path: api/go.sum
 
       - name: Build binary
         working-directory: api
