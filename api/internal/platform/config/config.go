@@ -19,8 +19,9 @@ type Config struct {
 
 func Load() (*Config, error) {
 	// Load .env file in local environment only
+	// In staging/prod, env vars are injected by Cloud Run
 	if os.Getenv("ENVIRONMENT") == "" {
-		_ = godotenv.Load() // Ignore error if .env doesn't exist
+		_ = godotenv.Load() //nolint:errcheck // .env is optional, ignore if missing
 	}
 
 	cfg := &Config{
