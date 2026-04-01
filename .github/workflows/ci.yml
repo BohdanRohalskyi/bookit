@@ -144,14 +144,41 @@ jobs:
             --timeout=60s \
             --concurrency=80
 
+      - name: Run database migrations
+        run: |
+          # Install Cloud SQL Proxy
+          curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.3/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+
+          # Start proxy in background
+          ./cloud-sql-proxy ${{ secrets.GCP_PROJECT_ID }}:europe-west3:bookit-db --port 5432 &
+          sleep 5
+
+          # Install migrate tool
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xz
+
+          # Get database URL from secret and run migrations
+          DB_URL=$(gcloud secrets versions access latest --secret=bookit-database-url-${{ env.ENVIRONMENT }})
+
+          # Convert Cloud SQL socket URL to TCP for proxy
+          DB_NAME=$(echo $DB_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
+          DB_USER=$(echo $DB_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
+          DB_PASS=$(echo $DB_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
+
+          # Run migrations via proxy
+          ./migrate -path api/migrations -database "postgres://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=disable" up
+
+          echo "Migrations completed"
+
       - name: Verify deployment
         run: |
           URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.GCP_REGION }} --format='value(status.url)')
           echo "Service URL: $URL"
-          sleep 10
+          sleep 5
           HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/v1/health")
           if [[ "$HEALTH_STATUS" != "200" ]]; then
             echo "Health check failed with status $HEALTH_STATUS"
             exit 1
           fi
           echo "Health check passed"
+          echo "Deployed to: $URL"
