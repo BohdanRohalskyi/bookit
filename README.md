@@ -9,15 +9,25 @@ Bookit enables service providers to manage their businesses, locations, services
 **Target Market:** Lithuania (EU)
 **MVP Target:** June 30, 2026
 
+## Deployment Status
+
+| Resource | Status | Details |
+|----------|--------|---------|
+| **API** | ✅ Live | Cloud Run (`bookit-api-prod`) |
+| **Database** | ✅ Live | Cloud SQL PostgreSQL 15 |
+| **CI/CD** | ✅ Active | GitHub Actions → Cloud Run |
+| **Region** | `europe-west3` | Frankfurt, EU |
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Backend** | Go + Gin |
+| **Backend** | Go 1.24 + Gin |
 | **Frontend** | React + TypeScript + Vite |
 | **Mobile** | React Native + Expo |
-| **Database** | PostgreSQL (Cloud SQL or Neon) |
-| **Infrastructure** | GCP (Cloud Run, Cloud Storage, Secret Manager) |
+| **Database** | Cloud SQL (PostgreSQL 15) |
+| **Infrastructure** | GCP (Cloud Run, Cloud Storage, Secret Manager, Pub/Sub) |
+| **CI/CD** | GitHub Actions |
 | **Region** | europe-west3 (Frankfurt) |
 
 ## Project Structure
@@ -84,29 +94,42 @@ REST API with OpenAPI 3.0 specification at `api/openapi/spec.yaml`.
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.24+
 - Node.js 20+
-- PostgreSQL 15+
-- Docker (optional)
+- Docker and Docker Compose
 
-### Backend Setup
+### Quick Start (Docker)
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/bookit.git
+git clone https://github.com/BohdanRohalskyi/bookit.git
 cd bookit
 
-# Install Go dependencies
+# Start PostgreSQL + API (with auto-migrations)
+docker-compose up
+```
+
+API available at `http://localhost:8080/api/v1/health`
+
+### Manual Backend Setup
+
+```bash
+cd api
+
+# Install dependencies
 go mod download
 
-# Set up environment variables
+# Install dev tools
+make tools
+
+# Set up environment
 cp .env.example .env
 
-# Run database migrations
-go run cmd/migrate/main.go up
+# Start PostgreSQL
+docker-compose up db
 
-# Start the server
-go run cmd/api/main.go
+# Run the server
+make run
 ```
 
 ### Frontend Setup
@@ -190,6 +213,25 @@ npm run generate:types
 | Database | PostgreSQL | ACID compliance, GCP integration |
 | HTTP Client | Native fetch | Zero dependencies, no vulnerabilities |
 | State Management | Zustand + React Query | Lightweight, server state separation |
+
+## CI/CD Pipeline
+
+```
+Push to main → Lint → Test → Build → Deploy → Migrate → Verify
+```
+
+| Branch | Deploys to |
+|--------|------------|
+| `main` | `bookit-api-prod` (production) |
+| `develop` | `bookit-api-staging` (staging) |
+
+Pipeline automatically:
+- Runs linter and tests
+- Builds Docker image
+- Pushes to Artifact Registry
+- Deploys to Cloud Run
+- Runs database migrations
+- Verifies health check
 
 ## Non-Functional Targets
 

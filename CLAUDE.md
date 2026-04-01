@@ -7,17 +7,30 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 
 ## Project Status
 
+### Deployed Infrastructure (2026-04-01)
+
+| Resource | Status | URL/Name |
+|----------|--------|----------|
+| Cloud Run API | ✅ Running | `bookit-api-prod` |
+| Cloud SQL | ✅ Running | `bookit-db` |
+| Databases | ✅ Ready | `bookit_staging`, `bookit_prod` |
+| Artifact Registry | ✅ Ready | `europe-west3-docker.pkg.dev/pt-duo-bookit/bookit` |
+| Secret Manager | ✅ Configured | DB URLs, JWT secrets |
+| CI/CD Pipeline | ✅ Active | Lint → Test → Build → Deploy → Migrate |
+
 ### Completed Deliverables
-- `api/openapi/spec.yaml` — 27 endpoints, 50 schemas (OpenAPI 3.0.3)
+- `api/openapi/spec.yaml` — 29 endpoints, 50+ schemas (OpenAPI 3.0.3)
 - `docs/BACKEND-SPEC-Bookit-20260331.md` — Go implementation spec
 - `docs/FRONTEND-SPEC-Bookit-20260331.md` — React implementation spec
-- `README.md` — Updated with full documentation
+- `api/` — Go backend foundation (Gin, health endpoint, config, database)
+- `.github/workflows/ci.yml` — Full CI/CD pipeline with auto-migrations
+- `docker-compose.yml` — Local development environment
 
 ### Next Implementation Phases
-1. Set up Go backend project structure with oapi-codegen
-2. Set up React frontend with Vite + TypeScript
-3. Generate types from OpenAPI spec on both sides
-4. Implement auth flow first (foundation for everything else)
+1. ~~Set up Go backend project structure with oapi-codegen~~ ✅ Done
+2. Generate API types from OpenAPI spec (`make generate`)
+3. Implement auth endpoints (register, login, refresh, OAuth)
+4. Set up React frontend with Vite + TypeScript
 5. Build domain by domain following the workflow order in the specs
 
 ## Tech Stack
