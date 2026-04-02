@@ -31,10 +31,16 @@ jobs:
         working-directory: web
         run: npm ci
 
+      - name: Set environment variables
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> $GITHUB_ENV
+          else
+            echo "VITE_API_URL=${{ secrets.VITE_API_URL_STAGING }}" >> $GITHUB_ENV
+          fi
+
       - name: Build
         working-directory: web
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: npm run build
 
       - name: Upload build artifact
@@ -47,7 +53,6 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +63,14 @@ jobs:
           name: web-dist
           path: web/dist
 
+      - name: Set deploy target
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "DEPLOY_TARGET=prod" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_TARGET=staging" >> $GITHUB_ENV
+          fi
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -65,4 +78,5 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: pt-duo-bookit
+          target: ${{ env.DEPLOY_TARGET }}
           entryPoint: web
