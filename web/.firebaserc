@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "pt-duo-bookit"
+  },
+  "targets": {
+    "pt-duo-bookit": {
+      "hosting": {
+        "prod": ["pt-duo-bookit"],
+        "staging": ["bookit-staging"]
+      }
+    }
   }
 }
