@@ -2,16 +2,16 @@ name: CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'api/**'
-      - '.github/workflows/**'
+      - '.github/workflows/ci.yml'
       - 'docker-compose.yml'
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'api/**'
-      - '.github/workflows/**'
+      - '.github/workflows/ci.yml'
       - 'docker-compose.yml'
 
 jobs:
@@ -99,7 +99,6 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
 
     env:
       GCP_REGION: europe-west3
@@ -110,7 +109,7 @@ jobs:
 
       - name: Set environment variables
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          if [[ "${{ github.event_name }}" == "push" ]]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
             echo "SERVICE_NAME=bookit-api-prod" >> $GITHUB_ENV
           else
