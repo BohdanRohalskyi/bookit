@@ -12,6 +12,11 @@ on:
       - 'web/**'
       - '.github/workflows/web.yml'
 
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     name: Build
