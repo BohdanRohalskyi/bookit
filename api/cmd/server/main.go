@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -52,6 +53,7 @@ func run() error {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(corsMiddleware())
 
 	// Health endpoint
 	router.GET("/api/v1/health", healthHandler(db))
@@ -90,6 +92,46 @@ func run() error {
 
 	log.Println("server stopped")
 	return nil
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+
+		// Allow localhost for development and Firebase hosting for production
+		allowedOrigins := []string{
+			"http://localhost:5173",
+			"http://localhost:3000",
+		}
+
+		// Also allow any Firebase hosting URL
+		allowed := false
+		for _, o := range allowedOrigins {
+			if origin == o {
+				allowed = true
+				break
+			}
+		}
+		// Allow Firebase hosting domains
+		if !allowed && len(origin) > 0 &&
+			(strings.HasSuffix(origin, ".web.app") || strings.HasSuffix(origin, ".firebaseapp.com")) {
+			allowed = true
+		}
+
+		if allowed {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		}
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	}
 }
 
 type HealthResponse struct {
