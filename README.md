@@ -11,11 +11,12 @@ Bookit enables service providers to manage their businesses, locations, services
 
 ## Deployment Status
 
-| Resource | Status | Details |
-|----------|--------|---------|
+| Resource | Status | URL/Details |
+|----------|--------|-------------|
+| **Frontend** | ✅ Live | https://pt-duo-bookit.web.app |
 | **API** | ✅ Live | Cloud Run (`bookit-api-prod`) |
 | **Database** | ✅ Live | Cloud SQL PostgreSQL 15 |
-| **CI/CD** | ✅ Active | GitHub Actions → Cloud Run |
+| **CI/CD** | ✅ Active | GitHub Actions → Cloud Run + Firebase |
 | **Region** | `europe-west3` | Frankfurt, EU |
 
 ## Tech Stack

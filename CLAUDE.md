@@ -7,36 +7,39 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 
 ## Project Status
 
-### Deployed Infrastructure (2026-04-01)
+### Deployed Infrastructure (2026-04-02)
 
 | Resource | Status | URL/Name |
 |----------|--------|----------|
+| Frontend | ✅ Running | https://pt-duo-bookit.web.app |
 | Cloud Run API | ✅ Running | `bookit-api-prod` |
 | Cloud SQL | ✅ Running | `bookit-db` |
 | Databases | ✅ Ready | `bookit_staging`, `bookit_prod` |
 | Artifact Registry | ✅ Ready | `europe-west3-docker.pkg.dev/pt-duo-bookit/bookit` |
-| Secret Manager | ✅ Configured | DB URLs, JWT secrets |
-| CI/CD Pipeline | ✅ Active | Lint → Test → Build → Deploy → Migrate |
+| Secret Manager | ✅ Configured | DB URLs, JWT secrets, VITE_API_URL |
+| CI/CD Pipeline | ✅ Active | API + Web workflows |
 
 ### Completed Deliverables
 - `api/openapi/spec.yaml` — 29 endpoints, 50+ schemas (OpenAPI 3.0.3)
 - `docs/BACKEND-SPEC-Bookit-20260331.md` — Go implementation spec
 - `docs/FRONTEND-SPEC-Bookit-20260331.md` — React implementation spec
-- `api/` — Go backend foundation (Gin, health endpoint, config, database)
-- `.github/workflows/ci.yml` — Full CI/CD pipeline with auto-migrations
+- `api/` — Go backend foundation (Gin, health endpoint, config, database, CORS)
+- `web/` — React frontend foundation (Vite, health check, Firebase Hosting)
+- `.github/workflows/ci.yml` — API CI/CD pipeline
+- `.github/workflows/web.yml` — Frontend CI/CD pipeline
 - `docker-compose.yml` — Local development environment
 
 ### Next Implementation Phases
 1. ~~Set up Go backend project structure~~ ✅ Done (2026-04-01)
-2. **Set up React frontend foundation** ← NEXT SESSION
-   - Vite + TypeScript + React 18
+2. ~~Set up React frontend foundation~~ ✅ Done (2026-04-02)
+3. **Expand frontend setup** ← NEXT
    - shadcn/ui components
    - TanStack Query + Zustand
    - openapi-fetch for API client
    - Generate types from OpenAPI spec
-3. Generate backend API types (`cd api && make generate`)
-4. Implement auth endpoints (register, login, refresh, OAuth)
-5. Build domain by domain following the workflow order in the specs
+4. Generate backend API types (`cd api && make generate`)
+5. Implement auth endpoints (register, login, refresh, OAuth)
+6. Build domain by domain following the workflow order in the specs
 
 ## Tech Stack
 
