@@ -9,15 +9,30 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 
 ### Deployed Infrastructure (2026-04-02)
 
-| Resource | Status | URL/Name |
-|----------|--------|----------|
-| Frontend | ✅ Running | https://pt-duo-bookit.web.app |
-| Cloud Run API | ✅ Running | `bookit-api-prod` |
-| Cloud SQL | ✅ Running | `bookit-db` |
-| Databases | ✅ Ready | `bookit_staging`, `bookit_prod` |
-| Artifact Registry | ✅ Ready | `europe-west3-docker.pkg.dev/pt-duo-bookit/bookit` |
-| Secret Manager | ✅ Configured | DB URLs, JWT secrets, VITE_API_URL |
-| CI/CD Pipeline | ✅ Active | API + Web workflows |
+| Resource | Production | Staging |
+|----------|------------|---------|
+| Frontend | https://pt-duo-bookit.web.app | https://bookit-staging.web.app |
+| API | https://bookit-api-prod-898535472060.europe-west3.run.app | https://bookit-api-staging-898535472060.europe-west3.run.app |
+| Database | `bookit_prod` | `bookit_staging` |
+
+| Resource | Status |
+|----------|--------|
+| Cloud SQL | ✅ Running (`bookit-db`) |
+| Artifact Registry | ✅ Ready (`europe-west3-docker.pkg.dev/pt-duo-bookit/bookit`) |
+| Secret Manager | ✅ Configured (DB URLs, JWT secrets, VITE_API_URL) |
+
+### Git Flow
+
+| Event | API Deploys To | Web Deploys To |
+|-------|----------------|----------------|
+| PR to main | `bookit-api-staging` | `bookit-staging.web.app` |
+| Merge to main | `bookit-api-prod` | `pt-duo-bookit.web.app` |
+
+**Workflow:**
+1. Create feature branch from `main`
+2. Open PR to `main` → auto-deploys to staging
+3. Test on staging URLs
+4. Merge PR → auto-deploys to production
 
 ### Completed Deliverables
 - `api/openapi/spec.yaml` — 29 endpoints, 50+ schemas (OpenAPI 3.0.3)

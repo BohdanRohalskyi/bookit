@@ -11,13 +11,16 @@ Bookit enables service providers to manage their businesses, locations, services
 
 ## Deployment Status
 
-| Resource | Status | URL/Details |
-|----------|--------|-------------|
-| **Frontend** | ✅ Live | https://pt-duo-bookit.web.app |
-| **API** | ✅ Live | Cloud Run (`bookit-api-prod`) |
-| **Database** | ✅ Live | Cloud SQL PostgreSQL 15 |
-| **CI/CD** | ✅ Active | GitHub Actions → Cloud Run + Firebase |
-| **Region** | `europe-west3` | Frankfurt, EU |
+| Environment | Frontend | API |
+|-------------|----------|-----|
+| **Production** | https://pt-duo-bookit.web.app | https://bookit-api-prod-898535472060.europe-west3.run.app |
+| **Staging** | https://bookit-staging.web.app | https://bookit-api-staging-898535472060.europe-west3.run.app |
+
+| Resource | Status |
+|----------|--------|
+| **Database** | ✅ Cloud SQL PostgreSQL 15 (`bookit_prod`, `bookit_staging`) |
+| **CI/CD** | ✅ GitHub Actions → Cloud Run + Firebase |
+| **Region** | `europe-west3` (Frankfurt, EU) |
 
 ## Tech Stack
 
@@ -217,20 +220,29 @@ npm run generate:types
 
 ## CI/CD Pipeline
 
+### Git Flow
+
+| Event | API Deploys To | Web Deploys To |
+|-------|----------------|----------------|
+| PR to `main` | Staging | Staging |
+| Merge to `main` | Production | Production |
+
+**Workflow:**
+1. Create feature branch from `main`
+2. Open PR to `main` → auto-deploys to staging
+3. Test on staging URLs
+4. Merge PR → auto-deploys to production
+
+### Pipeline Steps
+
 ```
-Push to main → Lint → Test → Build → Deploy → Migrate → Verify
+Lint → Test → Build → Deploy → Migrate → Verify Health
 ```
 
-| Branch | Deploys to |
-|--------|------------|
-| `main` | `bookit-api-prod` (production) |
-| `develop` | `bookit-api-staging` (staging) |
-
-Pipeline automatically:
 - Runs linter and tests
 - Builds Docker image
 - Pushes to Artifact Registry
-- Deploys to Cloud Run
+- Deploys to Cloud Run / Firebase Hosting
 - Runs database migrations
 - Verifies health check
 
