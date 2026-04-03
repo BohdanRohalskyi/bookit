@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,13 +16,15 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/config"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
+	"github.com/BohdanRohalskyi/bookit/api/internal/platform/logger"
 )
 
 var version = "1.0.1"
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalf("error: %v", err)
+		slog.Error("fatal error", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -36,6 +38,10 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
+	// Initialize structured logger
+	log := logger.New(cfg.Environment)
+	slog.SetDefault(log)
+
 	// Set Gin mode based on environment
 	if cfg.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
@@ -48,7 +54,7 @@ func run() error {
 	}
 	defer db.Close()
 
-	log.Printf("connected to database")
+	log.Info("connected to database")
 
 	// Initialize feature flags
 	var flagService *flags.Service
@@ -56,15 +62,15 @@ func run() error {
 		var err error
 		flagService, err = flags.NewService(ctx, cfg.GCPProject, cfg.Environment)
 		if err != nil {
-			log.Printf("warning: feature flags unavailable: %v", err)
+			log.Warn("feature flags unavailable", "error", err)
 		} else {
-			log.Printf("feature flags initialized (staging=%v)", cfg.Environment == "staging")
+			log.Info("feature flags initialized", "staging", cfg.Environment == "staging")
 		}
 	}
 
 	// Setup router
 	router := gin.New()
-	router.Use(gin.Logger())
+	router.Use(logger.Middleware(log))
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware())
 
@@ -88,9 +94,10 @@ func run() error {
 
 	// Start server in goroutine
 	go func() {
-		log.Printf("starting server on port %d (environment: %s)", cfg.APIPort, cfg.Environment)
+		log.Info("starting server", "port", cfg.APIPort, "environment", cfg.Environment, "version", version)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
+			log.Error("server failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -99,7 +106,7 @@ func run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("shutting down server...")
+	log.Info("shutting down server")
 
 	// Graceful shutdown with 30s timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -109,7 +116,7 @@ func run() error {
 		return fmt.Errorf("server shutdown: %w", err)
 	}
 
-	log.Println("server stopped")
+	log.Info("server stopped")
 	return nil
 }
 
