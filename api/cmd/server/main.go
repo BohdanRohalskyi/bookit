@@ -74,6 +74,9 @@ func run() error {
 	// Feature flags endpoint
 	router.GET("/api/v1/flags", flagsHandler(flagService))
 
+	// Feature test endpoint - demonstrates server-side flag usage
+	router.GET("/api/v1/feature-test", featureTestHandler(flagService))
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.APIPort),
@@ -188,5 +191,25 @@ func flagsHandler(flagService *flags.Service) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, flagService.GetAll(c.Request.Context()))
+	}
+}
+
+func featureTestHandler(flagService *flags.Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if flagService == nil {
+			c.JSON(http.StatusOK, gin.H{"message": "FEATURE FLAGS UNAVAILABLE"})
+			return
+		}
+
+		enabled := flagService.IsEnabled(c.Request.Context(), "feature_api_test")
+
+		var message string
+		if enabled {
+			message = "BACKEND FEATURE IS ON"
+		} else {
+			message = "BACKEND FEATURE IS OFF"
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": message})
 	}
 }

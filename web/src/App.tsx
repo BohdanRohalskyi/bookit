@@ -17,6 +17,7 @@ function App() {
   const [status, setStatus] = useState<Status>('loading')
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [apiFeature, setApiFeature] = useState<string>('Loading...')
   const { enabled: testFlag, loading: flagLoading } = useFeatureFlag('feature_test')
 
   const checkHealth = useCallback(async () => {
@@ -43,12 +44,21 @@ function App() {
     return () => clearInterval(interval)
   }, [checkHealth])
 
+  // Fetch backend feature flag status
+  useEffect(() => {
+    fetch(`${API_URL}/api/v1/feature-test`)
+      .then(res => res.json())
+      .then(data => setApiFeature(data.message))
+      .catch(() => setApiFeature('Error'))
+  }, [])
+
   return (
     <div className="app">
       <h1>Bookit</h1>
 
       <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '1rem' }}>
-        Feature Test: {flagLoading ? '...' : testFlag ? 'ON' : 'OFF'}
+        <div>Client Feature: {flagLoading ? '...' : testFlag ? 'ON' : 'OFF'}</div>
+        <div>Backend Feature: {apiFeature}</div>
       </div>
 
       <div className={`status-card ${status}`}>
