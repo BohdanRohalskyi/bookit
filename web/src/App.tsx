@@ -45,12 +45,21 @@ function App() {
   }, [checkHealth])
 
   // Fetch backend feature flag status
-  useEffect(() => {
-    fetch(`${API_URL}/api/v1/feature-test`)
-      .then(res => res.json())
-      .then(data => setApiFeature(data.message))
-      .catch(() => setApiFeature('Error'))
+  const fetchApiFeature = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/feature-test`)
+      const data = await res.json()
+      setApiFeature(data.message)
+    } catch {
+      setApiFeature('Error')
+    }
   }, [])
+
+  useEffect(() => {
+    fetchApiFeature()
+    const interval = setInterval(fetchApiFeature, 30000)
+    return () => clearInterval(interval)
+  }, [fetchApiFeature])
 
   return (
     <div className="app">
@@ -59,6 +68,12 @@ function App() {
       <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '1rem' }}>
         <div>Client Feature: {flagLoading ? '...' : testFlag ? 'ON' : 'OFF'}</div>
         <div>Backend Feature: {apiFeature}</div>
+        <button
+          onClick={fetchApiFeature}
+          style={{ fontSize: '0.7rem', marginTop: '0.25rem', cursor: 'pointer' }}
+        >
+          Refresh
+        </button>
       </div>
 
       <div className={`status-card ${status}`}>
