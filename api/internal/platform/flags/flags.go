@@ -24,11 +24,6 @@ type Service struct {
 	cacheTTL  time.Duration
 }
 
-// serverTemplate represents the Server Remote Config template response.
-type serverTemplate struct {
-	Parameters map[string]Parameter `json:"parameters"`
-}
-
 // Parameter represents a single Remote Config parameter.
 type Parameter struct {
 	DefaultValue ParameterValue `json:"defaultValue"`
