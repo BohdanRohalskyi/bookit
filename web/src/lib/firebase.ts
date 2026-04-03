@@ -11,9 +11,9 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const remoteConfig = getRemoteConfig(app);
 
-// 1 hour cache in prod, 1 minute in dev
+// 5 minutes cache in prod, 1 minute in dev
 remoteConfig.settings.minimumFetchIntervalMillis =
-  import.meta.env.PROD ? 3600000 : 60000;
+  import.meta.env.PROD ? 300000 : 60000;
 
 // Defaults (used before first fetch)
 remoteConfig.defaultConfig = {
