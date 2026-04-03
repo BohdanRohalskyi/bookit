@@ -79,7 +79,10 @@ func (s *Service) refresh(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("unexpected status %d (failed to read body: %v)", resp.StatusCode, err)
+		}
 		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
 	}
 
