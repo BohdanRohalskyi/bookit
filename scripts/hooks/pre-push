@@ -17,7 +17,9 @@ if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^api/" || [ "$1" = "-
         echo "golangci-lint not installed, running go vet..."
         go vet ./...
     fi
-    go build ./...
+    echo ""
+    echo "=== Testing API ==="
+    go test ./...
     echo "API checks passed"
 fi
 
