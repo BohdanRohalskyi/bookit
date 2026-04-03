@@ -40,7 +40,7 @@ func NewService(ctx context.Context, projectID string) (*Service, error) {
 
 	svc := &Service{
 		template: template,
-		cacheTTL: 1 * time.Minute,
+		cacheTTL: 0, // No cache - fetch fresh values on every request
 	}
 
 	// Load initial values
