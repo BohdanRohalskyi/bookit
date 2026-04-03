@@ -2,81 +2,116 @@ package flags
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 
-	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/remoteconfig"
+	"golang.org/x/oauth2/google"
 )
 
 // Service provides feature flag functionality using Firebase Remote Config.
+// Uses the Server-side Remote Config API.
 type Service struct {
-	template  *remoteconfig.ServerTemplate
+	projectID string
+	client    *http.Client
+	flags     map[string]Parameter
 	mu        sync.RWMutex
 	lastFetch time.Time
 	cacheTTL  time.Duration
 }
 
+// serverTemplate represents the Server Remote Config template response.
+type serverTemplate struct {
+	Parameters map[string]Parameter `json:"parameters"`
+}
+
+// Parameter represents a single Remote Config parameter.
+type Parameter struct {
+	DefaultValue ParameterValue `json:"defaultValue"`
+	ValueType    string         `json:"valueType"`
+}
+
+// ParameterValue represents a parameter's value.
+type ParameterValue struct {
+	Value string `json:"value"`
+}
+
 // NewService creates a new feature flag service.
 func NewService(ctx context.Context, projectID string) (*Service, error) {
-	app, err := firebase.NewApp(ctx, &firebase.Config{
-		ProjectID: projectID,
-	})
+	// Create HTTP client with default credentials
+	client, err := google.DefaultClient(ctx, "https://www.googleapis.com/auth/cloud-platform")
 	if err != nil {
-		return nil, err
-	}
-
-	client, err := app.RemoteConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create server template with defaults
-	template, err := client.GetServerTemplate(ctx, map[string]any{
-		"feature_test":     false,
-		"feature_api_test": false,
-	})
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create http client: %w", err)
 	}
 
 	svc := &Service{
-		template: template,
-		cacheTTL: 5 * time.Minute,
+		projectID: projectID,
+		client:    client,
+		flags:     make(map[string]Parameter),
+		cacheTTL:  5 * time.Minute,
 	}
 
-	// Load initial values from Firebase
+	// Load initial flags
 	if err := svc.refresh(ctx); err != nil {
-		log.Printf("warning: failed to fetch initial flags: %v", err)
+		return nil, fmt.Errorf("fetch initial flags: %w", err)
 	}
 
 	return svc, nil
 }
 
 func (s *Service) refresh(ctx context.Context) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// Fetch server-side Remote Config template
+	url := fmt.Sprintf("https://firebaseremoteconfig.googleapis.com/v1/projects/%s/remoteConfig:downloadDefaults?format=JSON", s.projectID)
 
-	if err := s.template.Load(ctx); err != nil {
-		return err
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
 	}
-	s.lastFetch = time.Now()
+	req.Header.Set("x-goog-user-project", s.projectID)
 
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("fetch remote config: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("unexpected status %d (failed to read body: %v)", resp.StatusCode, err)
+		}
+		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse as simple key-value map (downloadDefaults returns flat JSON)
+	var defaults map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&defaults); err != nil {
+		return fmt.Errorf("decode response: %w", err)
+	}
+
+	// Convert to our internal format
+	flags := make(map[string]Parameter)
+	for name, value := range defaults {
+		flags[name] = Parameter{
+			DefaultValue: ParameterValue{Value: value},
+			ValueType:    "STRING", // downloadDefaults returns strings
+		}
+	}
+
+	s.mu.Lock()
+	s.flags = flags
+	s.lastFetch = time.Now()
+	s.mu.Unlock()
+
+	log.Printf("loaded %d server-side feature flags", len(flags))
 	return nil
 }
 
-func (s *Service) getConfig() *remoteconfig.ServerConfig {
-	config, err := s.template.Evaluate(nil)
-	if err != nil {
-		log.Printf("warning: failed to evaluate config: %v", err)
-		return nil
-	}
-	return config
-}
-
-// IsEnabled returns whether a boolean feature flag is enabled.
-func (s *Service) IsEnabled(ctx context.Context, name string) bool {
+func (s *Service) maybeRefresh(ctx context.Context) {
 	s.mu.RLock()
 	needsRefresh := time.Since(s.lastFetch) > s.cacheTTL
 	s.mu.RUnlock()
@@ -90,16 +125,21 @@ func (s *Service) IsEnabled(ctx context.Context, name string) bool {
 			}
 		}()
 	}
+}
+
+// IsEnabled returns whether a boolean feature flag is enabled.
+func (s *Service) IsEnabled(ctx context.Context, name string) bool {
+	s.maybeRefresh(ctx)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	config := s.getConfig()
-	if config == nil {
+	param, ok := s.flags[name]
+	if !ok {
 		return false
 	}
 
-	return config.GetBoolean(name)
+	return param.DefaultValue.Value == "true"
 }
 
 // GetString returns the string value of a feature flag.
@@ -107,29 +147,32 @@ func (s *Service) GetString(ctx context.Context, name string) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	config := s.getConfig()
-	if config == nil {
+	param, ok := s.flags[name]
+	if !ok {
 		return ""
 	}
 
-	return config.GetString(name)
+	return param.DefaultValue.Value
 }
 
 // GetAll returns all feature flags as a map.
 func (s *Service) GetAll(ctx context.Context) map[string]interface{} {
+	s.maybeRefresh(ctx)
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	result := make(map[string]interface{})
-	config := s.getConfig()
-	if config == nil {
-		return result
-	}
-
-	// Known server-side flags
-	knownFlags := []string{"feature_test", "feature_api_test"}
-	for _, name := range knownFlags {
-		result[name] = config.GetBoolean(name)
+	for name, param := range s.flags {
+		value := param.DefaultValue.Value
+		// Try to interpret as boolean
+		if value == "true" {
+			result[name] = true
+		} else if value == "false" {
+			result[name] = false
+		} else {
+			result[name] = value
+		}
 	}
 
 	return result
