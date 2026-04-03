@@ -50,17 +50,10 @@ func run() error {
 
 	log.Printf("connected to database")
 
-	// Initialize feature flags (optional - don't fail if unavailable)
+	// Feature flags - disabled for now, frontend uses client-side Firebase SDK
+	// TODO: Re-enable when server-side Remote Config is configured
 	var flagService *flags.Service
-	if cfg.GCPProject != "" {
-		var err error
-		flagService, err = flags.NewService(ctx, cfg.GCPProject)
-		if err != nil {
-			log.Printf("warning: feature flags unavailable: %v", err)
-		} else {
-			log.Printf("feature flags initialized")
-		}
-	}
+	_ = flagService // suppress unused warning
 
 	// Setup router
 	router := gin.New()
