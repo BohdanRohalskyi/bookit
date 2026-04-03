@@ -1,4 +1,5 @@
-name: Web Deploy
+name: Web
+run-name: "Web - ${{ github.event_name == 'push' && 'Production' || 'Staging' }}"
 
 on:
   push:
