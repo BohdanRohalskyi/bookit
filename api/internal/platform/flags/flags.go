@@ -16,10 +16,12 @@ type Service struct {
 	mu        sync.RWMutex
 	lastFetch time.Time
 	cacheTTL  time.Duration
+	isStaging bool
 }
 
 // NewService creates a new feature flag service using the proper Firebase Admin SDK.
-func NewService(ctx context.Context, projectID string) (*Service, error) {
+// On staging environment, all flags return true.
+func NewService(ctx context.Context, projectID string, environment string) (*Service, error) {
 	app, err := firebase.NewApp(ctx, &firebase.Config{
 		ProjectID: projectID,
 	})
@@ -39,8 +41,9 @@ func NewService(ctx context.Context, projectID string) (*Service, error) {
 	}
 
 	svc := &Service{
-		template: template,
-		cacheTTL: 0, // No cache - fetch fresh values on every request
+		template:  template,
+		cacheTTL:  0, // No cache - fetch fresh values on every request
+		isStaging: environment == "staging",
 	}
 
 	// Load initial values
@@ -88,7 +91,12 @@ func (s *Service) getConfig() *remoteconfig.ServerConfig {
 }
 
 // IsEnabled returns whether a boolean feature flag is enabled.
+// On staging, all flags return true.
 func (s *Service) IsEnabled(ctx context.Context, name string) bool {
+	if s.isStaging {
+		return true
+	}
+
 	s.maybeRefresh(ctx)
 
 	s.mu.RLock()

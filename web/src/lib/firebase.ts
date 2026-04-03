@@ -11,6 +11,9 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const remoteConfig = getRemoteConfig(app);
 
+// Check if running on staging
+const isStaging = import.meta.env.VITE_API_URL?.includes('staging') ?? false;
+
 // No cache - fetch fresh values on every request
 remoteConfig.settings.minimumFetchIntervalMillis = 0;
 
@@ -32,6 +35,8 @@ export async function initFeatureFlags(): Promise<void> {
 }
 
 export function isFeatureEnabled(name: string): boolean {
+  // All flags enabled on staging
+  if (isStaging) return true;
   return getBoolean(remoteConfig, name);
 }
 

@@ -54,11 +54,11 @@ func run() error {
 	var flagService *flags.Service
 	if cfg.GCPProject != "" {
 		var err error
-		flagService, err = flags.NewService(ctx, cfg.GCPProject)
+		flagService, err = flags.NewService(ctx, cfg.GCPProject, cfg.Environment)
 		if err != nil {
 			log.Printf("warning: feature flags unavailable: %v", err)
 		} else {
-			log.Printf("feature flags initialized")
+			log.Printf("feature flags initialized (staging=%v)", cfg.Environment == "staging")
 		}
 	}
 
