@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+echo "Running pre-push checks..."
+
+# Check if there are changes in api/
+if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^api/" || [ "$1" = "--force" ]; then
+    echo ""
+    echo "=== Linting API (Go) ==="
+    cd "$ROOT_DIR/api"
+    if command -v golangci-lint &> /dev/null; then
+        golangci-lint run ./...
+    else
+        echo "golangci-lint not installed, running go vet..."
+        go vet ./...
+    fi
+    go build ./...
+    echo "API checks passed"
+fi
+
+# Check if there are changes in web/
+if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^web/" || [ "$1" = "--force" ]; then
+    echo ""
+    echo "=== Linting Web (TypeScript) ==="
+    cd "$ROOT_DIR/web"
+    npm run typecheck
+    npm run lint
+    echo "Web checks passed"
+fi
+
+echo ""
+echo "All pre-push checks passed!"
