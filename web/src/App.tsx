@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import './App.css'
+import { useFeatureFlag } from './hooks/useFeatureFlag'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
@@ -16,6 +17,7 @@ function App() {
   const [status, setStatus] = useState<Status>('loading')
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { enabled: testFlag, loading: flagLoading } = useFeatureFlag('feature_test')
 
   const checkHealth = useCallback(async () => {
     setStatus('loading')
@@ -44,6 +46,10 @@ function App() {
   return (
     <div className="app">
       <h1>Bookit</h1>
+
+      <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '1rem' }}>
+        Feature Test: {flagLoading ? '...' : testFlag ? 'ON' : 'OFF'}
+      </div>
 
       <div className={`status-card ${status}`}>
         <div className="status-indicator">

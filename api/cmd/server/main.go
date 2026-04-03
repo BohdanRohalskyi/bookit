@@ -15,6 +15,7 @@ import (
 
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/config"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
+	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
 )
 
 var version = "1.0.0"
@@ -49,6 +50,18 @@ func run() error {
 
 	log.Printf("connected to database")
 
+	// Initialize feature flags (optional - don't fail if unavailable)
+	var flagService *flags.Service
+	if cfg.GCPProject != "" {
+		var err error
+		flagService, err = flags.NewService(ctx, cfg.GCPProject)
+		if err != nil {
+			log.Printf("warning: feature flags unavailable: %v", err)
+		} else {
+			log.Printf("feature flags initialized")
+		}
+	}
+
 	// Setup router
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -57,6 +70,9 @@ func run() error {
 
 	// Health endpoint
 	router.GET("/api/v1/health", healthHandler(db))
+
+	// Feature flags endpoint
+	router.GET("/api/v1/flags", flagsHandler(flagService))
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -162,5 +178,18 @@ func healthHandler(db *database.DB) gin.HandlerFunc {
 		response.Status = "healthy"
 		response.Checks["database"] = "ok"
 		c.JSON(http.StatusOK, response)
+	}
+}
+
+func flagsHandler(flagService *flags.Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if flagService == nil {
+			c.JSON(http.StatusOK, gin.H{})
+			return
+		}
+
+		ctx := c.Request.Context()
+		allFlags := flagService.GetAll(ctx)
+		c.JSON(http.StatusOK, allFlags)
 	}
 }

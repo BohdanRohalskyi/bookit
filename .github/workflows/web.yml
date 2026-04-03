@@ -43,6 +43,8 @@ jobs:
           else
             echo "VITE_API_URL=${{ secrets.VITE_API_URL_STAGING }}" >> $GITHUB_ENV
           fi
+          echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> $GITHUB_ENV
+          echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> $GITHUB_ENV
 
       - name: Build
         working-directory: web
