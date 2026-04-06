@@ -1,5 +1,6 @@
 # Claude Code
-.claude/
+.claude/*
+!.claude/skills/
 
 # Environment files
 .env
@@ -30,3 +31,6 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# Documentation with secrets
+docs/documentation.md
