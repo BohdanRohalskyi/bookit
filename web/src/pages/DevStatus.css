@@ -1,4 +1,4 @@
-.app {
+.dev-status {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -7,17 +7,25 @@
   padding: 20px;
 }
 
-h1 {
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
+.back-link {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
 
 .status-card {
-  background: #1a1a1a;
+  background: var(--code-bg);
   border-radius: 12px;
   padding: 24px 32px;
   min-width: 300px;
-  border: 2px solid #333;
+  border: 2px solid var(--border);
 }
 
 .status-card.connected {
@@ -68,25 +76,26 @@ h1 {
 .status-text {
   font-size: 1.25rem;
   font-weight: 600;
+  color: var(--text-h);
 }
 
 .api-url {
-  color: #888;
+  color: var(--text);
   font-size: 0.875rem;
-  font-family: monospace;
+  font-family: var(--mono);
   margin-bottom: 12px;
 }
 
 .health-info, .error-info {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border);
 }
 
 .health-info p, .error-info p {
   margin: 4px 0;
   font-size: 0.875rem;
-  color: #aaa;
+  color: var(--text);
 }
 
 .error-info p {
@@ -96,17 +105,17 @@ h1 {
 .refresh-btn {
   margin-top: 16px;
   padding: 8px 16px;
-  background: #333;
-  border: 1px solid #555;
+  background: var(--border);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-h);
   font-size: 0.875rem;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #444;
+  background: var(--accent-bg);
 }
 
 .refresh-btn:disabled {
