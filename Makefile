@@ -1,28 +1,32 @@
-.PHONY: dev dev-all api web web-biz mailpit install test lint build typecheck clean migrate migrate-down
+.PHONY: dev dev-all up down web web-biz logs install test lint build typecheck clean migrate migrate-down migrate-reset migrate-create
 
-# Start API and consumer web (default dev workflow)
+# Start everything: backend (Docker) + consumer frontend
 dev:
-	@make -j2 api web
+	@make -j2 up web
 
-# Start API + consumer + biz (all services)
+# Start everything: backend (Docker) + consumer + biz frontends
 dev-all:
-	@make -j3 api web web-biz
+	@make -j3 up web web-biz
 
-# Start Mailpit for local email testing (http://localhost:8025)
-mailpit:
-	docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit:latest || docker start mailpit
+# Start backend stack (API + DB + Mailpit)
+up:
+	docker compose up
 
-# Start API server
-api:
-	cd api && go run ./cmd/server
+# Stop backend stack
+down:
+	docker compose down
 
 # Start consumer web dev server (port 5173)
 web:
-	cd web/packages/consumer && npx vite --port 5173
+	cd web && npm run dev
 
 # Start biz web dev server (port 5174)
 web-biz:
-	cd web/packages/biz && npx vite --port 5174
+	cd web && npm run dev:biz
+
+# View backend logs
+logs:
+	docker compose logs -f api
 
 # Install dependencies
 install:
@@ -40,22 +44,30 @@ lint:
 
 # Build for production
 build:
-	cd api && make build
+	docker compose build api
 	cd web && npm run build
 
 # Typecheck
 typecheck:
 	cd web && npm run typecheck
 
-# Run database migrations
-migrate:
-	migrate -path api/migrations -database "postgres://bookit:bookit@localhost:5432/bookit?sslmode=disable" up
-
-# Rollback last migration
-migrate-down:
-	migrate -path api/migrations -database "postgres://bookit:bookit@localhost:5432/bookit?sslmode=disable" down 1
-
 # Clean build artifacts
 clean:
 	cd api && make clean
 	cd web && rm -rf packages/consumer/dist packages/biz/dist
+
+# Run database migrations (requires migrate CLI)
+migrate:
+	migrate -path api/migrations -database "postgres://bookit:bookit@localhost:5432/bookit?sslmode=disable" up
+
+# Rollback migrations: make migrate-down n=1 (default: 1)
+migrate-down:
+	migrate -path api/migrations -database "postgres://bookit:bookit@localhost:5432/bookit?sslmode=disable" down $(or $(n),1)
+
+# Rollback all migrations
+migrate-reset:
+	migrate -path api/migrations -database "postgres://bookit:bookit@localhost:5432/bookit?sslmode=disable" down -all
+
+# Create new migration: make migrate-create name=create_bookings_table
+migrate-create:
+	migrate create -ext sql -dir api/migrations -seq $(name)
