@@ -24,19 +24,6 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
-  migrate:
-    image: migrate/migrate:latest
-    volumes:
-      - ./api/migrations:/migrations
-    command: [
-      "-path", "/migrations",
-      "-database", "postgres://bookit:bookit@db:5432/bookit?sslmode=disable",
-      "up"
-    ]
-    depends_on:
-      db:
-        condition: service_healthy
-
   api:
     build: ./api
     ports:
@@ -54,10 +41,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
       mailpit:
         condition: service_started
+
+  lint:
+    image: golangci/golangci-lint:v2.11.4
+    volumes:
+      - ./api:/app
+    working_dir: /app
+    profiles: ["tools"]
+    command: golangci-lint run ./...
 
 volumes:
   postgres_data:

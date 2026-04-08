@@ -20,6 +20,7 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/logger"
+	"github.com/BohdanRohalskyi/bookit/api/internal/platform/migrate"
 )
 
 var version = "1.0.1"
@@ -48,6 +49,15 @@ func run() error {
 	// Set Gin mode based on environment
 	if cfg.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// Run migrations if enabled
+	if cfg.AutoMigrate {
+		log.Info("running database migrations")
+		if err := migrate.Run(cfg.DatabaseURL, "migrations"); err != nil {
+			return fmt.Errorf("run migrations: %w", err)
+		}
+		log.Info("migrations completed")
 	}
 
 	// Connect to database

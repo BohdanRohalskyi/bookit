@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -29,6 +29,9 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /server .
+
+# Copy migrations
+COPY --from=builder /app/migrations ./migrations
 
 # Use non-root user
 USER appuser

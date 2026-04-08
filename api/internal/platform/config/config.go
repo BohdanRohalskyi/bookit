@@ -17,6 +17,9 @@ type Config struct {
 	GCPProject  string
 	AppURL      string // Frontend URL for email links
 
+	// Database settings
+	AutoMigrate bool // Run migrations on startup (local dev only)
+
 	// Mail settings
 	MailProvider   string // "smtp" or "sendgrid"
 	SMTPHost       string
@@ -32,14 +35,16 @@ func Load() (*Config, error) {
 		_ = godotenv.Load() //nolint:errcheck // .env is optional, ignore if missing
 	}
 
+	env := getEnv("ENVIRONMENT", "local")
 	cfg := &Config{
-		Environment:    getEnv("ENVIRONMENT", "local"),
+		Environment:    env,
 		APIPort:        getEnvAsInt("API_PORT", 8080),
 		LogLevel:       getEnv("LOG_LEVEL", "info"),
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		JWTSecret:      os.Getenv("JWT_SECRET"),
 		GCPProject:     os.Getenv("GCP_PROJECT"),
 		AppURL:         getEnv("APP_URL", "http://localhost:5173"),
+		AutoMigrate:    getEnvAsBool("AUTO_MIGRATE", env == "local"),
 		MailProvider:   getEnv("MAIL_PROVIDER", "smtp"),
 		SMTPHost:       getEnv("SMTP_HOST", "localhost"),
 		SMTPPort:       getEnvAsInt("SMTP_PORT", 1025),
@@ -83,6 +88,15 @@ func getEnvAsInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intVal, err := strconv.Atoi(value); err == nil {
 			return intVal
+		}
+	}
+	return defaultValue
+}
+
+func getEnvAsBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolVal, err := strconv.ParseBool(value); err == nil {
+			return boolVal
 		}
 	}
 	return defaultValue
