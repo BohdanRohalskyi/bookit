@@ -41,45 +41,91 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
             echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> $GITHUB_ENV
+            echo "VITE_CONSUMER_URL=https://pt-duo-bookit.web.app" >> $GITHUB_ENV
+            echo "VITE_BIZ_URL=https://pt-duo-bookit-biz.web.app" >> $GITHUB_ENV
           else
             echo "VITE_API_URL=${{ secrets.VITE_API_URL_STAGING }}" >> $GITHUB_ENV
+            echo "VITE_CONSUMER_URL=https://bookit-staging.web.app" >> $GITHUB_ENV
+            echo "VITE_BIZ_URL=https://bookit-biz-staging.web.app" >> $GITHUB_ENV
           fi
           echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> $GITHUB_ENV
           echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> $GITHUB_ENV
 
-      - name: Build
+      - name: Build Consumer
         working-directory: web
-        run: npm run build
+        run: npm run build:consumer
 
-      - name: Upload build artifact
+      - name: Build Biz
+        working-directory: web
+        run: npm run build:biz
+
+      - name: Upload Consumer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: web-dist
-          path: web/dist
+          name: consumer-dist
+          path: web/packages/consumer/dist
 
-  deploy:
-    name: Deploy
+      - name: Upload Biz artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: biz-dist
+          path: web/packages/biz/dist
+
+  deploy-consumer:
+    name: Deploy Consumer
     runs-on: ubuntu-latest
     needs: [build]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download build artifact
+      - name: Download Consumer artifact
         uses: actions/download-artifact@v4
         with:
-          name: web-dist
-          path: web/dist
+          name: consumer-dist
+          path: web/packages/consumer/dist
 
       - name: Set deploy target
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
-            echo "DEPLOY_TARGET=prod" >> $GITHUB_ENV
+            echo "DEPLOY_TARGET=consumer-prod" >> $GITHUB_ENV
           else
-            echo "DEPLOY_TARGET=staging" >> $GITHUB_ENV
+            echo "DEPLOY_TARGET=consumer-staging" >> $GITHUB_ENV
           fi
 
-      - name: Deploy to Firebase Hosting
+      - name: Deploy Consumer to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: pt-duo-bookit
+          target: ${{ env.DEPLOY_TARGET }}
+          entryPoint: web
+
+  deploy-biz:
+    name: Deploy Biz
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Biz artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: biz-dist
+          path: web/packages/biz/dist
+
+      - name: Set deploy target
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "DEPLOY_TARGET=biz-prod" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_TARGET=biz-staging" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy Biz to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

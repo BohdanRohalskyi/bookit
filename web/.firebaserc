@@ -5,8 +5,10 @@
   "targets": {
     "pt-duo-bookit": {
       "hosting": {
-        "prod": ["pt-duo-bookit"],
-        "staging": ["bookit-staging"]
+        "consumer-prod": ["pt-duo-bookit"],
+        "consumer-staging": ["bookit-staging"],
+        "biz-prod": ["pt-duo-bookit-biz"],
+        "biz-staging": ["bookit-biz-staging"]
       }
     }
   }

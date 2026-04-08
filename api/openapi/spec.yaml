@@ -283,6 +283,96 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      description: Send a password reset email to the user
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Password reset email sent (always returns success to prevent email enumeration)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      description: Reset user's password using the token from email
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/app-switch-token:
+    post:
+      tags: [Auth]
+      summary: Create app switch token
+      description: Generate a one-time token for switching between consumer and business apps while preserving the session. Token expires in 5 minutes.
+      operationId: createAppSwitchToken
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: App switch token created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppSwitchTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/exchange-app-switch-token:
+    post:
+      tags: [Auth]
+      summary: Exchange app switch token for session
+      description: Exchange a one-time app switch token for a full authentication session. The token is invalidated after use.
+      operationId: exchangeAppSwitchToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeAppSwitchTokenRequest'
+      responses:
+        '200':
+          description: Token exchanged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   # ============================================================
   # USERS
   # ============================================================
@@ -1514,6 +1604,48 @@ components:
         token:
           type: string
           description: Email verification token from the verification link
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          description: Password reset token from the email link
+        password:
+          type: string
+          minLength: 8
+          description: New password
+
+    AppSwitchTokenResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: One-time token for switching between apps (5 min TTL)
+
+    ExchangeAppSwitchTokenRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: The app switch token to exchange
 
     MessageResponse:
       type: object

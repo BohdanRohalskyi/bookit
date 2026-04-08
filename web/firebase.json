@@ -1,8 +1,8 @@
 {
   "hosting": [
     {
-      "target": "prod",
-      "public": "dist",
+      "target": "consumer-prod",
+      "public": "packages/consumer/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
@@ -12,8 +12,30 @@
       ]
     },
     {
-      "target": "staging",
-      "public": "dist",
+      "target": "consumer-staging",
+      "public": "packages/consumer/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "biz-prod",
+      "public": "packages/biz/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "biz-staging",
+      "public": "packages/biz/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {

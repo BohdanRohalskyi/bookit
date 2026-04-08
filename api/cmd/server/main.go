@@ -13,6 +13,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/BohdanRohalskyi/bookit/api/internal/auth"
+	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
+	"github.com/BohdanRohalskyi/bookit/api/internal/mail"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/config"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
@@ -83,6 +86,48 @@ func run() error {
 	// Feature test endpoint - demonstrates server-side flag usage
 	router.GET("/api/v1/feature-test", featureTestHandler(flagService))
 
+	// Initialize mail provider
+	var mailProvider mail.Provider
+	if cfg.MailProvider == "sendgrid" {
+		mailProvider = mail.NewSendGridProvider(cfg.SendGridAPIKey, cfg.MailFrom)
+		log.Info("using SendGrid mail provider")
+	} else {
+		mailProvider = mail.NewSMTPProvider(mail.SMTPConfig{
+			Host: cfg.SMTPHost,
+			Port: cfg.SMTPPort,
+			From: cfg.MailFrom,
+		})
+		log.Info("using SMTP mail provider", "host", cfg.SMTPHost, "port", cfg.SMTPPort)
+	}
+	mailTemplates := mail.NewTemplates(cfg.AppURL)
+
+	// Auth endpoints
+	userRepo := identity.NewRepository(db.Pool)
+	authService := auth.NewService(userRepo, cfg.JWTSecret, mailProvider, mailTemplates)
+	authHandler := auth.NewHandler(authService)
+
+	authGroup := router.Group("/api/v1/auth")
+	{
+		authGroup.POST("/register", authHandler.Register)
+		authGroup.POST("/login", authHandler.Login)
+		authGroup.POST("/refresh", authHandler.Refresh)
+		authGroup.POST("/logout", authHandler.Logout)
+		authGroup.POST("/verify-email", authHandler.VerifyEmail)
+		authGroup.POST("/forgot-password", authHandler.ForgotPassword)
+		authGroup.POST("/reset-password", authHandler.ResetPassword)
+	}
+
+	// Protected auth routes
+	authProtected := router.Group("/api/v1/auth")
+	authProtected.Use(authHandler.AuthMiddleware())
+	{
+		authProtected.POST("/resend-verification", authHandler.ResendVerification)
+		authProtected.POST("/app-switch-token", authHandler.CreateAppSwitchToken)
+	}
+
+	// App switch token exchange (no auth required - token is the auth)
+	authGroup.POST("/exchange-app-switch-token", authHandler.ExchangeAppSwitchToken)
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.APIPort),
@@ -127,6 +172,7 @@ func corsMiddleware() gin.HandlerFunc {
 		// Allow localhost for development and Firebase hosting for production
 		allowedOrigins := []string{
 			"http://localhost:5173",
+			"http://localhost:5174",
 			"http://localhost:3000",
 		}
 

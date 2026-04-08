@@ -15,6 +15,14 @@ type Config struct {
 	DatabaseURL string
 	JWTSecret   string
 	GCPProject  string
+	AppURL      string // Frontend URL for email links
+
+	// Mail settings
+	MailProvider   string // "smtp" or "sendgrid"
+	SMTPHost       string
+	SMTPPort       int
+	MailFrom       string
+	SendGridAPIKey string
 }
 
 func Load() (*Config, error) {
@@ -25,12 +33,18 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Environment: getEnv("ENVIRONMENT", "local"),
-		APIPort:     getEnvAsInt("API_PORT", 8080),
-		LogLevel:    getEnv("LOG_LEVEL", "info"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
-		GCPProject:  os.Getenv("GCP_PROJECT"),
+		Environment:    getEnv("ENVIRONMENT", "local"),
+		APIPort:        getEnvAsInt("API_PORT", 8080),
+		LogLevel:       getEnv("LOG_LEVEL", "info"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		JWTSecret:      os.Getenv("JWT_SECRET"),
+		GCPProject:     os.Getenv("GCP_PROJECT"),
+		AppURL:         getEnv("APP_URL", "http://localhost:5173"),
+		MailProvider:   getEnv("MAIL_PROVIDER", "smtp"),
+		SMTPHost:       getEnv("SMTP_HOST", "localhost"),
+		SMTPPort:       getEnvAsInt("SMTP_PORT", 1025),
+		MailFrom:       getEnv("MAIL_FROM", "noreply@bookit.app"),
+		SendGridAPIKey: os.Getenv("SENDGRID_API_KEY"),
 	}
 
 	if err := cfg.validate(); err != nil {

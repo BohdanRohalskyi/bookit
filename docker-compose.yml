@@ -15,6 +15,15 @@ services:
       timeout: 5s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
   migrate:
     image: migrate/migrate:latest
     volumes:
@@ -37,11 +46,18 @@ services:
       JWT_SECRET: local-dev-secret
       ENVIRONMENT: local
       LOG_LEVEL: debug
+      APP_URL: http://localhost:5173
+      MAIL_PROVIDER: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      MAIL_FROM: noreply@bookit.app
     depends_on:
       db:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_started
 
 volumes:
   postgres_data:
