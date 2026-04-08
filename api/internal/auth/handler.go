@@ -191,7 +191,7 @@ func (h *Handler) Logout(c *gin.Context) {
 	}
 
 	// Silently succeed even if token not found (idempotent)
-	_ = h.service.Logout(c.Request.Context(), req.RefreshToken)
+	_ = h.service.Logout(c.Request.Context(), req.RefreshToken) //nolint:errcheck
 
 	c.Status(http.StatusNoContent)
 }
@@ -335,7 +335,7 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 	}
 
 	// Always return success to prevent email enumeration
-	_ = h.service.RequestPasswordReset(c.Request.Context(), req.Email)
+	_ = h.service.RequestPasswordReset(c.Request.Context(), req.Email) //nolint:errcheck
 
 	c.JSON(http.StatusOK, MessageResponse{Message: "If an account exists with this email, a password reset link has been sent"})
 }

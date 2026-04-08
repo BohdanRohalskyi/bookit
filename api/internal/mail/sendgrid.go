@@ -70,7 +70,7 @@ func (p *SendGridProvider) Send(ctx context.Context, msg Message) error {
 	if err != nil {
 		return fmt.Errorf("send request: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }() //nolint:errcheck
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("sendgrid error: status %d", resp.StatusCode)

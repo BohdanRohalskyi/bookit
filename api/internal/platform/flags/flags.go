@@ -72,7 +72,7 @@ func (s *Service) maybeRefresh(ctx context.Context) {
 
 	if needsRefresh {
 		// Use a detached context for background refresh since the request context
-		// may be cancelled before the refresh completes
+		// may be canceled before the refresh completes
 		go func(parentCtx context.Context) {
 			refreshCtx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
 			defer cancel()

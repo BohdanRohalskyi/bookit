@@ -75,7 +75,7 @@ func (s *Service) Register(ctx context.Context, email, password, name, phone str
 	}
 
 	// Send verification email (non-blocking - don't fail registration if email fails)
-	// Use a detached context so the email sends even if the request is cancelled
+	// Use a detached context so the email sends even if the request is canceled
 	go func(bgCtx context.Context) {
 		token, err := s.CreateEmailVerificationToken(bgCtx, user.ID)
 		if err != nil {
