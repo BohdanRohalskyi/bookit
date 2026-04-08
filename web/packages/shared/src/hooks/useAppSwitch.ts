@@ -14,7 +14,7 @@ export function useAppSwitch() {
       return
     }
 
-    const { data, error } = await api.POST('/api/v1/auth/app-switch-token')
+    const { data, error } = await api.POST('/api/v1/auth/app-switch-token', {})
 
     if (error || !data) {
       // If token generation fails, redirect anyway (user will need to login)

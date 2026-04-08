@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -43,7 +42,7 @@ func run() error {
 	}
 
 	// Initialize structured logger
-	log := logger.New(cfg.Environment)
+	log := logger.New(cfg.Environment, cfg.LogLevel)
 	slog.SetDefault(log)
 
 	// Set Gin mode based on environment
@@ -85,7 +84,7 @@ func run() error {
 	router := gin.New()
 	router.Use(logger.Middleware(log))
 	router.Use(gin.Recovery())
-	router.Use(corsMiddleware())
+	router.Use(corsMiddleware(cfg.AllowedOrigins))
 
 	// Health endpoint
 	router.GET("/api/v1/health", healthHandler(db))
@@ -175,36 +174,20 @@ func run() error {
 	return nil
 }
 
-func corsMiddleware() gin.HandlerFunc {
+func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
+	originSet := make(map[string]bool, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		originSet[o] = true
+	}
+
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
-		// Allow localhost for development and Firebase hosting for production
-		allowedOrigins := []string{
-			"http://localhost:5173",
-			"http://localhost:5174",
-			"http://localhost:3000",
-		}
-
-		// Also allow any Firebase hosting URL
-		allowed := false
-		for _, o := range allowedOrigins {
-			if origin == o {
-				allowed = true
-				break
-			}
-		}
-		// Allow Firebase hosting domains
-		if !allowed && len(origin) > 0 &&
-			(strings.HasSuffix(origin, ".web.app") || strings.HasSuffix(origin, ".firebaseapp.com")) {
-			allowed = true
-		}
-
-		if allowed {
+		if originSet[origin] {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		}
 
 		if c.Request.Method == "OPTIONS" {

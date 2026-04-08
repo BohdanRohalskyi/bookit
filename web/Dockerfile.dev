@@ -1,0 +1,11 @@
+FROM node:20-alpine
+WORKDIR /app
+
+# Copy workspace package files first for layer caching.
+# Source is mounted at runtime via docker-compose volume.
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/consumer/package*.json ./packages/consumer/
+COPY packages/biz/package*.json ./packages/biz/
+
+RUN npm install

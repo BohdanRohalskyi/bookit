@@ -198,6 +198,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/app-switch-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create app switch token
+         * @description Generate a one-time token for switching between consumer and business apps while preserving the session. Token expires in 5 minutes.
+         */
+        post: operations["createAppSwitchToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/exchange-app-switch-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange app switch token for session
+         * @description Exchange a one-time app switch token for a full authentication session. The token is invalidated after use.
+         */
+        post: operations["exchangeAppSwitchToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -707,6 +747,14 @@ export interface components {
             token: string;
             /** @description New password */
             password: string;
+        };
+        AppSwitchTokenResponse: {
+            /** @description One-time token for switching between apps (5 min TTL) */
+            token: string;
+        };
+        ExchangeAppSwitchTokenRequest: {
+            /** @description The app switch token to exchange */
+            token: string;
         };
         MessageResponse: {
             /** @example Operation completed successfully */
@@ -1473,6 +1521,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Invalid or expired token */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createAppSwitchToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description App switch token created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSwitchTokenResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    exchangeAppSwitchToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExchangeAppSwitchTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Token exchanged successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
                 };
             };
             /** @description Invalid or expired token */

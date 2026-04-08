@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@bookit/shared'
 import { api } from '@bookit/shared/api'
@@ -8,13 +8,20 @@ type Status = 'loading' | 'success' | 'error'
 export function VerifyEmail() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
-  const [status, setStatus] = useState<Status>('loading')
-  const [error, setError] = useState<string | null>(null)
+
+  // Compute initial state based on token presence to avoid setState in effect
+  const initialState = useMemo(() => {
+    if (!token) {
+      return { status: 'error' as Status, error: 'Invalid verification link' }
+    }
+    return { status: 'loading' as Status, error: null }
+  }, [token])
+
+  const [status, setStatus] = useState<Status>(initialState.status)
+  const [error, setError] = useState<string | null>(initialState.error)
 
   useEffect(() => {
     if (!token) {
-      setStatus('error')
-      setError('Invalid verification link')
       return
     }
 

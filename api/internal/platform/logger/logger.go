@@ -18,13 +18,18 @@ const (
 	KeyError     = "error"
 )
 
-// New creates a logger configured for the environment.
-// Production uses JSON (Cloud Logging compatible), development uses text.
-func New(environment string) *slog.Logger {
+// New creates a logger configured for the given environment and log level.
+// Production/staging use JSON (Cloud Logging compatible), local uses text.
+// logLevel accepts "debug", "info", "warn", "error" (case-insensitive); defaults to "info".
+func New(environment, logLevel string) *slog.Logger {
 	var handler slog.Handler
 
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
+		level = slog.LevelInfo
+	}
 	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: level,
 	}
 
 	if environment == "production" || environment == "prod" || environment == "staging" {

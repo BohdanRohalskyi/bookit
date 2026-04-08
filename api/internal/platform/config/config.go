@@ -4,18 +4,20 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Environment string
-	APIPort     int
-	LogLevel    string
-	DatabaseURL string
-	JWTSecret   string
-	GCPProject  string
-	AppURL      string // Frontend URL for email links
+	Environment    string
+	APIPort        int
+	LogLevel       string
+	DatabaseURL    string
+	JWTSecret      string
+	GCPProject     string
+	AppURL         string   // Frontend URL for email links
+	AllowedOrigins []string // CORS allowed origins
 
 	// Database settings
 	AutoMigrate bool // Run migrations on startup (local dev only)
@@ -44,6 +46,7 @@ func Load() (*Config, error) {
 		JWTSecret:      os.Getenv("JWT_SECRET"),
 		GCPProject:     os.Getenv("GCP_PROJECT"),
 		AppURL:         getEnv("APP_URL", "http://localhost:5173"),
+		AllowedOrigins: getEnvAsStringSlice("CORS_ALLOWED_ORIGINS"),
 		AutoMigrate:    getEnvAsBool("AUTO_MIGRATE", env == "local"),
 		MailProvider:   getEnv("MAIL_PROVIDER", "smtp"),
 		SMTPHost:       getEnv("SMTP_HOST", "localhost"),
@@ -65,6 +68,12 @@ func (c *Config) validate() error {
 	}
 	if c.JWTSecret == "" {
 		return fmt.Errorf("JWT_SECRET is required")
+	}
+	if len(c.JWTSecret) < 32 {
+		return fmt.Errorf("JWT_SECRET must be at least 32 characters")
+	}
+	if len(c.AllowedOrigins) == 0 {
+		return fmt.Errorf("CORS_ALLOWED_ORIGINS is required")
 	}
 	return nil
 }
@@ -100,4 +109,18 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 		}
 	}
 	return defaultValue
+}
+
+func getEnvAsStringSlice(key string) []string {
+	value := os.Getenv(key)
+	if value == "" {
+		return nil
+	}
+	var result []string
+	for _, part := range strings.Split(value, ",") {
+		if s := strings.TrimSpace(part); s != "" {
+			result = append(result, s)
+		}
+	}
+	return result
 }
