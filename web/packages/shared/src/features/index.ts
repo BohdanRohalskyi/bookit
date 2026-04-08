@@ -1,2 +1,3 @@
 export { FLAGS, type FlagName } from './flags'
-export { FeatureFlagProvider, useFeatureFlag, useFeatureFlagsReady } from './context'
+export { FeatureFlagProvider } from './context'
+export { useFeatureFlag, useFeatureFlagsReady } from './useFeatureFlag'
