@@ -71,13 +71,15 @@ func (s *Service) maybeRefresh(ctx context.Context) {
 	s.mu.RUnlock()
 
 	if needsRefresh {
-		go func() {
-			refreshCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		// Use a detached context for background refresh since the request context
+		// may be cancelled before the refresh completes
+		go func(parentCtx context.Context) {
+			refreshCtx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
 			defer cancel()
 			if err := s.refresh(refreshCtx); err != nil {
 				log.Printf("warning: failed to refresh flags: %v", err)
 			}
-		}()
+		}(context.WithoutCancel(ctx))
 	}
 }
 

@@ -14,15 +14,15 @@ import (
 )
 
 var (
-	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrInvalidCredentials   = errors.New("invalid credentials")
 	ErrEmailAlreadyVerified = errors.New("email already verified")
 )
 
 const (
-	bcryptCost                    = 12
-	EmailVerificationTokenExpiry  = 24 * time.Hour
-	PasswordResetTokenExpiry      = 1 * time.Hour
-	AppSwitchTokenExpiry          = 5 * time.Minute
+	bcryptCost                   = 12
+	EmailVerificationTokenExpiry = 24 * time.Hour
+	PasswordResetTokenExpiry     = 1 * time.Hour
+	AppSwitchTokenExpiry         = 5 * time.Minute
 )
 
 type Service struct {
@@ -75,19 +75,20 @@ func (s *Service) Register(ctx context.Context, email, password, name, phone str
 	}
 
 	// Send verification email (non-blocking - don't fail registration if email fails)
-	go func() {
-		token, err := s.CreateEmailVerificationToken(context.Background(), user.ID)
+	// Use a detached context so the email sends even if the request is cancelled
+	go func(bgCtx context.Context) {
+		token, err := s.CreateEmailVerificationToken(bgCtx, user.ID)
 		if err != nil {
 			slog.Error("failed to create verification token", "error", err, "user_id", user.ID)
 			return
 		}
 		msg := s.templates.EmailVerification(user.Email, token)
-		if err := s.mail.Send(context.Background(), msg); err != nil {
+		if err := s.mail.Send(bgCtx, msg); err != nil {
 			slog.Error("failed to send verification email", "error", err, "user_id", user.ID)
 		} else {
 			slog.Info("verification email sent", "user_id", user.ID, "email", user.Email)
 		}
-	}()
+	}(context.WithoutCancel(ctx))
 
 	// Generate tokens
 	return s.generateAuthResponse(ctx, user, false)

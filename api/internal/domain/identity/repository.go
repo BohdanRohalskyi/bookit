@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	ErrUserNotFound     = errors.New("user not found")
-	ErrEmailExists      = errors.New("email already exists")
-	ErrInvalidToken     = errors.New("invalid or expired token")
+	ErrUserNotFound = errors.New("user not found")
+	ErrEmailExists  = errors.New("email already exists")
+	ErrInvalidToken = errors.New("invalid or expired token")
 )
 
 type Repository struct {
