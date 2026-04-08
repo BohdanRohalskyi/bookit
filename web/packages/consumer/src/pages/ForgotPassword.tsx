@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@bookit/shared'
-import { api } from '@bookit/shared/api'
+import { api, type ApiError } from '@bookit/shared/api'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -32,7 +32,7 @@ export function ForgotPassword() {
     })
 
     if (apiError) {
-      const err = apiError as { detail?: string; title?: string }
+      const err = apiError as ApiError
       setError(err.detail || err.title || 'Something went wrong')
       return
     }

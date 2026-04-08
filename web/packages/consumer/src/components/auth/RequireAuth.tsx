@@ -7,10 +7,10 @@ interface RequireAuthProps {
 
 export function RequireAuth({ children }: RequireAuthProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const user = useAuthStore((state) => state.user)
   const location = useLocation()
 
-  if (!isAuthenticated) {
-    // Redirect to homepage
+  if (!isAuthenticated || !user) {
     return <Navigate to="/" state={{ from: location }} replace />
   }
 

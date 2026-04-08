@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@bookit/shared'
-import { api, type AuthResponse } from '@bookit/shared/api'
+import { api, type ApiError } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
 
 const registerSchema = z.object({
@@ -37,14 +37,13 @@ export function Register() {
     })
 
     if (apiError) {
-      const err = apiError as { detail?: string; title?: string }
+      const err = apiError as ApiError
       setError(err.detail || err.title || 'Registration failed')
       return
     }
 
     if (result) {
-      const authResult = result as AuthResponse
-      setAuth(authResult.user, authResult.tokens)
+      setAuth(result.user, result.tokens)
       navigate('/account')
     }
   }

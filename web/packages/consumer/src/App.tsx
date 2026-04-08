@@ -8,6 +8,7 @@ import { ResetPassword } from './pages/ResetPassword'
 import { VerifyEmail } from './pages/VerifyEmail'
 import { DevStatus } from './pages/DevStatus'
 import { RequireAuth } from './components/auth/RequireAuth'
+import { NotFound } from './pages/NotFound'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           }
         />
         <Route path="/dev" element={<DevStatus />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

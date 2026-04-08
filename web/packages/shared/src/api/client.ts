@@ -2,10 +2,11 @@ import createClient, { type Middleware } from 'openapi-fetch'
 import type { paths, components } from './types.gen'
 import { useAuthStore } from '../stores/auth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
-// Track if we're currently refreshing to prevent multiple refresh calls
-let isRefreshing = false
+// A single shared Promise deduplicates concurrent refresh attempts.
+// If two requests fail with 401 simultaneously, both await the same refresh
+// rather than each triggering a separate call.
 let refreshPromise: Promise<boolean> | null = null
 
 async function refreshTokens(): Promise<boolean> {
@@ -39,19 +40,15 @@ const authMiddleware: Middleware = {
     const authStore = useAuthStore.getState()
     const accessToken = authStore.getAccessToken()
 
-    // If we have a token and it's about to expire, refresh it
+    // Proactively refresh if the token is within 30s of expiry.
+    // All concurrent requests share the same Promise — only one refresh fires.
     if (accessToken && authStore.isTokenExpired()) {
-      if (!isRefreshing) {
-        isRefreshing = true
-        refreshPromise = refreshTokens().finally(() => {
-          isRefreshing = false
-          refreshPromise = null
-        })
+      if (!refreshPromise) {
+        refreshPromise = refreshTokens().finally(() => { refreshPromise = null })
       }
       await refreshPromise
     }
 
-    // Add authorization header if we have a token
     const currentToken = useAuthStore.getState().getAccessToken()
     if (currentToken) {
       request.headers.set('Authorization', `Bearer ${currentToken}`)
@@ -60,26 +57,23 @@ const authMiddleware: Middleware = {
     return request
   },
 
-  async onResponse({ response }) {
-    // If we get a 401, try to refresh and the caller should retry
-    if (response.status === 401) {
-      const authStore = useAuthStore.getState()
-      if (authStore.isAuthenticated) {
-        // Token might have been invalidated server-side
-        if (!isRefreshing) {
-          isRefreshing = true
-          refreshPromise = refreshTokens().finally(() => {
-            isRefreshing = false
-            refreshPromise = null
-          })
-        }
-        const success = await refreshPromise
-        if (!success) {
-          // Refresh failed, user needs to login again
-          window.location.href = '/login'
-        }
-      }
+  async onResponse({ response, request }) {
+    if (response.status !== 401) return response
+
+    // Deduplicate concurrent 401-triggered refresh attempts.
+    if (!refreshPromise) {
+      refreshPromise = refreshTokens().finally(() => { refreshPromise = null })
     }
+    const refreshed = await refreshPromise
+
+    if (refreshed) {
+      // Retry the original request with the new access token.
+      const token = useAuthStore.getState().getAccessToken()
+      request.headers.set('Authorization', `Bearer ${token}`)
+      return fetch(request)
+    }
+
+    window.location.href = '/login'
     return response
   },
 }
@@ -97,3 +91,13 @@ export type AuthResponse = components['schemas']['AuthResponse']
 export type RegisterRequest = components['schemas']['RegisterRequest']
 export type LoginRequest = components['schemas']['LoginRequest']
 export type Error = components['schemas']['Error']
+
+// The Go API returns RFC 7807 error bodies — { type, title, status, detail }.
+// The generated spec Error schema doesn't reflect this yet; ApiError is the
+// authoritative client-side type until the spec is updated.
+export type ApiError = {
+  type?: string
+  title?: string
+  status?: number
+  detail?: string
+}

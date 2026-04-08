@@ -1,6 +1,20 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { z } from 'zod'
 import type { User } from '../api/client'
+
+const TokensSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1),
+  expiresAt: z.number(),
+})
+
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string(),
+  email_verified: z.boolean(),
+})
 
 interface Tokens {
   accessToken: string
@@ -69,6 +83,19 @@ export const useAuthStore = create<AuthState>()(
         tokens: state.tokens,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        // Validate persisted data — corrupted or tampered storage resets to logged-out.
+        const tokensResult = TokensSchema.safeParse(state.tokens)
+        const userResult = UserSchema.safeParse(state.user)
+        if (!tokensResult.success || !userResult.success) {
+          console.warn('[auth] Rehydrated state failed validation — resetting session.', {
+            tokensError: tokensResult.success ? null : tokensResult.error.flatten(),
+            userError: userResult.success ? null : userResult.error.flatten(),
+          })
+          state.logout()
+        }
+      },
     }
   )
 )

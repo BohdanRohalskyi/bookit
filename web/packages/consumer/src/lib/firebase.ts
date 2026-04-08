@@ -2,10 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { getRemoteConfig, fetchAndActivate, getBoolean, getString } from 'firebase/remote-config';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: "pt-duo-bookit.firebaseapp.com",
-  projectId: "pt-duo-bookit",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey:     import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:  import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  appId:      import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 export const app = initializeApp(firebaseConfig);

@@ -1,39 +1,49 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@bookit/shared'
-import { api, type AuthResponse } from '@bookit/shared/api'
+import { api, type ApiError } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+type LoginForm = z.infer<typeof loginSchema>
 
 export function Login() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  })
+
+  const onSubmit = async (data: LoginForm) => {
     setError(null)
-    setIsSubmitting(true)
 
     const { data: result, error: apiError } = await api.POST('/api/v1/auth/login', {
-      body: { email, password },
+      body: data,
     })
 
-    setIsSubmitting(false)
-
     if (apiError) {
-      const err = apiError as { detail?: string; title?: string }
+      const err = apiError as ApiError
       setError(err.detail || err.title || 'Login failed')
       return
     }
 
     if (result) {
-      const authResult = result as AuthResponse
-      setAuth(authResult.user, authResult.tokens)
+      setAuth(result.user, result.tokens)
       navigate('/')
     }
   }
@@ -48,7 +58,7 @@ export function Login() {
           <CardTitle className="text-2xl">Business Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950 rounded-md">
                 {error}
@@ -61,10 +71,11 @@ export function Login() {
                 id="email"
                 type="email"
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register('email')}
               />
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -73,10 +84,11 @@ export function Login() {
                 id="password"
                 type="password"
                 placeholder="Your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...register('password')}
               />
+              {errors.password && (
+                <p className="text-sm text-red-500">{errors.password.message}</p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>
