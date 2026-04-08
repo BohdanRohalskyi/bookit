@@ -35,3 +35,4 @@ docker-compose.override.yml
 
 # Documentation with secrets
 docs/documentation.md
+web/packages/shared/tsconfig.tsbuildinfo

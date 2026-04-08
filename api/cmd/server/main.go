@@ -208,7 +208,8 @@ type HealthResponse struct {
 
 func healthHandler(db *database.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx := c.Request.Context()
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
 
 		response := HealthResponse{
 			Timestamp: time.Now().UTC(),

@@ -12,6 +12,9 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
 )
 
+// contextKeyUserID is the Gin context key for the authenticated user's ID.
+const contextKeyUserID = "userID"
+
 type Handler struct {
 	service *Service
 }
@@ -131,6 +134,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 	if err != nil {
+		slog.Error("login failed", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Type:   "internal-error",
 			Title:  "Internal Error",
@@ -242,7 +246,7 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Store user ID in context
-		c.Set("userID", claims.UserID)
+		c.Set(contextKeyUserID, claims.UserID)
 		c.Next()
 	}
 }
@@ -286,7 +290,7 @@ func (h *Handler) VerifyEmail(c *gin.Context) {
 
 // ResendVerification resends the verification email (requires auth)
 func (h *Handler) ResendVerification(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get(contextKeyUserID)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{
 			Type:   "unauthorized",
@@ -379,7 +383,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 
 // CreateAppSwitchToken generates a one-time token for switching between apps (requires auth)
 func (h *Handler) CreateAppSwitchToken(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get(contextKeyUserID)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{
 			Type:   "unauthorized",

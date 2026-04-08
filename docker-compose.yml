@@ -75,6 +75,7 @@ services:
     depends_on:
       - api
 
+
   lint:
     image: golangci/golangci-lint:v2.11.4
     volumes:

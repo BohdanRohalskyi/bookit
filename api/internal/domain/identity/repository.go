@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -110,7 +111,8 @@ func (r *Repository) Create(ctx context.Context, email, passwordHash, name, phon
 	)
 
 	if err != nil {
-		if strings.Contains(err.Error(), "idx_users_email_lower") {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // unique_violation
 			return nil, ErrEmailExists
 		}
 		return nil, err
@@ -125,8 +127,9 @@ func (r *Repository) IsProvider(ctx context.Context, userID uuid.UUID) (bool, er
 		SELECT EXISTS(SELECT 1 FROM providers WHERE user_id = $1)
 	`, userID).Scan(&exists)
 	if err != nil {
-		// If providers table doesn't exist yet, just return false
-		if strings.Contains(err.Error(), "does not exist") {
+		// If providers table doesn't exist yet (42P01 = undefined_table), return false
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "42P01" {
 			return false, nil
 		}
 		return false, err

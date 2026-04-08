@@ -336,7 +336,7 @@ paths:
       description: Generate a one-time token for switching between consumer and business apps while preserving the session. Token expires in 5 minutes.
       operationId: createAppSwitchToken
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       responses:
         '200':
           description: App switch token created
