@@ -60,7 +60,7 @@ func do(r *gin.Engine, method, path string, body any, headers map[string]string)
 	if body != nil {
 		b, _ = json.Marshal(body)
 	}
-	req := httptest.NewRequest(method, path, bytes.NewReader(b))
+	req := httptest.NewRequestWithContext(context.Background(), method, path, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	for k, v := range headers {
 		req.Header.Set(k, v)

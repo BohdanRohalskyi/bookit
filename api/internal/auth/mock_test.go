@@ -11,7 +11,7 @@ import (
 )
 
 // mockRepository is a test double for userRepository.
-// Unset fields default to safe zero-value behaviour so each test only
+// Unset fields default to safe zero-value behavior so each test only
 // configures the methods it actually exercises.
 type mockRepository struct {
 	getByEmail              func(ctx context.Context, email string) (*identity.User, error)
