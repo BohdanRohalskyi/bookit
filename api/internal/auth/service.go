@@ -18,21 +18,42 @@ var (
 	ErrEmailAlreadyVerified = errors.New("email already verified")
 )
 
+// bcryptCost is a var so tests can lower it to bcrypt.MinCost for speed.
+var bcryptCost = 12
+
 const (
-	bcryptCost                   = 12
 	EmailVerificationTokenExpiry = 24 * time.Hour
 	PasswordResetTokenExpiry     = 1 * time.Hour
 	AppSwitchTokenExpiry         = 5 * time.Minute
 )
 
+// userRepository defines the data access contract required by the auth service.
+type userRepository interface {
+	GetByEmail(ctx context.Context, email string) (*identity.User, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*identity.User, error)
+	Create(ctx context.Context, email, passwordHash, name, phone string) (*identity.User, error)
+	IsProvider(ctx context.Context, userID uuid.UUID) (bool, error)
+	CreateRefreshToken(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) error
+	ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error)
+	RevokeRefreshToken(ctx context.Context, token string) error
+	RevokeAllUserTokens(ctx context.Context, userID uuid.UUID) error
+	CreateAuthToken(ctx context.Context, userID uuid.UUID, token, tokenType string, expiresAt time.Time) error
+	CreateAuthTokenWithIP(ctx context.Context, userID uuid.UUID, token, tokenType, ipAddress string, expiresAt time.Time) error
+	ValidateAuthToken(ctx context.Context, token, tokenType string) (uuid.UUID, error)
+	ValidateAuthTokenWithIP(ctx context.Context, token, tokenType, ipAddress string) (uuid.UUID, error)
+	UseAuthToken(ctx context.Context, token, tokenType string) error
+	SetEmailVerified(ctx context.Context, userID uuid.UUID) error
+	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
+}
+
 type Service struct {
-	repo      *identity.Repository
+	repo      userRepository
 	jwt       *JWTService
 	mail      mail.Provider
 	templates *mail.Templates
 }
 
-func NewService(repo *identity.Repository, jwtSecret string, mailProvider mail.Provider, templates *mail.Templates) *Service {
+func NewService(repo userRepository, jwtSecret string, mailProvider mail.Provider, templates *mail.Templates) *Service {
 	return &Service{
 		repo:      repo,
 		jwt:       NewJWTService(jwtSecret),
