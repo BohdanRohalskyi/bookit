@@ -1,31 +1,32 @@
 import { initializeApp } from 'firebase/app';
 import { getRemoteConfig, fetchAndActivate, getBoolean, getString } from 'firebase/remote-config';
 
-const firebaseConfig = {
-  apiKey:     import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:  import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId:      import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-export const app = initializeApp(firebaseConfig);
-export const remoteConfig = getRemoteConfig(app);
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const isConfigured = Boolean(projectId);
 
 // Check if running on staging
 const isStaging = import.meta.env.VITE_API_URL?.includes('staging') ?? false;
 
-// No cache - fetch fresh values on every request
-remoteConfig.settings.minimumFetchIntervalMillis = 0;
+export const app = isConfigured
+  ? initializeApp({
+      apiKey:     import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId,
+      appId:      import.meta.env.VITE_FIREBASE_APP_ID,
+    })
+  : null;
 
-// Defaults (used before first fetch)
-remoteConfig.defaultConfig = {
-  feature_test: false,
-};
+export const remoteConfig = app ? getRemoteConfig(app) : null;
+
+if (remoteConfig) {
+  remoteConfig.settings.minimumFetchIntervalMillis = 0;
+  remoteConfig.defaultConfig = { feature_test: false };
+}
 
 let initialized = false;
 
 export async function initFeatureFlags(): Promise<void> {
-  if (initialized) return;
+  if (!remoteConfig || initialized) return;
   try {
     await fetchAndActivate(remoteConfig);
     initialized = true;
@@ -35,11 +36,12 @@ export async function initFeatureFlags(): Promise<void> {
 }
 
 export function isFeatureEnabled(name: string): boolean {
-  // All flags enabled on staging
   if (isStaging) return true;
+  if (!remoteConfig) return false;
   return getBoolean(remoteConfig, name);
 }
 
 export function getFeatureValue(name: string): string {
+  if (!remoteConfig) return '';
   return getString(remoteConfig, name);
 }
