@@ -25,7 +25,7 @@ You are implementing a React frontend feature for the Bookit project. Follow the
 
 ## Reuse before you create
 
-**Before writing any new component, hook, store, or utility — search the shared package first.**
+Before implementing, check whether something already exists in the shared package:
 
 ```
 web/packages/shared/src/
@@ -36,14 +36,13 @@ web/packages/shared/src/
 └── features/       # useFeatureFlag, FeatureFlagProvider, flags.ts
 ```
 
-Check with Grep before implementing:
-- Is there already a hook that does this? → `web/packages/shared/src/hooks/`
-- Is there a UI component? → `web/packages/shared/src/components/ui/`
-- Is there a store slice for this state? → `web/packages/shared/src/stores/`
+If a good fit exists — use it. If it almost fits — weigh whether extending it is clean or whether it would bloat a general-purpose utility with special-case logic. **Don't force reuse when it would:**
+- Add props/complexity to a component that doesn't belong there
+- Put app-specific logic into the shared package
+- Couple two unrelated features through a shared abstraction
+- Hurt render performance (e.g. pulling in a heavy shared component for a trivial case)
 
-If something useful almost exists but needs a small change, **extend it rather than duplicating it**.
-Only create something new in the shared package if it will be used by more than one app.
-If it's app-specific, put it in that app's own `src/components/` or `src/hooks/`.
+When in doubt: a small amount of duplication is better than a wrong abstraction. Only move something to `shared/` when it is genuinely needed by more than one app and the abstraction is clean.
 
 ---
 

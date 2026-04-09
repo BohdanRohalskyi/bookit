@@ -41,7 +41,7 @@ api/
 
 ## Reuse before you create
 
-**Before implementing anything — search the codebase for existing solutions.**
+Before implementing, check whether something already exists:
 
 | Need | Where to look |
 |------|--------------|
@@ -53,12 +53,13 @@ api/
 | Feature flags | `internal/flags/` service — inject, don't instantiate inline |
 | Logging | `internal/logger/` — use the injected logger, never `fmt.Println` |
 
-Grep before writing:
-```bash
-grep -r "FunctionName\|pattern" api/internal/
-```
+If a good fit exists — use it. If it almost fits — weigh whether extending it is clean. **Don't force reuse when it would:**
+- Add unrelated responsibility to an existing package (violates single responsibility)
+- Require a domain package to import another domain package (breaks domain isolation)
+- Make a generic utility carry domain-specific logic
+- Introduce indirection with no real benefit
 
-If a utility almost fits but needs a small change — extend it. Only add new packages when the domain is genuinely new.
+When in doubt: duplicating a small, stable piece of logic across domains is fine. A wrong shared abstraction is harder to undo than two clear, independent implementations.
 
 ---
 
