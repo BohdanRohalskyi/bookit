@@ -4,30 +4,71 @@ You are helping prepare an implementation plan for the Bookit project. Follow th
 
 ## Your job
 
-1. **Understand the feature** — Ask clarifying questions until you have enough to write a solid plan. Cover: what problem it solves, which domain it touches (Identity / Catalog / Scheduling / Booking / Payment / Notification), which app(s) are affected (consumer, biz, api), and any dependencies or constraints.
+### Step 0 — Identify yourself
 
-2. **Read relevant context** before drafting:
-   - `docs/BACKEND-SPEC-Bookit-20260331.md` — for API/backend work
-   - `docs/FRONTEND-SPEC-Bookit-20260331.md` — for frontend work
-   - `api/openapi/spec.yaml` — for endpoint contracts
-   - Any existing in-progress plans in `docs/implementation-plans/in-progress/`
+Run `git config user.email` and store the result as `CURRENT_AUTHOR`. This is used for
+ownership checks throughout the workflow.
 
-3. **Determine the feature flag type** (see section below) and include a dedicated flag phase in the plan.
+### Step 1 — Check for duplicates
 
-4. **Draft the plan** using `docs/implementation-plans/TEMPLATE.md` as the base structure:
-   - Break work into discrete, committable phases
-   - Each phase should be independently testable
-   - Note dependencies between phases explicitly
-   - For backend phases: list affected endpoints, business rules, DB queries
-   - For frontend phases: list components, routes, state changes
-   - **Phase 1 is always the feature flag** (see below)
+Before asking any questions or writing anything, search **all** plan folders for an existing plan
+covering the same feature:
 
-5. **Save the plan** to `docs/implementation-plans/new/<kebab-case-title>.md`
+```bash
+grep -rl "<feature keyword>" docs/implementation-plans/
+```
 
-6. **Update the plan status** as work progresses:
-   - Move file to `in-progress/` when development starts
-   - Update phase status to `[IN_PROGRESS]` → `[DONE]` (with commit hash) as each phase completes
-   - Move to `done/` when all phases complete
+Check: `new/`, `ready-for-dev/`, `in-progress/`, `done/`, `canceled/`.
+
+- If a matching plan exists in **any** status → stop and tell the user:
+  > "A plan for this feature already exists: `<path>` (status: `<status>`, author: `<author>`).
+  > Open it with `/open-plan` or discuss before creating a new one."
+  Do not proceed until the user explicitly confirms they want a separate plan.
+
+- If a matching plan exists in **`done/`** → it was already shipped. Confirm with the user
+  whether this is an extension/follow-up or a duplicate.
+
+### Step 2 — Ownership check (in-progress plans only)
+
+If asked to work on, update, or continue an **in-progress** plan:
+
+1. Read the plan's `author` frontmatter field.
+2. Compare to `CURRENT_AUTHOR` (git email).
+3. If they **do not match** → stop and say:
+   > "This plan is owned by `<author>`. Only the plan author can move it forward.
+   > If you need to take over, the author must update the `author` field to your email first."
+   Do not modify the plan or proceed with implementation.
+
+### Step 3 — Understand the feature
+
+Ask clarifying questions until you have enough to write a solid plan. Cover: what problem it
+solves, which domain it touches (Identity / Catalog / Scheduling / Booking / Payment /
+Notification), which app(s) are affected (consumer, biz, api), and any dependencies or constraints.
+
+### Step 4 — Read relevant context
+
+- `docs/BACKEND-SPEC-Bookit-20260331.md` — for API/backend work
+- `docs/FRONTEND-SPEC-Bookit-20260331.md` — for frontend work
+- `api/openapi/spec.yaml` — for endpoint contracts
+- Any existing in-progress plans in `docs/implementation-plans/in-progress/`
+
+### Step 5 — Draft the plan
+
+Use `docs/implementation-plans/TEMPLATE.md` as the base structure:
+- Set `author` in frontmatter to `CURRENT_AUTHOR` (the git email from Step 0)
+- Break work into discrete, committable phases
+- Each phase should be independently testable
+- Note dependencies between phases explicitly
+- For backend phases: list affected endpoints, business rules, DB queries
+- For frontend phases: list components, routes, state changes
+- **Phase 1 is always the feature flag** (see below)
+
+### Step 6 — Save and track
+
+- Save to `docs/implementation-plans/new/<kebab-case-title>.md`
+- Move to `in-progress/` when development starts (only the author may do this)
+- Update phase status to `[IN_PROGRESS]` → `[DONE]` (with commit hash) as each phase completes
+- Move to `done/` when all phases complete
 
 ---
 

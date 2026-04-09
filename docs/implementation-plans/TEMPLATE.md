@@ -2,7 +2,7 @@
 title: "[Plan Title]"
 status: NEW
 created: YYYY-MM-DD
-author: "[Author Name]"
+author: "author@email.com"
 ---
 
 # Plan: [Plan Title]
