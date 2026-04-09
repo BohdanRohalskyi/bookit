@@ -31,10 +31,67 @@ api/
 │   │   ├── booking/    # Appointments
 │   │   ├── payment/    # Transactions
 │   │   └── notification/
+│   ├── flags/          # Feature flag service (Firebase Admin SDK)
 │   └── middleware/     # Auth, CORS, logging
 ├── openapi/spec.yaml   # Source of truth — update first
 └── migrations/         # SQL migration files
 ```
+
+---
+
+## Reuse before you create
+
+**Before implementing anything — search the codebase for existing solutions.**
+
+| Need | Where to look |
+|------|--------------|
+| Auth extraction | `middleware.GetUser(c)` in `internal/middleware/` |
+| Error responses | RFC 7807 helper if it exists in `internal/api/` |
+| DB transaction | existing pattern in any `repository.go` |
+| Email sending | `internal/domain/notification/` |
+| Config values | `internal/config/config.go` — extend, don't add new env parsing elsewhere |
+| Feature flags | `internal/flags/` service — inject, don't instantiate inline |
+| Logging | `internal/logger/` — use the injected logger, never `fmt.Println` |
+
+Grep before writing:
+```bash
+grep -r "FunctionName\|pattern" api/internal/
+```
+
+If a utility almost fits but needs a small change — extend it. Only add new packages when the domain is genuinely new.
+
+---
+
+## Feature flags
+
+Every new user-facing backend feature must be gated behind a server-side flag.
+
+```go
+// Inject the flag service into your handler/service struct
+type Handler struct {
+    flags flags.Service
+    // ...
+}
+
+// Check before executing feature logic
+func (h *Handler) MyEndpoint(c *gin.Context) {
+    if !h.flags.IsEnabled(c.Request.Context(), "my_feature") {
+        c.JSON(http.StatusNotFound, gin.H{
+            "type":   "https://bookit.app/errors/not-found",
+            "title":  "Not found",
+            "status": 404,
+            "detail": "This resource does not exist",
+        })
+        return
+    }
+    // ... feature logic
+}
+```
+
+Flag naming: `snake_case`, domain-prefixed — e.g. `booking_instant_confirm`, `catalog_service_images`.
+Enable flags in Firebase Console → Remote Config.
+
+---
 
 ## Critical rules
 
@@ -44,7 +101,7 @@ api/
 - All request/response types must come from generated types — never hand-write request structs
 
 ### Error responses
-- Always use RFC 7807 format:
+Always use RFC 7807 format:
 ```go
 c.JSON(status, gin.H{
     "type":   "https://bookit.app/errors/<slug>",
@@ -53,12 +110,15 @@ c.JSON(status, gin.H{
     "detail": "Specific detail message",
 })
 ```
-- 400 Bad Request: validation errors
-- 401 Unauthorized: missing/invalid token
-- 403 Forbidden: valid token, insufficient permission
-- 404 Not Found: resource doesn't exist
-- 409 Conflict: duplicate/constraint violation
-- 422 Unprocessable Entity: business rule violation
+
+| Code | When |
+|------|------|
+| 400 | Validation failed |
+| 401 | Missing or invalid token |
+| 403 | Valid token, wrong permissions |
+| 404 | Resource not found (`pgx.ErrNoRows`) |
+| 409 | Duplicate / constraint violation |
+| 422 | Business rule violation |
 
 ### Context propagation
 - Always pass `ctx context.Context` as first argument to DB calls and service methods
@@ -91,6 +151,8 @@ domain/<name>/
 - `if err != nil` immediately after every fallible call
 - No global state — inject dependencies via constructors
 - Test coverage for service layer (business logic) — handlers via integration tests
+
+---
 
 ## Before finishing
 

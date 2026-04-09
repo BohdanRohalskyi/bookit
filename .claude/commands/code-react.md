@@ -21,6 +21,52 @@ You are implementing a React frontend feature for the Bookit project. Follow the
 - **Biz** (`web/packages/biz/`) — provider management app
 - **Shared** (`web/packages/shared/`) — UI components, API client, stores, hooks
 
+---
+
+## Reuse before you create
+
+**Before writing any new component, hook, store, or utility — search the shared package first.**
+
+```
+web/packages/shared/src/
+├── api/            # openapi-fetch client + generated types
+├── components/ui/  # Button, Input, Label, Card, ...
+├── stores/         # useAuthStore (Zustand)
+├── hooks/          # useAppSwitch, ...
+└── features/       # useFeatureFlag, FeatureFlagProvider, flags.ts
+```
+
+Check with Grep before implementing:
+- Is there already a hook that does this? → `web/packages/shared/src/hooks/`
+- Is there a UI component? → `web/packages/shared/src/components/ui/`
+- Is there a store slice for this state? → `web/packages/shared/src/stores/`
+
+If something useful almost exists but needs a small change, **extend it rather than duplicating it**.
+Only create something new in the shared package if it will be used by more than one app.
+If it's app-specific, put it in that app's own `src/components/` or `src/hooks/`.
+
+---
+
+## Feature flags
+
+Every new user-facing feature must be gated behind a feature flag.
+
+```ts
+// 1. Add default (false) to web/packages/shared/src/features/flags.ts
+export const FLAGS = {
+  my_feature: false,
+} satisfies Record<string, boolean>
+
+// 2. Gate the UI
+import { useFeatureFlag } from '@bookit/shared'
+const isEnabled = useFeatureFlag('my_feature')
+if (!isEnabled) return null
+```
+
+Enable the flag in Firebase Console → Remote Config.
+
+---
+
 ## Critical rules
 
 ### Fonts & headings
@@ -63,6 +109,8 @@ You are implementing a React frontend feature for the Bookit project. Follow the
 - Shared components → `web/packages/shared/src/components/`
 - App-specific components → `src/components/`
 - Hooks → `src/hooks/` or `web/packages/shared/src/hooks/`
+
+---
 
 ## Before finishing
 
