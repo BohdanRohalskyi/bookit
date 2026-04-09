@@ -1,261 +1,213 @@
 # Bookit
 
-Multi-vertical booking platform for beauty, sport, and pet care services.
+Multi-vertical booking platform for beauty, sport, and pet care services in Lithuania.
 
-## Overview
+Providers manage their businesses and accept bookings through the **Bookit Business** app. Clients discover local providers and book appointments through the **Bookit** consumer app.
 
-Bookit enables service providers to manage their businesses, locations, services, and bookings, while customers can discover providers and book appointments.
+**MVP deadline:** June 30, 2026 · **Region:** EU (Lithuania)
 
-**Target Market:** Lithuania (EU)
-**MVP Target:** June 30, 2026
+## Live Environments
 
-## Deployment Status
+| | Consumer web | Business web | API |
+|-|-------------|-------------|-----|
+| **Production** | [pt-duo-bookit.web.app](https://pt-duo-bookit.web.app) | — | [bookit-api-prod](https://bookit-api-prod-898535472060.europe-west3.run.app) |
+| **Staging** | [bookit-staging.web.app](https://bookit-staging.web.app) | — | [bookit-api-staging](https://bookit-api-staging-898535472060.europe-west3.run.app) |
 
-| Environment | Frontend | API |
-|-------------|----------|-----|
-| **Production** | https://pt-duo-bookit.web.app | https://bookit-api-prod-898535472060.europe-west3.run.app |
-| **Staging** | https://bookit-staging.web.app | https://bookit-api-staging-898535472060.europe-west3.run.app |
-
-| Resource | Status |
-|----------|--------|
-| **Database** | ✅ Cloud SQL PostgreSQL 15 (`bookit_prod`, `bookit_staging`) |
-| **CI/CD** | ✅ GitHub Actions → Cloud Run + Firebase |
-| **Region** | `europe-west3` (Frankfurt, EU) |
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| **Backend** | Go 1.24 + Gin |
-| **Frontend** | React + TypeScript + Vite |
-| **Mobile** | React Native + Expo |
-| **Database** | Cloud SQL (PostgreSQL 15) |
-| **Infrastructure** | GCP (Cloud Run, Cloud Storage, Secret Manager, Pub/Sub) |
-| **CI/CD** | GitHub Actions |
-| **Region** | europe-west3 (Frankfurt) |
+---
 
 ## Project Structure
 
 ```
 bookit/
-├── api/
-│   └── openapi/
-│       └── spec.yaml          # OpenAPI 3.0 specification
+├── api/                        # Go backend (Gin)
+│   ├── cmd/server/             # Entry point
+│   ├── internal/
+│   │   ├── api/                # Generated types & handler registration
+│   │   ├── config/             # Environment config
+│   │   ├── database/           # DB pool & migrations
+│   │   ├── middleware/         # Auth, CORS, logging
+│   │   └── domain/
+│   │       ├── identity/       # Auth, users
+│   │       ├── catalog/        # Businesses, services, staff
+│   │       ├── scheduling/     # Availability, slots
+│   │       ├── booking/        # Appointments
+│   │       ├── payment/        # Transactions (Paysera)
+│   │       └── notification/   # Email
+│   ├── migrations/             # SQL migration files
+│   └── openapi/spec.yaml       # API contract (source of truth)
+│
+├── web/                        # React frontend (npm workspaces)
+│   ├── packages/
+│   │   ├── consumer/           # Client booking app  (port 5173)
+│   │   ├── biz/                # Provider mgmt app   (port 5174)
+│   │   └── shared/             # Shared components, API client, stores
+│   └── Dockerfile.dev
+│
 ├── docs/
-│   ├── BRD-Bookit-20260327.md          # Business Requirements
-│   ├── PRD-Bookit-20260327.md          # Product Requirements
-│   ├── NFR-Bookit-20260327.md          # Non-Functional Requirements
-│   ├── HLD-Bookit-20260330.md          # High-Level Design
-│   ├── BACKEND-SPEC-Bookit-20260331.md # Backend implementation spec
-│   ├── FRONTEND-SPEC-Bookit-20260331.md# Frontend implementation spec
-│   ├── stack-comparison.md             # DB & event processing options
-│   └── implementation-plans/           # Implementation tracking
-│       ├── new/                        # Plans being drafted
-│       ├── ready-for-dev/              # Ready to implement
-│       ├── in-progress/                # Currently being developed
-│       ├── done/                       # Completed
-│       ├── canceled/                   # Canceled
-│       └── TEMPLATE.md                 # Plan template
-├── CLAUDE.md                  # Claude instructions
-└── README.md                  # This file
+│   ├── BRD-Bookit-20260327.md
+│   ├── HLD-Bookit-20260330.md
+│   ├── BACKEND-SPEC-Bookit-20260331.md
+│   ├── FRONTEND-SPEC-Bookit-20260331.md
+│   └── implementation-plans/   # Feature plans (new → ready → in-progress → done)
+│
+├── .claude/commands/           # Claude Code slash commands (/plan, /code-react, /code-go)
+├── docker-compose.yml
+└── CLAUDE.md                   # AI assistant instructions
 ```
 
-## Architecture
+---
 
-**Style:** Modular monolith with clear domain boundaries
+## Tech Stack
 
-**Domains:**
-- Identity (users, auth, providers)
-- Catalog (businesses, locations, services)
-- Scheduling (availability, calendar)
-- Bookings (reservations, status lifecycle)
-- Notifications (email via SendGrid)
-- Payments (Paysera integration)
+| Layer | Technology |
+|-------|------------|
+| Backend | Go 1.22+ · Gin · pgx · golang-migrate |
+| Frontend | React 19 · TypeScript · Vite · Tailwind CSS v4 |
+| UI | shadcn/ui · Sora + Geist fonts |
+| State | TanStack Query v5 · Zustand |
+| HTTP client | openapi-fetch (never axios) |
+| Auth | JWT in httpOnly cookies (access 30m / refresh 30d) |
+| Database | Cloud SQL PostgreSQL 15 |
+| Infrastructure | GCP — Cloud Run · Firebase Hosting · Secret Manager |
+| CI/CD | GitHub Actions |
 
-## API
+---
 
-REST API with OpenAPI 3.0 specification at `api/openapi/spec.yaml`.
-
-**Base URL:** `https://api.bookit.app/api/v1`
-
-**Authentication:** JWT Bearer tokens with refresh token rotation
-
-### Endpoints Overview
-
-| Group | Endpoints |
-|-------|-----------|
-| Auth | register, login, refresh, logout, OAuth, verify-email |
-| Users | get/update profile |
-| Providers | become provider, get profile |
-| Businesses | CRUD operations |
-| Locations | CRUD operations |
-| Services | CRUD operations |
-| Bookings | create, list, cancel |
-| Availability | get time slots |
-| Search | public location search |
-
-## Development
+## Installation (Docker)
 
 ### Prerequisites
 
-- Go 1.24+
-- Node.js 20+
-- Docker and Docker Compose
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- Git
 
-### Quick Start (Docker)
+### Run locally
 
 ```bash
-# Clone repository
 git clone https://github.com/BohdanRohalskyi/bookit.git
 cd bookit
 
-# Start PostgreSQL + API (with auto-migrations)
-docker-compose up
+# Copy environment files
+cp api/.env.example api/.env
+
+# Start everything: PostgreSQL + API + Consumer web + Biz web + Mailpit
+docker compose up
 ```
 
-API available at `http://localhost:8080/api/v1/health`
+| Service | URL |
+|---------|-----|
+| Consumer app | http://localhost:5173 |
+| Business app | http://localhost:5174 |
+| API | http://localhost:8080/api/v1/health |
+| Mailpit (email UI) | http://localhost:8025 |
 
-### Manual Backend Setup
+Database migrations run automatically on API startup.
+
+### Key environment variables (`api/.env`)
 
 ```bash
-cd api
-
-# Install dependencies
-go mod download
-
-# Install dev tools
-make tools
-
-# Set up environment
-cp .env.example .env
-
-# Start PostgreSQL
-docker-compose up db
-
-# Run the server
-make run
+DATABASE_URL=postgres://bookit:bookit@db:5432/bookit?sslmode=disable
+JWT_SECRET=local-dev-secret
+ENVIRONMENT=local
+MAIL_PROVIDER=smtp
+SMTP_HOST=mailpit
+SMTP_PORT=1025
 ```
 
-### Frontend Setup
+Staging and production secrets are stored in GCP Secret Manager and mounted automatically by Cloud Run.
 
-```bash
-cd frontend
+---
 
-# Install dependencies
-npm install
+## Contributing
 
-# Generate TypeScript types from OpenAPI
-npm run generate:types
+### Git Flow
 
-# Start development server
-npm run dev
+```
+main (production)
+ └── your-feature-branch
+       └── PR → main (auto-deploys to staging for review)
+                 └── Merge → auto-deploys to production
 ```
 
-### Environment Variables
+1. **Branch** — create a feature branch from `main`:
+   ```bash
+   git checkout main && git pull
+   git checkout -b feat/your-feature-name
+   ```
 
-```bash
-# Database
-DATABASE_URL=postgres://user:pass@localhost:5432/bookit
+2. **Develop** — implement your changes following the conventions in `api/CLAUDE.md` (backend) or `web/CLAUDE.md` (frontend).
 
-# Auth
-JWT_SECRET=your-secret-key
-JWT_ACCESS_TTL=30m
-JWT_REFRESH_TTL=7d
+3. **Open a PR to `main`** — this automatically deploys to staging:
+   - Consumer web → https://bookit-staging.web.app
+   - API → `bookit-api-staging`
 
-# OAuth
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-FACEBOOK_CLIENT_ID=...
-FACEBOOK_CLIENT_SECRET=...
-PAYSERA_CLIENT_ID=...
-PAYSERA_CLIENT_SECRET=...
+4. **Test on staging** — verify your changes work end-to-end.
 
-# Email
-SENDGRID_API_KEY=...
+5. **Merge** — merging the PR automatically deploys to production.
 
-# Storage
-GCS_BUCKET=bookit-media
-```
+> Never commit directly to `main`.
 
-## Code Generation
+### Feature Flags
 
-### Go Server (oapi-codegen)
+Every new user-facing feature **must** ship behind a feature flag.
 
-```bash
-oapi-codegen -generate types -package api api/openapi/spec.yaml > internal/api/types.gen.go
-oapi-codegen -generate gin -package api api/openapi/spec.yaml > internal/api/server.gen.go
-```
+We use **Firebase Remote Config** for flags. To add a new flag:
 
-### TypeScript Client (openapi-typescript)
+1. **Define the flag** in `web/packages/shared/src/features/flags.ts`:
+   ```ts
+   export const FLAGS = {
+     // existing flags...
+     my_new_feature: false,   // default off
+   } satisfies Record<string, boolean>
+   ```
 
-```bash
-cd frontend
-npm run generate:types
-# Outputs: src/api/types.ts
-```
+2. **Use the flag** in any component:
+   ```tsx
+   import { useFeatureFlag } from '@bookit/shared'
+
+   function MyComponent() {
+     const isEnabled = useFeatureFlag('my_new_feature')
+     if (!isEnabled) return null
+     return <NewFeature />
+   }
+   ```
+
+3. **Enable on Firebase Console** — go to Remote Config, add the flag key, set value to `true` for the desired environment (staging or production).
+
+This lets you merge and deploy incomplete features safely, and roll back instantly without a redeploy by toggling the flag in Firebase.
+
+### Code Conventions
+
+| Area | Guide |
+|------|-------|
+| Go backend | See [`api/CLAUDE.md`](./api/CLAUDE.md) |
+| React frontend | See [`web/CLAUDE.md`](./web/CLAUDE.md) |
+| Feature planning | See [`docs/implementation-plans/TEMPLATE.md`](./docs/implementation-plans/TEMPLATE.md) |
+
+### Claude Code Slash Commands
+
+If you use [Claude Code](https://claude.ai/code), these project-level commands are available:
+
+| Command | Purpose |
+|---------|---------|
+| `/plan` | Create a structured implementation plan for a new feature |
+| `/code-react` | Get React/TypeScript conventions loaded into context |
+| `/code-go` | Get Go backend conventions loaded into context |
+
+---
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [BRD](./docs/BRD-Bookit-20260327.md) | Business requirements, goals, success metrics |
-| [PRD](./docs/PRD-Bookit-20260327.md) | Product requirements, user stories, acceptance criteria |
-| [NFR](./docs/NFR-Bookit-20260327.md) | Performance, availability, security requirements |
-| [HLD](./docs/HLD-Bookit-20260330.md) | Architecture decisions, system design, ADRs |
-| [Backend Spec](./docs/BACKEND-SPEC-Bookit-20260331.md) | Go implementation details |
-| [Frontend Spec](./docs/FRONTEND-SPEC-Bookit-20260331.md) | Frontend architecture, state management, API client |
-| [API Spec](./api/openapi/spec.yaml) | OpenAPI 3.0 specification |
-| [Stack Comparison](./docs/stack-comparison.md) | Database and event processing options |
+| [BRD](./docs/BRD-Bookit-20260327.md) | Business requirements & success metrics |
+| [HLD](./docs/HLD-Bookit-20260330.md) | Architecture decisions & system design |
+| [Backend Spec](./docs/BACKEND-SPEC-Bookit-20260331.md) | Go implementation details per endpoint |
+| [Frontend Spec](./docs/FRONTEND-SPEC-Bookit-20260331.md) | React component trees & state management |
+| [API Spec](./api/openapi/spec.yaml) | OpenAPI 3.0.3 — 29 endpoints, 50+ schemas |
+| [NFR](./docs/NFR-Bookit-20260327.md) | Performance, availability & security targets |
 
-## Key Decisions
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Architecture | Modular monolith | Solo developer, faster iteration |
-| API Style | REST + OpenAPI | Wide tooling support, code generation |
-| Auth | JWT + refresh tokens | Stateless, scalable |
-| Database | PostgreSQL | ACID compliance, GCP integration |
-| HTTP Client | Native fetch | Zero dependencies, no vulnerabilities |
-| State Management | Zustand + React Query | Lightweight, server state separation |
-
-## CI/CD Pipeline
-
-### Git Flow
-
-| Event | API Deploys To | Web Deploys To |
-|-------|----------------|----------------|
-| PR to `main` | Staging | Staging |
-| Merge to `main` | Production | Production |
-
-**Workflow:**
-1. Create feature branch from `main`
-2. Open PR to `main` → auto-deploys to staging
-3. Test on staging URLs
-4. Merge PR → auto-deploys to production
-
-### Pipeline Steps
-
-```
-Lint → Test → Build → Deploy → Migrate → Verify Health
-```
-
-- Runs linter and tests
-- Builds Docker image
-- Pushes to Artifact Registry
-- Deploys to Cloud Run / Firebase Hosting
-- Runs database migrations
-- Verifies health check
-
-## Non-Functional Targets
-
-| Metric | Target |
-|--------|--------|
-| API Response (p95) | < 100ms |
-| Page Load | < 1s |
-| Uptime | 99.95% |
-| RTO | < 30 minutes |
-| RPO (transactions) | Zero data loss |
+---
 
 ## License
 
-Proprietary
+Proprietary — all rights reserved.
