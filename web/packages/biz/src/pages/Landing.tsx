@@ -32,6 +32,11 @@ function Navbar() {
           {isAuthenticated && user ? (
             <>
               <span className="text-sm text-[#020905] hidden md:block">{user.name}</span>
+              <Link to="/account">
+                <button className="px-3 py-1.5 text-base font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors">
+                  My account
+                </button>
+              </Link>
               <Button variant="outline" size="sm" onClick={logout}>Logout</Button>
             </>
           ) : (
