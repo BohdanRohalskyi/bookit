@@ -8,6 +8,8 @@ import { useAppSwitch } from '@bookit/shared/hooks'
 
 function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore()
+  const { switchTo } = useAppSwitch()
+  const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
 
   return (
     <nav className="bg-[#e7f0fa] h-[72px] shrink-0 w-full">
@@ -18,7 +20,12 @@ function Navbar() {
           <a href="#" className="text-[#020905] text-base hover:opacity-70 transition-opacity">Product</a>
           <a href="#" className="text-[#020905] text-base hover:opacity-70 transition-opacity">About us</a>
           <a href="#" className="text-[#020905] text-base hover:opacity-70 transition-opacity">Blog</a>
-          <a href="#" className="text-[#020905] text-base hover:opacity-70 transition-opacity">Book Service</a>
+          <button
+            onClick={() => switchTo(consumerUrl)}
+            className="text-[#020905] text-base hover:opacity-70 transition-opacity"
+          >
+            Client app ↗
+          </button>
         </div>
 
         <div className="flex items-center gap-4">
