@@ -84,6 +84,26 @@ services:
     profiles: ["tools"]
     command: golangci-lint run ./...
 
+  go-tools:
+    image: golang:1.22-alpine
+    volumes:
+      - ./api:/app
+      - go_mod_cache:/go/pkg/mod
+    working_dir: /app
+    environment:
+      GOPATH: /go
+      GOCACHE: /go/cache
+    profiles: ["tools"]
+
+  migrate-cli:
+    image: migrate/migrate
+    volumes:
+      - ./api/migrations:/migrations
+    networks:
+      - default
+    profiles: ["tools"]
+
 volumes:
   postgres_data:
   web_node_modules:
+  go_mod_cache:
