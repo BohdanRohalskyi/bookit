@@ -10,7 +10,7 @@ When user says: "I want to open <description>" or "/open-plan <description>"
 
 1. Search for matching plan in `docs/implementation-plans/` (all subfolders: new, ready-for-dev, in-progress, done, canceled)
 2. Match by filename or title in frontmatter
-3. If found, open in VS Code with: `code <path>`
+3. If found, open with: `${EDITOR:-code} <path>` (defaults to VS Code; respects `$EDITOR` if set)
 4. If multiple matches, list them and ask which one
 5. If no match, list available plans
 

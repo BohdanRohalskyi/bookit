@@ -51,18 +51,22 @@ When in doubt: a small amount of duplication is better than a wrong abstraction.
 Every new user-facing feature must be gated behind a feature flag.
 
 ```ts
-// 1. Add default (false) to web/packages/shared/src/features/flags.ts
+// 1. Add to web/packages/shared/src/features/flags.ts
+//    Key: UPPER_SNAKE_CASE constant  |  Value: snake_case string (used by Firebase + backend)
 export const FLAGS = {
-  my_feature: false,
-} satisfies Record<string, boolean>
+  FEATURE_TEST: 'feature_test', // existing
+  MY_FEATURE: 'my_feature',     // ← add like this
+} as const
 
-// 2. Gate the UI
+// 2. Gate the UI — always use the constant, never a raw string
 import { useFeatureFlag } from '@bookit/shared'
-const isEnabled = useFeatureFlag('my_feature')
+import { FLAGS } from '@bookit/shared/features'
+
+const isEnabled = useFeatureFlag(FLAGS.MY_FEATURE)
 if (!isEnabled) return null
 ```
 
-Enable the flag in Firebase Console → Remote Config.
+Enable the flag in Firebase Console → Remote Config → add key `my_feature` = `true`.
 
 ---
 

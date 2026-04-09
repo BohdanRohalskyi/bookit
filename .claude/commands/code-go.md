@@ -50,7 +50,7 @@ Before implementing, check whether something already exists:
 | DB transaction | existing pattern in any `repository.go` |
 | Email sending | `internal/domain/notification/` |
 | Config values | `internal/config/config.go` — extend, don't add new env parsing elsewhere |
-| Feature flags | `internal/flags/` service — inject, don't instantiate inline |
+| Feature flags | `internal/flags/` service (if it exists) — inject, don't instantiate inline |
 | Logging | `internal/logger/` — use the injected logger, never `fmt.Println` |
 
 If a good fit exists — use it. If it almost fits — weigh whether extending it is clean. **Don't force reuse when it would:**
@@ -89,7 +89,8 @@ func (h *Handler) MyEndpoint(c *gin.Context) {
 }
 ```
 
-Flag naming: `snake_case`, domain-prefixed — e.g. `booking_instant_confirm`, `catalog_service_images`.
+The flag key string must match the constant value in `web/packages/shared/src/features/flags.ts`
+so backend and frontend gate the same flag. E.g. `"booking_instant_confirm"` ↔ `FLAGS.BOOKING_INSTANT_CONFIRM`.
 Enable flags in Firebase Console → Remote Config.
 
 ---

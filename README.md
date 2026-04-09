@@ -86,38 +86,52 @@ bookit/
 git clone https://github.com/BohdanRohalskyi/bookit.git
 cd bookit
 
-# Copy environment files
-cp api/.env.example api/.env
-
 # Start everything: PostgreSQL + API + Consumer web + Biz web + Mailpit
 docker compose up
+```
+
+No `.env` files needed for Docker — all environment variables are declared in `docker-compose.yml`.
+Database migrations run automatically on API startup.
+
+Verify the setup:
+
+```bash
+curl http://localhost:8080/api/v1/health
+# → {"status":"ok"}
 ```
 
 | Service | URL |
 |---------|-----|
 | Consumer app | http://localhost:5173 |
 | Business app | http://localhost:5174 |
-| API | http://localhost:8080/api/v1/health |
+| API health | http://localhost:8080/api/v1/health |
 | Mailpit (email UI) | http://localhost:8025 |
 
-Database migrations run automatically on API startup.
-
-### Key environment variables (`api/.env`)
+### Running without Docker
 
 ```bash
-DATABASE_URL=postgres://bookit:bookit@db:5432/bookit?sslmode=disable
-JWT_SECRET=local-dev-secret
-ENVIRONMENT=local
-MAIL_PROVIDER=smtp
-SMTP_HOST=mailpit
-SMTP_PORT=1025
+# 1. Start only the database and mailpit
+docker compose up db mailpit
+
+# 2. Configure the API
+cp api/.env.example api/.env   # edit if needed
+
+# 3. Run the API
+cd api && go run cmd/server/main.go
+
+# 4. Run the frontend
+cd web && npm install && npm run dev
 ```
+
+Frontend env vars for manual runs: `cp web/.env.example web/packages/consumer/.env.local`
 
 Staging and production secrets are stored in GCP Secret Manager and mounted automatically by Cloud Run.
 
 ---
 
 ## Contributing
+
+> Full guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ### Git Flow
 

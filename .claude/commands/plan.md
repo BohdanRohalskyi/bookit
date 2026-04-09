@@ -45,19 +45,20 @@ Every new user-facing feature ships behind a feature flag. **Phase 1 of every pl
 
 ### Client flag (frontend only)
 
-1. Add the flag with a `false` default in `web/packages/shared/src/features/flags.ts`:
+1. Add the constant to `web/packages/shared/src/features/flags.ts`:
    ```ts
    export const FLAGS = {
-     // existing...
-     my_feature: false,
-   } satisfies Record<string, boolean>
+     FEATURE_TEST: 'feature_test', // existing
+     MY_FEATURE: 'my_feature',     // ← add like this: UPPER_SNAKE_CASE key, snake_case string value
+   } as const
    ```
 
-2. Gate the UI with the hook:
+2. Gate the UI with the hook — always use the constant, never a raw string:
    ```tsx
    import { useFeatureFlag } from '@bookit/shared'
+   import { FLAGS } from '@bookit/shared/features'
 
-   const isEnabled = useFeatureFlag('my_feature')
+   const isEnabled = useFeatureFlag(FLAGS.MY_FEATURE)
    if (!isEnabled) return null
    ```
 
@@ -65,9 +66,10 @@ Every new user-facing feature ships behind a feature flag. **Phase 1 of every pl
 
 ### Server flag (backend only or backend + frontend)
 
-1. Add the same key to `flags.ts` (for frontend gating, if applicable).
+1. Add the same constant to `flags.ts` (for frontend gating, if applicable — use same string key on both sides).
 
-2. In the Go handler or service, check the flag via the flag service:
+2. In the Go handler or service, check via the flag service (see `internal/flags/` if it exists,
+   or the feature-flags implementation plan):
    ```go
    if !h.flags.IsEnabled(ctx, "my_feature") {
        c.JSON(http.StatusNotFound, ...)
@@ -75,16 +77,13 @@ Every new user-facing feature ships behind a feature flag. **Phase 1 of every pl
    }
    ```
 
-3. The flag service reads from Firebase Remote Config via the Admin SDK
-   (see `internal/flags/` or the feature-flags implementation plan).
-
-4. Enable in Firebase Console → Remote Config → add key `my_feature` = `true`.
+3. Enable in Firebase Console → Remote Config → add key `my_feature` = `true`.
 
 ### Flag naming convention
 
-- Use `snake_case`
-- Prefix with the domain: `booking_`, `catalog_`, `identity_`, etc.
-- Example: `booking_instant_confirm`, `catalog_service_images`
+- Constant name: `UPPER_SNAKE_CASE` (e.g. `BOOKING_INSTANT_CONFIRM`)
+- String value: `snake_case`, domain-prefixed (e.g. `booking_instant_confirm`)
+- The string value is what Firebase Remote Config and the backend use as the key
 
 ---
 
