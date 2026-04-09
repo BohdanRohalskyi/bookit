@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircle2, TriangleAlert, Phone, Building2, User } from 'lucide-react'
+import { CheckCircle2, TriangleAlert, Phone, Building2, User, ArrowUpRight } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
+import { useAppSwitch } from '@bookit/shared/hooks'
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,8 @@ interface ProfileCardProps {
 
 function ProfileCard({ resendStatus, onResend }: ProfileCardProps) {
   const { user } = useAuthStore()
+  const { switchTo } = useAppSwitch()
+  const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
 
   if (!user) return null
 
@@ -133,6 +136,15 @@ function ProfileCard({ resendStatus, onResend }: ProfileCardProps) {
           Provider
         </span>
       </div>
+
+      {/* Switch to client app */}
+      <button
+        onClick={() => switchTo(consumerUrl)}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors"
+      >
+        <ArrowUpRight className="size-4" />
+        Go to client app
+      </button>
     </div>
   )
 }
