@@ -10,8 +10,8 @@ Providers manage their businesses and accept bookings through the **Bookit Busin
 
 | | Consumer web | Business web | API |
 |-|-------------|-------------|-----|
-| **Production** | [pt-duo-bookit.web.app](https://pt-duo-bookit.web.app) | — | [bookit-api-prod](https://bookit-api-prod-898535472060.europe-west3.run.app) |
-| **Staging** | [bookit-staging.web.app](https://bookit-staging.web.app) | — | [bookit-api-staging](https://bookit-api-staging-898535472060.europe-west3.run.app) |
+| **Production** | [pt-duo-bookit.web.app](https://pt-duo-bookit.web.app) | [pt-duo-bookit-biz.web.app](https://pt-duo-bookit-biz.web.app) | [bookit-api-prod](https://bookit-api-prod-898535472060.europe-west3.run.app) |
+| **Staging** | [bookit-staging.web.app](https://bookit-staging.web.app) | [bookit-biz-staging.web.app](https://bookit-biz-staging.web.app) | [bookit-api-staging](https://bookit-api-staging-898535472060.europe-west3.run.app) |
 
 ---
 
