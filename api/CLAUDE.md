@@ -120,9 +120,15 @@ cd api && go test ./...
 ## Before Committing
 
 ```bash
-cd api && go build ./...   # Must pass
-cd api && go vet ./...     # Must pass
-cd api && go test ./...    # Must pass
+# Build and vet (local Go)
+cd api && go build ./... && go vet ./...
+
+# Build and vet (Docker, if Go not installed locally)
+docker compose --profile tools run --rm go-tools sh -c "go build ./... && go vet ./..."
+
+# Tests (DB must be running)
+docker compose up -d db
+cd api && go test ./...
 ```
 
 The pre-push hook runs golangci-lint automatically.
