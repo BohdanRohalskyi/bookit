@@ -25,6 +25,18 @@ Target market: Lithuania (EU). MVP deadline: June 30, 2026.
 
 **Workflow:** feature branch → PR to `main` → test on staging → merge → production.
 
+## Branch Discipline
+
+**All code changes must be made on a feature branch, never directly on `main`.**
+
+Before making any file edits, Claude must:
+1. Warn the user if they are currently on `main`
+2. Suggest creating a new feature branch
+3. If the user agrees, invoke the `/new-branch` skill — it will verify `main` is up to date and create the branch
+4. Only proceed with changes after a feature branch is confirmed
+
+If the user explicitly instructs to work on `main`, acknowledge the risk but comply.
+
 ## Architecture
 
 - **Style**: Modular monolith with clear domain boundaries

@@ -1,6 +1,6 @@
 # Bookit Web — Claude Instructions
 
-> Use the `/code-react` slash command when implementing frontend features.
+> **Every change inside `web/` — no matter how small — must be preceded by invoking the `/code-react` skill.**
 > Root `CLAUDE.md` has project-wide context (git flow, architecture, domains).
 
 ## Stack

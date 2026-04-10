@@ -1,6 +1,6 @@
 # Bookit API — Claude Instructions
 
-> Use the `/code-go` slash command when implementing backend features.
+> **Every change inside `api/` — no matter how small — must be preceded by invoking the `/code-go` skill.**
 > Root `CLAUDE.md` has project-wide context (git flow, architecture, domains).
 
 ## Stack
