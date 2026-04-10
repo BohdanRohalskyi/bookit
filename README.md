@@ -169,23 +169,24 @@ We use **Firebase Remote Config** for flags. To add a new flag:
 1. **Define the flag** in `web/packages/shared/src/features/flags.ts`:
    ```ts
    export const FLAGS = {
-     // existing flags...
-     my_new_feature: false,   // default off
-   } satisfies Record<string, boolean>
+     FEATURE_TEST: 'feature_test', // existing
+     MY_FEATURE:   'my_feature',   // ← add yours: UPPER_SNAKE_CASE key, snake_case string value
+   } as const
    ```
 
 2. **Use the flag** in any component:
    ```tsx
    import { useFeatureFlag } from '@bookit/shared'
+   import { FLAGS } from '@bookit/shared/features'
 
    function MyComponent() {
-     const isEnabled = useFeatureFlag('my_new_feature')
+     const isEnabled = useFeatureFlag(FLAGS.MY_FEATURE) // always use the constant, never a raw string
      if (!isEnabled) return null
      return <NewFeature />
    }
    ```
 
-3. **Enable on Firebase Console** — go to Remote Config, add the flag key, set value to `true` for the desired environment (staging or production).
+3. **Enable on Firebase Console** — go to Remote Config, add the string key (`my_feature`), set value to `true` for the desired environment (staging or production).
 
 This lets you merge and deploy incomplete features safely, and roll back instantly without a redeploy by toggling the flag in Firebase.
 
@@ -204,8 +205,10 @@ If you use [Claude Code](https://claude.ai/code), these project-level commands a
 | Command | Purpose |
 |---------|---------|
 | `/plan` | Create a structured implementation plan for a new feature |
+| `/new-branch` | Create a feature branch from an up-to-date `main` |
 | `/code-react` | Get React/TypeScript conventions loaded into context |
 | `/code-go` | Get Go backend conventions loaded into context |
+| `/open-plan` | Open an existing implementation plan by description |
 
 ---
 

@@ -43,7 +43,14 @@ Firebase vars can stay blank locally — feature flags will default to `false`.
 
 ## Claude Code setup
 
-Open Claude Code at the project root. The following files load automatically:
+Open Claude Code at the project root. Before first use, make sure your git email is set — it's used for plan ownership:
+
+```bash
+git config user.email   # should return your email
+git config --global user.email "you@example.com"   # set it if empty
+```
+
+The following files load automatically:
 
 | File | Loaded when |
 |------|-------------|
@@ -56,6 +63,7 @@ Open Claude Code at the project root. The following files load automatically:
 | Command | Use it for |
 |---------|-----------|
 | `/plan` | Designing a new feature — creates a structured plan with feature flag phase |
+| `/new-branch` | Create a feature branch from an up-to-date `main` |
 | `/code-react` | React/TypeScript implementation — loads all frontend conventions |
 | `/code-go` | Go backend implementation — loads all backend conventions |
 | `/open-plan` | Open an existing implementation plan by description |
@@ -72,7 +80,7 @@ main  ←──── your PR (auto-deploys to staging for review)
  └── feat/your-feature-name  ← work here
 ```
 
-1. **Branch from `main`:**
+1. **Branch from `main`** (or let Claude do it with `/new-branch`):
    ```bash
    git checkout main && git pull
    git checkout -b feat/your-feature-name
