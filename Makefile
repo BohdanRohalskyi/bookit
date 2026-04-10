@@ -1,6 +1,12 @@
-.PHONY: up down logs test lint typecheck install migrate migrate-down migrate-reset migrate-create build clean
+.PHONY: setup up down logs test lint typecheck install migrate migrate-down migrate-reset migrate-create build clean
 
 DB_URL = postgres://bookit:bookit@db:5432/bookit?sslmode=disable
+
+# ── Setup ─────────────────────────────────────────────────────────────────────
+
+setup:
+	git config core.hooksPath .githooks
+	@echo "Git hooks installed. Run 'make up' to start the dev environment."
 
 # ── Dev ───────────────────────────────────────────────────────────────────────
 

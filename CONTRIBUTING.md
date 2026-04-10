@@ -16,7 +16,7 @@
 ```bash
 git clone https://github.com/BohdanRohalskyi/bookit.git
 cd bookit
-git config core.hooksPath .githooks   # install pre-push lint hook
+make setup   # installs pre-push lint hook
 docker compose up
 ```
 
@@ -50,7 +50,7 @@ Features currently in development — check these before starting new work to av
 
 Use `/open-plan <description>` in Claude Code to open any of these directly.
 
-> Keep this table in sync: update it when plans move to `done/` or `canceled/`. Full list is always in [`docs/implementation-plans/in-progress/`](./docs/implementation-plans/in-progress/).
+> When a plan moves folders, update this table. The canonical list is always [`docs/implementation-plans/in-progress/`](./docs/implementation-plans/in-progress/).
 
 ---
 
@@ -109,7 +109,7 @@ main  ←──── your PR (auto-deploys to staging for review)
 
 > Never commit directly to `main`.
 
-A git pre-push hook (`.githooks/pre-push`) runs `golangci-lint` on API changes and `tsc` on web changes automatically on every `git push` — from the terminal or through Claude Code.
+A git pre-push hook (`.githooks/pre-push`) runs `golangci-lint` on API changes and `tsc` on web changes automatically on every `git push` — from the terminal or through Claude Code. Activated by `make setup`.
 
 ---
 
