@@ -25,5 +25,9 @@ fi
 
 if echo "$CHANGED" | grep -q '^web/'; then
   echo "→ Web changes detected — running type check..."
-  cd "$ROOT/web" && npm run typecheck
+  if [ -d "$ROOT/web/node_modules" ]; then
+    cd "$ROOT/web" && npm run typecheck
+  else
+    echo "  Skipping (no local node_modules — run npm install in web/ to enable)"
+  fi
 fi

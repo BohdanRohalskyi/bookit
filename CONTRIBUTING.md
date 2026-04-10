@@ -174,7 +174,7 @@ Before opening a PR:
 
 - [ ] Feature is behind a flag (or explicitly not user-facing)
 - [ ] `curl http://localhost:8080/api/v1/health` passes
-- [ ] API changes: `cd api && go build ./... && go vet ./...` (or `docker compose --profile tools run --rm go-tools go build ./... && go vet ./...`)
+- [ ] API changes: `cd api && go build ./... && go vet ./...` (or `docker compose --profile tools run --rm go-tools sh -c "go build ./... && go vet ./..."`)
 - [ ] Web changes: `cd web && npm run typecheck`
 - [ ] Tested on local Docker setup end-to-end
 - [ ] Implementation plan updated (if one exists for this feature)

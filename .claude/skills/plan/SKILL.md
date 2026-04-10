@@ -83,11 +83,13 @@ Every new user-facing feature ships behind a feature flag. **Phase 1 of every pl
 
 ### Which flag type to use
 
-| Feature scope | Flag type | Where defined |
-|---------------|-----------|---------------|
-| Frontend only | **Client flag** (Firebase Remote Config) | Firebase Console |
-| Backend only | **Server flag** (Firebase Remote Config via Admin SDK) | Firebase Console |
-| Backend + frontend | **Both** — same flag key, checked on both sides | Firebase Console |
+| Feature scope | Flag type |
+|---------------|-----------|
+| Frontend only | **Client flag** — `useFeatureFlag(FLAGS.MY_FLAG)` |
+| Backend only | **Server flag** — `h.flags.IsEnabled(ctx, "my_flag")` |
+| Backend + frontend | **Both** — same key on both sides |
+
+Flag values are set in Firebase Remote Config by the project owner. Note the key in your PR description.
 
 ### Client flag (frontend only)
 
