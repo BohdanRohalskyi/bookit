@@ -1,3 +1,8 @@
+---
+name: plan
+description: Plan a new feature or task for the Bookit project. Creates an implementation plan with phases, feature flags, and ownership tracking.
+---
+
 # Plan: Feature / Task Preparation
 
 You are helping prepare an implementation plan for the Bookit project. Follow the project's plan workflow exactly.

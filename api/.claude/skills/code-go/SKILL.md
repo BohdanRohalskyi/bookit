@@ -1,3 +1,8 @@
+---
+name: code-go
+description: Implement a Go backend feature for the Bookit API. Follow project conventions for Gin, pgx, oapi-codegen, RFC 7807 errors, and feature flags.
+---
+
 # Go Backend Coding
 
 You are implementing a Go backend feature for the Bookit project. Follow these conventions exactly.

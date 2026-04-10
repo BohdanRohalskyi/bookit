@@ -98,10 +98,10 @@ implementation-plans/
 3. Development starts → move to `in-progress/`, update phase statuses as work progresses
 4. All phases done → move to `done/`
 
-## Slash Commands
+## Skills
 
-| Command | Use when |
-|---------|---------|
+| Skill | Use when |
+|-------|---------|
 | `/plan` | Designing a new feature or task |
 | `/code-react` | Implementing frontend features |
 | `/code-go` | Implementing backend features |

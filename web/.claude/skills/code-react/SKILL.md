@@ -1,3 +1,8 @@
+---
+name: code-react
+description: Implement a React/TypeScript frontend feature for the Bookit web apps. Follow project conventions for Tailwind, openapi-fetch, TanStack Query, and feature flags.
+---
+
 # React / TypeScript Frontend Coding
 
 You are implementing a React frontend feature for the Bookit project. Follow these conventions exactly.

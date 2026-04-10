@@ -1,3 +1,8 @@
+---
+name: open-plan
+description: Open an implementation plan in VS Code by description or name.
+---
+
 # Open Implementation Plan
 
 Opens an implementation plan in VS Code based on a brief description.

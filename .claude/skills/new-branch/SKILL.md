@@ -1,3 +1,8 @@
+---
+name: new-branch
+description: Create a feature branch from an up-to-date main. Use when starting work on a new feature, bug fix, or chore.
+---
+
 # New Branch
 
 Creates a feature branch from an up-to-date `main`.
