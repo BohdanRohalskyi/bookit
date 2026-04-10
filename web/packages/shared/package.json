@@ -9,12 +9,14 @@
     "./api": "./src/api/index.ts",
     "./stores": "./src/stores/index.ts",
     "./hooks": "./src/hooks/index.ts",
-    "./lib": "./src/lib/index.ts"
+    "./lib": "./src/lib/index.ts",
+    "./features": "./src/features/index.ts"
   },
   "scripts": {
     "generate:types": "openapi-typescript ../../../api/openapi/spec.yaml -o src/api/types.gen.ts"
   },
   "dependencies": {
+    "firebase": "^12.11.0",
     "openapi-fetch": "^0.17.0",
     "zustand": "^5.0.12",
     "class-variance-authority": "^0.7.1",
