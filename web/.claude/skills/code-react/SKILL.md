@@ -73,6 +73,8 @@ if (!isEnabled) return null
 
 Enable the flag in Firebase Console → Remote Config → add key `my_feature` = `true`.
 
+**Local dev:** all flags are `true` automatically (Firebase not configured). **Staging:** all flags are `true`. **Production:** controlled by Firebase Remote Config — only explicitly enabled flags are on.
+
 ---
 
 ## Critical rules

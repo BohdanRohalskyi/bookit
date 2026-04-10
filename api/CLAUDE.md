@@ -23,6 +23,7 @@ api/
 │   ├── api/                    # Generated types + handler registration
 │   ├── config/                 # Env-based config (DATABASE_URL, JWT_SECRET, …)
 │   ├── database/               # DB pool + migration runner
+│   ├── flags/                  # Feature flag service (Firebase Admin SDK)
 │   ├── logger/                 # Structured logger
 │   ├── middleware/             # Auth, CORS, request logging
 │   └── domain/
@@ -45,7 +46,7 @@ domain/<name>/
 ├── handler.go      # Gin handlers — thin, delegate to service
 ├── service.go      # Business logic
 ├── repository.go   # DB queries (pgx)
-└── routes.go       # Route registration
+└── <name>.go       # Domain types (if not covered by generated types)
 ```
 
 ## Non-Negotiable Rules
@@ -111,7 +112,7 @@ docker compose up db
 cd api && go run cmd/server/main.go
 
 # Run linter
-docker compose run --rm lint
+docker compose --profile tools run --rm lint
 # or
 cd api && golangci-lint run ./...
 

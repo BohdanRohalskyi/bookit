@@ -186,7 +186,9 @@ We use **Firebase Remote Config** for flags. To add a new flag:
    }
    ```
 
-3. **Enable on Firebase Console** — go to Remote Config, add the string key (`my_feature`), set value to `true` for the desired environment (staging or production).
+3. **Enable on Firebase Console** — go to Remote Config, add the string key (`my_feature`), set value to `true` for staging or production.
+
+**Local dev:** all flags are `true` automatically — no Firebase setup needed. **Staging:** all flags are `true`. **Production:** only flags explicitly enabled in Firebase Remote Config are on.
 
 This lets you merge and deploy incomplete features safely, and roll back instantly without a redeploy by toggling the flag in Firebase.
 

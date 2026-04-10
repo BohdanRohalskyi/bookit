@@ -72,6 +72,7 @@ services:
       - web_node_modules:/app/node_modules
     environment:
       VITE_API_URL: http://localhost:8080
+      VITE_CONSUMER_URL: http://localhost:5173
     depends_on:
       - api
 

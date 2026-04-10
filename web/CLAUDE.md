@@ -76,6 +76,18 @@ useEffect(() => {
 if (!isAuthenticated) return null
 ```
 
+### 6. Feature flag pattern
+Always use the `FLAGS` constant — never raw strings:
+```tsx
+import { useFeatureFlag } from '@bookit/shared'
+import { FLAGS } from '@bookit/shared/features'
+
+const isEnabled = useFeatureFlag(FLAGS.MY_FEATURE)
+if (!isEnabled) return null
+```
+
+**Environments:** local dev → all flags `true` (no Firebase needed). Staging → all flags `true`. Production → controlled by Firebase Remote Config.
+
 ## Design Tokens
 
 ### Biz app (`packages/biz`)

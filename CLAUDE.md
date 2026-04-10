@@ -114,8 +114,9 @@ implementation-plans/
 | Skill | Use when |
 |-------|---------|
 | `/plan` | Designing a new feature or task |
-| `/code-react` | Implementing frontend features |
-| `/code-go` | Implementing backend features |
+| `/new-branch` | Creating a feature branch from an up-to-date `main` |
+| `/open-plan` | Opening an existing implementation plan by description |
+| `/code-react` | Implementing frontend features (available inside `web/`) |
+| `/code-go` | Implementing backend features (available inside `api/`) |
 
-> For backend work, see also `api/CLAUDE.md`.  
-> For frontend work, see also `web/CLAUDE.md`.
+> `api/CLAUDE.md` and `web/CLAUDE.md` load automatically when Claude works in those directories — no manual reference needed.

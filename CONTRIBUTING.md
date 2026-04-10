@@ -5,6 +5,9 @@
 - [Docker](https://docs.docker.com/get-docker/) & Docker Compose
 - Git
 - [Claude Code](https://claude.ai/code) (strongly recommended — the project is set up for it)
+  ```bash
+  npm install -g @anthropic-ai/claude-code
+  ```
 
 ---
 
@@ -37,7 +40,24 @@ cp web/.env.example web/packages/consumer/.env.local
 cp web/.env.example web/packages/biz/.env.local
 ```
 
-Firebase vars can stay blank locally — feature flags will default to `false`.
+Firebase vars can stay blank locally — all feature flags default to `true` when Firebase is not configured, so every in-progress feature is visible during local development.
+
+---
+
+## Active work
+
+Features currently in development — check these before starting new work to avoid overlap:
+
+| Plan | File |
+|------|------|
+| Authentication | [`docs/implementation-plans/in-progress/authentication.md`](./docs/implementation-plans/in-progress/authentication.md) |
+| Feature Flags with Firebase Remote Config | [`docs/implementation-plans/in-progress/feature-flags.md`](./docs/implementation-plans/in-progress/feature-flags.md) |
+| Landing Page | [`docs/implementation-plans/in-progress/landing-page.md`](./docs/implementation-plans/in-progress/landing-page.md) |
+| Multi-App Setup (Consumer + Business) | [`docs/implementation-plans/in-progress/multi-app-setup.md`](./docs/implementation-plans/in-progress/multi-app-setup.md) |
+
+Use `/open-plan <description>` in Claude Code to open any of these directly.
+
+> Keep this table in sync: update it when plans move to `done/` or `canceled/`. Full list is always in [`docs/implementation-plans/in-progress/`](./docs/implementation-plans/in-progress/).
 
 ---
 
@@ -50,7 +70,7 @@ git config user.email   # should return your email
 git config --global user.email "you@example.com"   # set it if empty
 ```
 
-The following files load automatically:
+The following files load automatically — no need to reference them manually:
 
 | File | Loaded when |
 |------|-------------|
@@ -123,6 +143,8 @@ export const FLAGS = {
 ```
 
 Enable in Firebase Console → Remote Config → add the string key → set to `true`.
+
+**Local dev:** flags default to `true` when Firebase is not configured — no setup needed to see your feature locally. **Staging:** all flags are `true`. **Production:** controlled by Firebase Remote Config.
 
 ---
 

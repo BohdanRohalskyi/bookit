@@ -1,8 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { FeatureFlagProvider } from '@bookit/shared'
-import { initFeatureFlags, isFeatureEnabled } from './lib/firebase'
+import { FeatureFlagProvider, initFeatureFlags, isFeatureEnabled } from '@bookit/shared'
 import './index.css'
 import { Root } from './Root'
 
