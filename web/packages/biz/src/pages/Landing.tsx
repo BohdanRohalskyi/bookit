@@ -98,14 +98,14 @@ function Hero() {
                 <>
                   <Link to="/register">
                     <button className="px-4 py-2 text-base font-medium text-white bg-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors">
-                      Start
+                      Get started
                     </button>
                   </Link>
                   <button
                     onClick={scrollToFeatures}
                     className="px-4 py-2 text-base font-medium text-white border border-[rgba(255,255,255,0.4)] rounded-[6px] hover:bg-white/10 transition-colors"
                   >
-                    Learn
+                    See features
                   </button>
                 </>
               )}
