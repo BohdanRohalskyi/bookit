@@ -128,29 +128,27 @@ switchTo(consumerUrl)
 
 ## Local Development
 
+Docker is the supported way to run the frontend. Non-Docker local runs are not actively maintained.
+
 ```bash
-# Start everything (requires docker compose up for API)
-cd web && npm run dev            # starts both consumer + biz
+# Start everything (API + both web apps + DB + Mailpit)
+docker compose up
 
-# Individual apps
-cd web && npm run dev -w packages/consumer
-cd web && npm run dev -w packages/biz
+# Individual apps only
+docker compose up consumer
+docker compose up biz
 
-# Type check all packages
-cd web && npm run typecheck
-
-# Type check one package
-cd web/packages/biz && npx tsc --noEmit
+# After adding a new npm package — rebuild to update the node_modules volume
+docker compose up --build consumer biz
 ```
 
-Node modules in Docker are in a named volume (`web_node_modules`).
-After adding a new npm package, rebuild the container:
+Type checking runs outside the container (node_modules must be installed locally):
 ```bash
-docker compose up --build consumer biz
+cd web && npm run typecheck
 ```
 
 ## Before Committing
 
 ```bash
-cd web && npx tsc --noEmit   # Zero type errors required
+cd web && npm run typecheck   # Zero type errors required
 ```

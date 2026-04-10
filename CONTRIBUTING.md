@@ -31,17 +31,9 @@ Verify everything is running:
 
 The API runs database migrations automatically on startup. No manual DB setup needed.
 
-### Frontend env vars (optional for local)
+Docker Compose injects all required env vars automatically. No `.env` files needed.
 
-Docker Compose injects the required env vars automatically. If you run the frontend
-outside Docker, copy the example:
-
-```bash
-cp web/.env.example web/packages/consumer/.env.local
-cp web/.env.example web/packages/biz/.env.local
-```
-
-Firebase vars can stay blank locally — all feature flags default to `true` when Firebase is not configured, so every in-progress feature is visible during local development.
+> Running the frontend outside Docker is not actively supported. If you need to, copy the example: `cp web/.env.example web/packages/consumer/.env.local` — Firebase vars can stay blank, all feature flags default to `true` locally.
 
 ---
 

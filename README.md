@@ -109,21 +109,14 @@ curl http://localhost:8080/api/v1/health
 
 ### Running without Docker
 
+> **Not actively supported.** Docker is the recommended and tested setup. The steps below may work but are not maintained.
+
 ```bash
-# 1. Start only the database and mailpit
-docker compose up db mailpit
-
-# 2. Configure the API
-cp api/.env.example api/.env   # edit if needed
-
-# 3. Run the API
-cd api && go run cmd/server/main.go
-
-# 4. Run the frontend
-cd web && npm install && npm run dev
+docker compose up db mailpit        # still need DB and Mailpit
+cp api/.env.example api/.env        # configure API env
+cd api && go run cmd/server/main.go # run API
+cd web && npm install && npm run dev:all # run frontend (consumer only via npm run dev)
 ```
-
-Frontend env vars for manual runs: `cp web/.env.example web/packages/consumer/.env.local`
 
 Staging and production secrets are stored in GCP Secret Manager and mounted automatically by Cloud Run.
 
