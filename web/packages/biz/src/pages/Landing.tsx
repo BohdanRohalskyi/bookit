@@ -534,16 +534,8 @@ function LinkedinIcon() {
   )
 }
 
-function YoutubeIcon() {
-  return (
-    <svg className="size-5" viewBox="0 0 20 14" fill="currentColor">
-      <path d="M19.543 2.178A2.51 2.51 0 0017.77.406C16.218 0 10 0 10 0S3.782 0 2.23.406A2.51 2.51 0 00.458 2.178C.052 3.728.052 7 .052 7s0 3.272.406 4.822a2.51 2.51 0 001.772 1.772C3.782 14 10 14 10 14s6.218 0 7.77-.406a2.51 2.51 0 001.773-1.772C19.948 10.272 19.948 7 19.948 7s-.052-3.272-.405-4.822zM7.996 9.999V4.002L13.21 7l-5.214 3z" />
-    </svg>
-  )
-}
-
 function Footer() {
-  const socialIcons = [FacebookIcon, InstagramIcon, XIcon, LinkedinIcon, YoutubeIcon]
+  const socialIcons = [FacebookIcon, InstagramIcon, XIcon, LinkedinIcon]
 
   return (
     <footer className="bg-white border-t border-[rgba(2,9,5,0.1)] px-8 md:px-16 py-8">
