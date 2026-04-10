@@ -164,7 +164,7 @@ func (s *Service) GetString(ctx context.Context, name string) string {
 
 Add import:
 ```go
-"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
+"github.com/BohdanRohalskyi/bookit/api/internal/flags"
 ```
 
 Add after database connection:
@@ -196,7 +196,17 @@ router.GET("/api/v1/flags", func(c *gin.Context) {
 
 ---
 
-### Phase 3: Frontend Integration (React Web) `[PENDING]`
+### Phase 3: Frontend Integration (React Web) `[CHANGED]`
+
+**Original plan:** Create firebase init + hook inside each app at `web/src/lib/firebase.ts` and `web/src/hooks/useFeatureFlag.ts`.
+
+**What changed:** Firebase logic lives in the shared package (`web/packages/shared/src/features/firebase.ts`) so both consumer and biz use a single implementation. Hook and context already exist at `web/packages/shared/src/features/`. Both apps wire `FeatureFlagProvider` in their `main.tsx` importing from `@bookit/shared`.
+
+**Why:** Avoid duplicating Firebase initialisation across two apps. Ensures biz gets feature flags too.
+
+> Commit: 9a777d2 (2026-04-10)
+
+Still outstanding from this phase:
 
 #### 3.1 Get Firebase Config
 
@@ -209,12 +219,8 @@ router.GET("/api/v1/flags", func(c *gin.Context) {
 ```bash
 gh secret set VITE_FIREBASE_API_KEY --body "AIza..."
 gh secret set VITE_FIREBASE_APP_ID --body "1:898535472060:web:..."
-```
-
-Also create `web/.env.local`:
-```
-VITE_FIREBASE_API_KEY=AIza...
-VITE_FIREBASE_APP_ID=1:898535472060:web:...
+gh secret set VITE_FIREBASE_AUTH_DOMAIN --body "pt-duo-bookit.firebaseapp.com"
+gh secret set VITE_FIREBASE_PROJECT_ID --body "pt-duo-bookit"
 ```
 
 #### 3.3 Install Firebase SDK
