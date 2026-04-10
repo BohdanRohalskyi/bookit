@@ -1,4 +1,23 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p new ready-for-dev in-progress done canceled)",
+      "Bash(mv:*)",
+      "Read(docs/implementation-plans/**)",
+      "Bash(npm install:*)",
+      "WebSearch",
+      "Bash(npm run:*)",
+      "Bash(gcloud secrets list:*)",
+      "Bash(gcloud secrets versions access:*)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(psql:*)",
+      "Bash(go build:*)",
+      "Bash(cp:*)",
+      "Bash(git:*)",
+      "Bash(gcloud run services describe:*)",
+      "Bash(ls api/.env*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

@@ -71,9 +71,9 @@ const isEnabled = useFeatureFlag(FLAGS.MY_FEATURE)
 if (!isEnabled) return null
 ```
 
-Enable the flag in Firebase Console → Remote Config → add key `my_feature` = `true`.
+**Local dev:** all flags are `true` — no setup needed. **Staging:** all flags are `true`. **Production:** only flags explicitly enabled in Firebase are on.
 
-**Local dev:** all flags are `true` automatically (Firebase not configured). **Staging:** all flags are `true`. **Production:** controlled by Firebase Remote Config — only explicitly enabled flags are on.
+Note the flag key (`my_feature`) in your PR description — the project owner activates it in Firebase Remote Config. You don't need Firebase access.
 
 ---
 

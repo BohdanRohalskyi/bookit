@@ -88,6 +88,8 @@ if (!isEnabled) return null
 
 **Environments:** local dev → all flags `true` (no Firebase needed). Staging → all flags `true`. Production → controlled by Firebase Remote Config.
 
+Note the flag key in your PR description — the project owner activates it in Firebase. You don't need Firebase access.
+
 ## Design Tokens
 
 ### Biz app (`packages/biz`)

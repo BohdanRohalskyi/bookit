@@ -16,6 +16,7 @@
 ```bash
 git clone https://github.com/BohdanRohalskyi/bookit.git
 cd bookit
+git config core.hooksPath .githooks   # install pre-push lint hook
 docker compose up
 ```
 
@@ -116,7 +117,7 @@ main  ←──── your PR (auto-deploys to staging for review)
 
 > Never commit directly to `main`.
 
-Pre-push hooks run `golangci-lint` (API changes) and `tsc + eslint` (web changes) automatically.
+A git pre-push hook (`.githooks/pre-push`) runs `golangci-lint` on API changes and `tsc` on web changes automatically on every `git push` — from the terminal or through Claude Code.
 
 ---
 
@@ -142,9 +143,9 @@ export const FLAGS = {
 } as const
 ```
 
-Enable in Firebase Console → Remote Config → add the string key → set to `true`.
+**Note the flag key in your PR description** — the project owner activates flags in Firebase Remote Config for staging and production. You don't need Firebase access.
 
-**Local dev:** flags default to `true` when Firebase is not configured — no setup needed to see your feature locally. **Staging:** all flags are `true`. **Production:** controlled by Firebase Remote Config.
+**Local dev:** all flags are `true` — no setup needed. **Staging:** all flags are `true`. **Production:** only flags explicitly enabled in Firebase are on.
 
 ---
 
@@ -173,7 +174,7 @@ Before opening a PR:
 
 - [ ] Feature is behind a flag (or explicitly not user-facing)
 - [ ] `curl http://localhost:8080/api/v1/health` passes
-- [ ] API changes: `cd api && go build ./... && go vet ./...`
+- [ ] API changes: `cd api && go build ./... && go vet ./...` (or `docker compose --profile tools run --rm go-tools go build ./... && go vet ./...`)
 - [ ] Web changes: `cd web && npm run typecheck`
 - [ ] Tested on local Docker setup end-to-end
 - [ ] Implementation plan updated (if one exists for this feature)

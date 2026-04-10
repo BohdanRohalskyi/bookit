@@ -1,0 +1,29 @@
+#!/bin/bash
+# Pre-push hook — runs linting and type checking before every push.
+# Install once: git config core.hooksPath .githooks
+
+set -e
+
+ROOT=$(git rev-parse --show-toplevel)
+
+# Find changed files vs origin/main; fall back to HEAD~1 on a first push
+MERGE_BASE=$(git merge-base HEAD origin/main 2>/dev/null || true)
+if [ -n "$MERGE_BASE" ]; then
+  CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
+else
+  CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git show --name-only --format="" HEAD)
+fi
+
+if [ -z "$CHANGED" ]; then
+  exit 0
+fi
+
+if echo "$CHANGED" | grep -q '^api/'; then
+  echo "→ API changes detected — running golangci-lint..."
+  docker compose --profile tools run --rm lint
+fi
+
+if echo "$CHANGED" | grep -q '^web/'; then
+  echo "→ Web changes detected — running type check..."
+  cd "$ROOT/web" && npm run typecheck
+fi

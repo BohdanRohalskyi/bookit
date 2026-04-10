@@ -96,7 +96,9 @@ func (h *Handler) MyEndpoint(c *gin.Context) {
 
 The flag key string must match the constant value in `web/packages/shared/src/features/flags.ts`
 so backend and frontend gate the same flag. E.g. `"booking_instant_confirm"` ↔ `FLAGS.BOOKING_INSTANT_CONFIRM`.
-Enable flags in Firebase Console → Remote Config.
+
+**Local dev:** all flags return `true` when `GCP_PROJECT` is unset — no Firebase setup needed.
+Note the flag key in your PR description — the project owner activates it in Firebase Remote Config. You don't need Firebase access.
 
 ---
 

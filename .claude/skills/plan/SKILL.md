@@ -108,7 +108,7 @@ Every new user-facing feature ships behind a feature flag. **Phase 1 of every pl
    if (!isEnabled) return null
    ```
 
-3. Enable in Firebase Console → Remote Config → add key `my_feature` = `true`.
+3. Note the flag key (`my_feature`) in your PR description — the project owner will activate it in Firebase Remote Config. You don't need Firebase access.
 
 ### Server flag (backend only or backend + frontend)
 
@@ -123,7 +123,7 @@ Every new user-facing feature ships behind a feature flag. **Phase 1 of every pl
    }
    ```
 
-3. Enable in Firebase Console → Remote Config → add key `my_feature` = `true`.
+3. Note the flag key (`my_feature`) in your PR description — the project owner will activate it in Firebase Remote Config. You don't need Firebase access.
 
 ### Flag naming convention
 

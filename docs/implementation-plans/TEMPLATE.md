@@ -21,7 +21,7 @@ author: "author@email.com"
 
 <!-- Add the flag constant to web/packages/shared/src/features/flags.ts.
      Gate frontend with useFeatureFlag(FLAGS.FLAG_KEY) and/or backend with h.flags.IsEnabled(ctx, "flag_key").
-     Enable in Firebase Console → Remote Config → flag_key = true. -->
+     Note the flag key in your PR description — the project owner activates it in Firebase Remote Config. -->
 
 ---
 
