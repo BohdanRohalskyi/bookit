@@ -22,7 +22,7 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/migrate"
 )
 
-var version = "1.0.1"
+var version = "1.0.2"
 
 func main() {
 	if err := run(); err != nil {
