@@ -165,8 +165,16 @@ domain/<name>/
 
 ## Before finishing
 
-Run `cd api && go build ./...` and `go vet ./...` to confirm clean build.
-Check `cd api && golangci-lint run ./...` if linter is available.
+Confirm clean build and vet:
+```bash
+# Local Go
+cd api && go build ./... && go vet ./...
+
+# Docker (if Go not installed locally)
+docker compose --profile tools run --rm go-tools sh -c "go build ./... && go vet ./..."
+```
+
+Linter runs automatically on push via the pre-push hook.
 
 ## Arguments
 

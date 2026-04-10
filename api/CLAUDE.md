@@ -113,8 +113,8 @@ docker compose up db mailpit
 # Run linter
 docker compose --profile tools run --rm lint
 
-# Run tests
-cd api && go test ./...
+# Run tests (requires DB running)
+docker compose up -d db && cd api && go test ./...
 ```
 
 ## Before Committing
