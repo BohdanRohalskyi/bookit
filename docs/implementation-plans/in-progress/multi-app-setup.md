@@ -2,7 +2,7 @@
 title: "Multi-App Setup (Consumer + Business)"
 status: IN_PROGRESS
 created: 2026-04-08
-author: "Claude"
+author: "bohdan.rohalskyi@paysera.com"
 ---
 
 # Plan: Multi-App Setup (Consumer + Business)

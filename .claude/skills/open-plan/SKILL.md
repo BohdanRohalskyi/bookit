@@ -22,7 +22,7 @@ When user says: "I want to open <description>" or "/open-plan <description>"
 ## Example
 
 User: "I want to open the landing page plan"
-→ Opens `docs/implementation-plans/new/landing-page-auth.md`
+→ Searches all subfolders, finds matching plan, opens it in VS Code
 
-User: "I want to open observability"
-→ Opens `docs/implementation-plans/done/observability-grafana.md`
+User: "I want to open the authentication plan"
+→ Searches all subfolders, finds matching plan, opens it in VS Code

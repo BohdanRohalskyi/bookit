@@ -2,7 +2,7 @@
 title: "Feature Flags with Firebase Remote Config"
 status: NEW
 created: 2026-04-02
-author: "Claude"
+author: "bohdan.rohalskyi@paysera.com"
 ---
 
 # Plan: Feature Flags with Firebase Remote Config
@@ -41,7 +41,7 @@ go get firebase.google.com/go/v4
 
 #### 2.2 Create Flag Service
 
-**File: `api/internal/platform/flags/flags.go`**
+**File: `api/internal/flags/flags.go`**
 
 ```go
 package flags
@@ -57,14 +57,23 @@ import (
 )
 
 type Service struct {
-	client    *remoteconfig.Client
-	template  *remoteconfig.Template
-	mu        sync.RWMutex
-	lastFetch time.Time
-	cacheTTL  time.Duration
+	client      *remoteconfig.Client
+	template    *remoteconfig.Template
+	mu          sync.RWMutex
+	lastFetch   time.Time
+	cacheTTL    time.Duration
+	unconfigured bool // true when GCP_PROJECT is unset (local dev)
 }
 
+// NewService initialises the flag service. If projectID is empty (local dev),
+// returns a stub service where IsEnabled always returns true — matching the
+// frontend behaviour so full-stack local testing works with all flags on.
 func NewService(ctx context.Context, projectID string) (*Service, error) {
+	if projectID == "" {
+		log.Printf("feature flags: no GCP project configured — all flags enabled (local dev)")
+		return &Service{unconfigured: true}, nil
+	}
+
 	app, err := firebase.NewApp(ctx, &firebase.Config{
 		ProjectID: projectID,
 	})
@@ -104,6 +113,11 @@ func (s *Service) refresh(ctx context.Context) error {
 }
 
 func (s *Service) IsEnabled(ctx context.Context, name string) bool {
+	// Local dev: Firebase not configured — all flags on
+	if s.unconfigured {
+		return true
+	}
+
 	s.mu.RLock()
 	needsRefresh := time.Since(s.lastFetch) > s.cacheTTL
 	s.mu.RUnlock()
@@ -116,7 +130,7 @@ func (s *Service) IsEnabled(ctx context.Context, name string) bool {
 	defer s.mu.RUnlock()
 
 	if s.template == nil {
-		return false
+		return true // Firebase configured but not yet fetched — default to on
 	}
 
 	param, ok := s.template.Parameters[name]
@@ -368,11 +382,12 @@ const enabled = remoteConfig().getBoolean('feature_test');
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `api/internal/platform/flags/flags.go` | Create | Flag service with caching |
+| `api/internal/flags/flags.go` | Create | Flag service with caching |
 | `api/cmd/server/main.go` | Modify | Initialize flags, add endpoint |
-| `web/src/lib/firebase.ts` | Create | Firebase + Remote Config init |
-| `web/src/hooks/useFeatureFlag.ts` | Create | React hook for flags |
-| `web/src/vite-env.d.ts` | Modify | Add Firebase env types |
+| `web/packages/shared/src/features/firebase.ts` | Done | Firebase + Remote Config init |
+| `web/packages/shared/src/features/useFeatureFlag.ts` | Done | React hook for flags |
+| `web/packages/consumer/src/vite-env.d.ts` | Done | Firebase env types |
+| `web/packages/biz/src/vite-env.d.ts` | Done | Firebase env types |
 | `.github/workflows/web.yml` | Modify | Add Firebase secrets to build |
 
 ---

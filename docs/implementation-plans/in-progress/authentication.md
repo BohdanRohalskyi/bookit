@@ -2,7 +2,7 @@
 title: "Authentication"
 status: IN_PROGRESS
 created: 2026-04-07
-author: "Claude"
+author: "bohdan.rohalskyi@paysera.com"
 ---
 
 # Plan: Authentication
