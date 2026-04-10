@@ -37,6 +37,17 @@ Before making any file edits, Claude must:
 
 If the user explicitly instructs to work on `main`, acknowledge the risk but comply.
 
+## Feature Flag Discipline
+
+**Every user-facing change must ship behind a feature flag.**
+
+Before writing any implementation code, Claude must:
+1. Identify whether the change is user-facing (new UI, new endpoint, changed behavior visible to users)
+2. If yes — name the flag key and confirm it with the user before proceeding
+3. Apply the flag according to the rules in the `/plan` skill (flag type, `flags.ts` constant, Firebase Remote Config)
+
+If the user explicitly instructs to skip the feature flag, acknowledge the tradeoff but comply.
+
 ## Architecture
 
 - **Style**: Modular monolith with clear domain boundaries
