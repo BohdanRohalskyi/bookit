@@ -101,27 +101,21 @@ if !ok {
 
 ## Local Development
 
+Docker is the supported way to run the API. Non-Docker local runs are not actively maintained.
+
 ```bash
-# Start everything (API + DB + mailpit)
+# Start everything (API + DB + Mailpit)
 docker compose up
 
-# Run just the DB
-docker compose up db
-
-# Run API locally (needs DB running)
-cd api && go run cmd/server/main.go
+# Start only the DB (e.g. when running API via IDE for debugging)
+docker compose up db mailpit
 
 # Run linter
 docker compose --profile tools run --rm lint
-# or
-cd api && golangci-lint run ./...
 
 # Run tests
 cd api && go test ./...
 ```
-
-Environment variables for local dev live in `api/.env` (gitignored).
-Copy `api/.env.example` to get started.
 
 ## Before Committing
 

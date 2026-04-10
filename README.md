@@ -115,7 +115,7 @@ curl http://localhost:8080/api/v1/health
 docker compose up db mailpit        # still need DB and Mailpit
 cp api/.env.example api/.env        # configure API env
 cd api && go run cmd/server/main.go # run API
-cd web && npm install && npm run dev:all # run frontend (consumer only via npm run dev)
+cd web && npm install && npm run dev     # run consumer app only (biz not supported outside Docker)
 ```
 
 Staging and production secrets are stored in GCP Secret Manager and mounted automatically by Cloud Run.
