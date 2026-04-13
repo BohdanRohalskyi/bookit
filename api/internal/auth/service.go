@@ -33,6 +33,7 @@ type userRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*identity.User, error)
 	Create(ctx context.Context, email, passwordHash, name, phone string) (*identity.User, error)
 	IsProvider(ctx context.Context, userID uuid.UUID) (bool, error)
+	CreateProvider(ctx context.Context, userID uuid.UUID) (*identity.Provider, error)
 	CreateRefreshToken(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) error
 	ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error)
 	RevokeRefreshToken(ctx context.Context, token string) error
@@ -197,6 +198,15 @@ func (s *Service) generateAuthResponse(ctx context.Context, user *identity.User,
 			ExpiresIn:    int(AccessTokenDuration.Seconds()),
 		},
 	}, nil
+}
+
+func (s *Service) CreateProvider(ctx context.Context, userID uuid.UUID) (*identity.ProviderResponse, error) {
+	provider, err := s.repo.CreateProvider(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	resp := provider.ToResponse()
+	return &resp, nil
 }
 
 // Email verification

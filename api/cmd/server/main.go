@@ -137,6 +137,13 @@ func run() error {
 	// App switch token exchange (no auth required - token is the auth)
 	authGroup.POST("/exchange-app-switch-token", authHandler.ExchangeAppSwitchToken)
 
+	// Provider endpoints (protected)
+	providersProtected := router.Group("/api/v1/providers")
+	providersProtected.Use(authHandler.AuthMiddleware())
+	{
+		providersProtected.POST("", authHandler.CreateProvider)
+	}
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.APIPort),

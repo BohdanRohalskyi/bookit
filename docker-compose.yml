@@ -86,7 +86,7 @@ services:
     command: golangci-lint run ./...
 
   go-tools:
-    image: golang:1.22-alpine
+    image: golang:1.25-alpine
     volumes:
       - ./api:/app
       - go_mod_cache:/go/pkg/mod
