@@ -15,10 +15,12 @@ const registerSchema = z.object({
 })
 
 type RegisterForm = z.infer<typeof registerSchema>
+type AccountType = 'customer' | 'provider'
 
 export function Register() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const [accountType, setAccountType] = useState<AccountType>('customer')
   const [error, setError] = useState<string | null>(null)
 
   const {
@@ -44,6 +46,11 @@ export function Register() {
 
     if (result) {
       setAuth(result.user, result.tokens)
+
+      if (accountType === 'provider') {
+        await api.POST('/api/v1/providers', {})
+      }
+
       navigate('/account')
     }
   }
@@ -55,7 +62,35 @@ export function Register() {
           <Link to="/" className="text-2xl font-semibold text-primary mb-4 block">
             Bookit
           </Link>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
+
+          <div className="flex rounded-lg border border-border p-1 mb-2">
+            <button
+              type="button"
+              onClick={() => setAccountType('customer')}
+              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                accountType === 'customer'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Customer
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountType('provider')}
+              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                accountType === 'provider'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Provider
+            </button>
+          </div>
+
+          <CardTitle className="text-2xl">
+            {accountType === 'customer' ? 'Create Account' : 'Start offering services'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

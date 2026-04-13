@@ -43,6 +43,8 @@ export function Register() {
 
     if (result) {
       setAuth(result.user, result.tokens)
+      // Biz app always registers users as providers — 409 means already a provider, both are fine
+      await api.POST('/api/v1/providers', {})
       navigate('/')
     }
   }
