@@ -1,6 +1,6 @@
 ---
 title: "Frontend Test Suite"
-status: NEW
+status: DONE
 created: 2026-04-08
 author: "Bohdan Rohalskyi"
 ---
@@ -21,7 +21,7 @@ React Testing Library + MSW, following TDD from this point forward.
 
 ## Phases
 
-### Phase 1: Test infrastructure `[PENDING]`
+### Phase 1: Test infrastructure `[DONE]`
 
 Install and configure the testing stack in each package that needs it.
 
@@ -60,7 +60,7 @@ test: {
 
 ---
 
-### Phase 2: Shared package tests `[PENDING]`
+### Phase 2: Shared package tests `[DONE]`
 
 **`shared/src/features/` — feature flag system:**
 - `FeatureFlagProvider` renders children
@@ -82,7 +82,7 @@ test: {
 
 ---
 
-### Phase 3: Consumer — auth pages `[PENDING]`
+### Phase 3: Consumer — auth pages `[DONE]`
 
 MSW handler: `POST /api/v1/auth/login`, `POST /api/v1/auth/register`,
 `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`
@@ -110,7 +110,7 @@ MSW handler: `POST /api/v1/auth/login`, `POST /api/v1/auth/register`,
 
 ---
 
-### Phase 4: Consumer — routing and auth guard `[PENDING]`
+### Phase 4: Consumer — routing and auth guard `[DONE]`
 
 **`RequireAuth.tsx`:**
 - Redirects to `/` when `isAuthenticated` is `false`
@@ -124,7 +124,7 @@ MSW handler: `POST /api/v1/auth/login`, `POST /api/v1/auth/register`,
 
 ---
 
-### Phase 5: Consumer — account and verify pages `[PENDING]`
+### Phase 5: Consumer — account and verify pages `[DONE]`
 
 **`Account.tsx`:**
 - Renders user's name and email
@@ -139,7 +139,7 @@ MSW handler: `POST /api/v1/auth/login`, `POST /api/v1/auth/register`,
 
 ---
 
-### Phase 6: Biz — auth pages `[PENDING]`
+### Phase 6: Biz — auth pages `[DONE]`
 
 Same scope as consumer auth but for the biz package. Biz uses the same
 shared API client and auth store, so MSW handlers are identical — only
@@ -151,7 +151,7 @@ the page markup differs.
 
 ---
 
-### Phase 7: CI integration `[PENDING]`
+### Phase 7: CI integration `[DONE]`
 
 - Add `test` step to `web.yml` before the build steps:
   ```yaml

@@ -16,7 +16,7 @@ const resetPasswordSchema = z.object({
 
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>
 
-export function ResetPassword() {
+export function ResetPassword({ redirectDelay = 2000 }: { redirectDelay?: number } = {}) {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const token = searchParams.get('token')
@@ -71,7 +71,7 @@ export function ResetPassword() {
     }
 
     setSuccess(true)
-    setTimeout(() => navigate('/login'), 2000)
+    setTimeout(() => navigate('/login'), redirectDelay)
   }
 
   if (success) {

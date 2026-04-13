@@ -13,7 +13,10 @@
     "./features": "./src/features/index.ts"
   },
   "scripts": {
-    "generate:types": "openapi-typescript ../../../api/openapi/spec.yaml -o src/api/types.gen.ts"
+    "generate:types": "openapi-typescript ../../../api/openapi/spec.yaml -o src/api/types.gen.ts",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "firebase": "^12.11.0",

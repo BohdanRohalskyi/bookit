@@ -1,6 +1,6 @@
 ---
 title: "Feature Flags with Firebase Remote Config"
-status: NEW
+status: DONE
 created: 2026-04-02
 author: "bohdan.rohalskyi@paysera.com"
 ---
@@ -17,7 +17,7 @@ Implement feature flags using Firebase Remote Config to enable/disable features 
 
 ## Phases
 
-### Phase 1: Enable Remote Config in Firebase Console `[PENDING]`
+### Phase 1: Enable Remote Config in Firebase Console `[DONE]`
 
 1. Go to Firebase Console → pt-duo-bookit → Remote Config
 2. Click "Create configuration" (or "Get started")
@@ -30,7 +30,7 @@ Implement feature flags using Firebase Remote Config to enable/disable features 
 
 ---
 
-### Phase 2: Backend Integration (Go) `[PENDING]`
+### Phase 2: Backend Integration (Go) `[DONE]`
 
 #### 2.1 Install Firebase Admin SDK
 
@@ -334,53 +334,15 @@ interface ImportMetaEnv {
 
 ---
 
-### Phase 4: Usage Example `[PENDING]`
+### Phase 4: Usage Example `[DONE]`
 
-Add a visual indicator to verify flags work end-to-end.
-
-**File: `web/src/App.tsx`** (temporary, for testing)
-
-```tsx
-import { useFeatureFlag } from './hooks/useFeatureFlag';
-
-function App() {
-  const { enabled: testFlag, loading } = useFeatureFlag('feature_test');
-
-  // ... existing code ...
-
-  return (
-    <div className="app">
-      <h1>Bookit</h1>
-
-      {/* Feature flag indicator */}
-      <div style={{ fontSize: '0.75rem', color: '#888' }}>
-        Feature Test: {loading ? '...' : testFlag ? 'ON' : 'OFF'}
-      </div>
-
-      {/* ... rest of health check UI ... */}
-    </div>
-  );
-}
-```
+Pattern documented in `web/CLAUDE.md` (rule #6). Both apps use `useFeatureFlag(FLAGS.X)` from `@bookit/shared/features`. All future features reference this pattern.
 
 ---
 
-### Phase 5: Mobile Setup (Future) `[PENDING]`
+### Phase 5: Mobile Setup `[REJECTED]`
 
-When mobile development starts:
-
-```bash
-npx expo install @react-native-firebase/app @react-native-firebase/remote-config
-```
-
-Same pattern:
-```typescript
-import remoteConfig from '@react-native-firebase/remote-config';
-
-await remoteConfig().setDefaults({ feature_test: false });
-await remoteConfig().fetchAndActivate();
-const enabled = remoteConfig().getBoolean('feature_test');
-```
+Deferred to a dedicated mobile implementation plan.
 
 ---
 

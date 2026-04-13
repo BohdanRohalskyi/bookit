@@ -81,6 +81,9 @@ const authMiddleware: Middleware = {
 export const api = createClient<paths>({
   baseUrl: API_URL,
   credentials: 'include',
+  // Use a lazy wrapper so tests can stub globalThis.fetch after module load.
+  // In production this is a no-op — globalThis.fetch is always the real fetch.
+  fetch: (...args) => globalThis.fetch(...args),
 })
 
 api.use(authMiddleware)
