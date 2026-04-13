@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	ErrUserNotFound = errors.New("user not found")
-	ErrEmailExists  = errors.New("email already exists")
-	ErrInvalidToken = errors.New("invalid or expired token")
+	ErrUserNotFound   = errors.New("user not found")
+	ErrEmailExists    = errors.New("email already exists")
+	ErrInvalidToken   = errors.New("invalid or expired token")
+	ErrAlreadyProvider = errors.New("user is already a provider")
 )
 
 type Repository struct {
@@ -135,6 +136,23 @@ func (r *Repository) IsProvider(ctx context.Context, userID uuid.UUID) (bool, er
 		return false, err
 	}
 	return exists, nil
+}
+
+func (r *Repository) CreateProvider(ctx context.Context, userID uuid.UUID) (*Provider, error) {
+	var p Provider
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO providers (user_id)
+		VALUES ($1)
+		RETURNING id, user_id, status, created_at
+	`, userID).Scan(&p.ID, &p.UserID, &p.Status, &p.CreatedAt)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // unique_violation
+			return nil, ErrAlreadyProvider
+		}
+		return nil, err
+	}
+	return &p, nil
 }
 
 // Refresh token methods

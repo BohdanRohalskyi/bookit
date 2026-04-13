@@ -410,6 +410,43 @@ func (h *Handler) CreateAppSwitchToken(c *gin.Context) {
 	c.JSON(http.StatusOK, AppSwitchTokenResponse{Token: token})
 }
 
+// CreateProvider upgrades the authenticated user to provider status
+func (h *Handler) CreateProvider(c *gin.Context) {
+	userID, exists := c.Get(contextKeyUserID)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{
+			Type:   "unauthorized",
+			Title:  "Unauthorized",
+			Status: http.StatusUnauthorized,
+			Detail: "Authentication required",
+		})
+		return
+	}
+
+	resp, err := h.service.CreateProvider(c.Request.Context(), userID.(uuid.UUID))
+	if errors.Is(err, identity.ErrAlreadyProvider) {
+		c.JSON(http.StatusConflict, ErrorResponse{
+			Type:   "already-a-provider",
+			Title:  "Already a Provider",
+			Status: http.StatusConflict,
+			Detail: "This user is already registered as a provider",
+		})
+		return
+	}
+	if err != nil {
+		slog.Error("create provider failed", "error", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Type:   "internal-error",
+			Title:  "Internal Error",
+			Status: http.StatusInternalServerError,
+			Detail: "An unexpected error occurred",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, resp)
+}
+
 // ExchangeAppSwitchToken exchanges a one-time app switch token for a full session
 func (h *Handler) ExchangeAppSwitchToken(c *gin.Context) {
 	var req ExchangeAppSwitchTokenRequest

@@ -18,6 +18,7 @@ type mockRepository struct {
 	getByID                 func(ctx context.Context, id uuid.UUID) (*identity.User, error)
 	create                  func(ctx context.Context, email, passwordHash, name, phone string) (*identity.User, error)
 	isProvider              func(ctx context.Context, userID uuid.UUID) (bool, error)
+	createProvider          func(ctx context.Context, userID uuid.UUID) (*identity.Provider, error)
 	createRefreshToken      func(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) error
 	validateRefreshToken    func(ctx context.Context, token string) (uuid.UUID, error)
 	revokeRefreshToken      func(ctx context.Context, token string) error
@@ -57,6 +58,13 @@ func (m *mockRepository) IsProvider(ctx context.Context, userID uuid.UUID) (bool
 		return m.isProvider(ctx, userID)
 	}
 	return false, nil
+}
+
+func (m *mockRepository) CreateProvider(ctx context.Context, userID uuid.UUID) (*identity.Provider, error) {
+	if m.createProvider != nil {
+		return m.createProvider(ctx, userID)
+	}
+	return &identity.Provider{UserID: userID, Status: "active"}, nil
 }
 
 func (m *mockRepository) CreateRefreshToken(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) error {

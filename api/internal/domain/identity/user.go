@@ -6,6 +6,29 @@ import (
 	"github.com/google/uuid"
 )
 
+type Provider struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Status    string
+	CreatedAt time.Time
+}
+
+type ProviderResponse struct {
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (p *Provider) ToResponse() ProviderResponse {
+	return ProviderResponse{
+		ID:        p.ID,
+		UserID:    p.UserID,
+		Status:    p.Status,
+		CreatedAt: p.CreatedAt,
+	}
+}
+
 type User struct {
 	ID            uuid.UUID
 	Email         string
