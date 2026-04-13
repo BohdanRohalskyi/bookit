@@ -21,6 +21,9 @@ api/vendor/
 *.out
 coverage.out
 
+# Web test coverage reports (generated)
+web/**/coverage/
+
 # IDE
 .idea/
 .vscode/

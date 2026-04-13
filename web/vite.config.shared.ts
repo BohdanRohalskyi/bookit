@@ -1,5 +1,5 @@
 import path from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -9,7 +9,9 @@ import tailwindcss from '@tailwindcss/vite'
  */
 export function createViteConfig(dirname: string, port: number) {
   return defineConfig({
-    plugins: [react(), tailwindcss()],
+    // Tailwind is excluded during tests — it scans all source files at startup
+    // and causes excessive memory usage without providing any test value.
+    plugins: [react(), ...(process.env.VITEST ? [] : [tailwindcss()])],
     envDir: path.resolve(dirname, '../..'),
     resolve: {
       alias: {
@@ -24,6 +26,17 @@ export function createViteConfig(dirname: string, port: number) {
       // usePolling is required for HMR through Docker volume mounts on Mac/Windows
       watch: { usePolling: true, interval: 1000 },
       hmr: { host: 'localhost' },
+    },
+    test: {
+      globals: true,
+      environment: 'happy-dom',
+      setupFiles: ['./src/test/setup.ts'],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'lcov', 'json-summary', 'json'],
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/test/**', 'src/mocks/**'],
+      },
     },
     build: {
       rollupOptions: {
