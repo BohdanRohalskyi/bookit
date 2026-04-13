@@ -99,7 +99,7 @@ After a provider is created, subsequent calls to `Login` / `Refresh` will return
 
 ---
 
-### Phase 4: Consumer frontend — register/login tabs `[PENDING]`
+### Phase 4: Consumer frontend — register/login tabs `[DONE]`
 
 Add a Customer | Provider tab switcher to both pages.
 
@@ -118,7 +118,7 @@ Add a Customer | Provider tab switcher to both pages.
 
 ---
 
-### Phase 5: Biz frontend — auto-register as provider `[PENDING]`
+### Phase 5: Biz frontend — auto-register as provider `[DONE]`
 
 The biz app is exclusively for providers. After any successful registration, call
 `POST /api/v1/providers` automatically (no tabs needed — the user is always a provider).
