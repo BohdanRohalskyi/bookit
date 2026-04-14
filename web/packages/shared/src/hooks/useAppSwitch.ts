@@ -4,11 +4,13 @@ import { useAuthStore } from '../stores/auth'
 import type { AuthResponse } from '../api/client'
 
 export function useAppSwitch() {
-  const { setAuth, isAuthenticated } = useAuthStore()
+  const { setAuth } = useAuthStore()
 
-  // Generate token and redirect to target app
+  // Generate token and redirect to target app.
+  // Read isAuthenticated from getState() to avoid stale closure — the caller
+  // may have just called setAuth() and React hasn't re-rendered yet.
   const switchTo = useCallback(async (targetUrl: string) => {
-    if (!isAuthenticated) {
+    if (!useAuthStore.getState().isAuthenticated) {
       // Not logged in, just redirect
       window.location.href = targetUrl
       return
@@ -28,7 +30,7 @@ export function useAppSwitch() {
     const url = new URL(targetUrl)
     url.searchParams.set('handoff', token)
     window.location.href = url.toString()
-  }, [isAuthenticated])
+  }, [])
 
   // Handle incoming handoff token from URL
   const handleHandoff = useCallback(async (): Promise<boolean> => {
