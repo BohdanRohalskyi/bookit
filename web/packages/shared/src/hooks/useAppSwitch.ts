@@ -11,7 +11,6 @@ export function useAppSwitch() {
   // may have just called setAuth() and React hasn't re-rendered yet.
   const switchTo = useCallback(async (targetUrl: string) => {
     if (!useAuthStore.getState().isAuthenticated) {
-      // Not logged in, just redirect
       window.location.href = targetUrl
       return
     }
@@ -19,13 +18,11 @@ export function useAppSwitch() {
     const { data, error } = await api.POST('/api/v1/auth/app-switch-token', {})
 
     if (error || !data) {
-      // If token generation fails, redirect anyway (user will need to login)
       console.warn('Failed to create app switch token, redirecting without session')
       window.location.href = targetUrl
       return
     }
 
-    // Redirect with handoff token
     const token = (data as { token: string }).token
     const url = new URL(targetUrl)
     url.searchParams.set('handoff', token)
@@ -48,7 +45,6 @@ export function useAppSwitch() {
 
       if (error || !data) {
         console.warn('Failed to exchange app switch token')
-        // Remove invalid token from URL
         cleanupUrl(params)
         return false
       }
@@ -56,7 +52,6 @@ export function useAppSwitch() {
       const authResponse = data as AuthResponse
       setAuth(authResponse.user, authResponse.tokens)
 
-      // Remove token from URL
       cleanupUrl(params)
       return true
     } catch (err) {
