@@ -6,7 +6,9 @@ export function Root() {
   const { handleHandoff } = useAppSwitch()
 
   useEffect(() => {
-    handleHandoff()
+    handleHandoff().then((success) => {
+      if (success) window.location.replace('/account')
+    })
   }, [handleHandoff])
 
   return <App />

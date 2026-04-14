@@ -52,7 +52,7 @@ export function Register() {
       if (accountType === 'provider') {
         await api.POST('/api/v1/providers', {})
         const bizUrl = import.meta.env.VITE_BIZ_URL || 'https://pt-duo-bookit-biz.web.app'
-        switchTo(bizUrl)
+        await switchTo(bizUrl)
         return
       }
 
