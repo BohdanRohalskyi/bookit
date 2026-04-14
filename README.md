@@ -19,40 +19,68 @@ Providers manage their businesses and accept bookings through the **Bookit Busin
 
 ```
 bookit/
-├── api/                        # Go backend (Gin)
-│   ├── cmd/server/             # Entry point
+├── api/                          # Go backend (Gin)
+│   ├── cmd/server/               # Entry point
 │   ├── internal/
-│   │   ├── api/                # Generated types & handler registration
-│   │   ├── config/             # Environment config
-│   │   ├── database/           # DB pool & migrations
-│   │   ├── middleware/         # Auth, CORS, logging
-│   │   └── domain/
-│   │       ├── identity/       # Auth, users
-│   │       ├── catalog/        # Businesses, services, staff
-│   │       ├── scheduling/     # Availability, slots
-│   │       ├── booking/        # Appointments
-│   │       ├── payment/        # Transactions (Paysera)
-│   │       └── notification/   # Email
-│   ├── migrations/             # SQL migration files
-│   └── openapi/spec.yaml       # API contract (source of truth)
+│   │   ├── api/                  # Generated types & handler registration (oapi-codegen)
+│   │   ├── auth/                 # Auth handlers, service, JWT management
+│   │   ├── domain/
+│   │   │   └── identity/         # User & identity domain models
+│   │   ├── mail/                 # Email service (Mailpit locally, SMTP in prod)
+│   │   └── platform/
+│   │       ├── config/           # Environment config
+│   │       ├── database/         # DB pool (pgx)
+│   │       ├── logger/           # Structured logging
+│   │       ├── migrate/          # golang-migrate runner
+│   │       └── flags/            # CLI flag parsing
+│   ├── migrations/               # SQL migration files (*.up.sql / *.down.sql)
+│   ├── openapi/spec.yaml         # API contract — source of truth
+│   ├── oapi-codegen.yaml         # Code generation config
+│   └── Dockerfile
 │
-├── web/                        # React frontend (npm workspaces)
+├── web/                          # React frontend (npm workspaces)
 │   ├── packages/
-│   │   ├── consumer/           # Client booking app  (port 5173)
-│   │   ├── biz/                # Provider mgmt app   (port 5174)
-│   │   └── shared/             # Shared components, API client, stores
+│   │   ├── consumer/             # Client booking app  (port 5173)
+│   │   │   └── src/
+│   │   │       ├── pages/        # Route-level page components
+│   │   │       ├── components/   # App-specific components (auth guards, etc.)
+│   │   │       ├── hooks/        # App-specific hooks
+│   │   │       ├── mocks/        # MSW handlers & fixtures
+│   │   │       └── test/         # Vitest setup & utilities
+│   │   ├── biz/                  # Provider mgmt app   (port 5174)
+│   │   │   └── src/              # Same structure as consumer
+│   │   └── shared/               # Shared library (components, API client, stores)
+│   │       └── src/
+│   │           ├── api/          # openapi-fetch typed API client
+│   │           ├── components/   # Reusable UI components (shadcn/ui base)
+│   │           ├── features/     # Feature flags (Firebase Remote Config)
+│   │           ├── hooks/        # Shared hooks (auth, feature flags)
+│   │           ├── lib/          # Utilities
+│   │           ├── mocks/        # Shared MSW handlers
+│   │           └── stores/       # Zustand stores
+│   ├── vite.config.shared.ts     # Shared Vite config (extended per package)
 │   └── Dockerfile.dev
 │
 ├── docs/
-│   ├── BRD-Bookit-20260327.md
-│   ├── HLD-Bookit-20260330.md
+│   ├── BRD-Bookit-20260327.md        # Business requirements
+│   ├── PRD-Bookit-20260327.md        # Product requirements
+│   ├── NFR-Bookit-20260327.md        # Non-functional requirements
+│   ├── HLD-Bookit-20260330.md        # Architecture & system design
 │   ├── BACKEND-SPEC-Bookit-20260331.md
 │   ├── FRONTEND-SPEC-Bookit-20260331.md
-│   └── implementation-plans/   # Feature plans (new → ready → in-progress → done)
+│   └── implementation-plans/         # Feature plans (new → ready-for-dev → in-progress → done)
 │
-├── .claude/commands/           # Claude Code slash commands (/plan, /code-react, /code-go)
+├── scripts/                      # Setup & utility scripts
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml                # Go: test & lint
+│   │   └── web.yml               # React: typecheck, lint & test
+│   └── CODEOWNERS
+├── .claude/commands/             # Claude Code slash commands (/plan, /new-branch, etc.)
+├── Makefile
 ├── docker-compose.yml
-└── CLAUDE.md                   # AI assistant instructions
+├── CLAUDE.md                     # AI assistant instructions
+└── CONTRIBUTING.md
 ```
 
 ---
