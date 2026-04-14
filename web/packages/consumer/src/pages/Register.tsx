@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from '@bookit/shared'
 import { api, type ApiError } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
+import { useAppSwitch } from '@bookit/shared/hooks'
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -20,6 +21,7 @@ type AccountType = 'customer' | 'provider'
 export function Register() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const { switchTo } = useAppSwitch()
   const [accountType, setAccountType] = useState<AccountType>('customer')
   const [error, setError] = useState<string | null>(null)
 
@@ -49,6 +51,9 @@ export function Register() {
 
       if (accountType === 'provider') {
         await api.POST('/api/v1/providers', {})
+        const bizUrl = import.meta.env.VITE_BIZ_URL || 'https://pt-duo-bookit-biz.web.app'
+        switchTo(bizUrl)
+        return
       }
 
       navigate('/account')
