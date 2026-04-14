@@ -58,7 +58,7 @@ describe('Biz Register validation', () => {
 })
 
 describe('Biz Register API', () => {
-  test('redirects to / (not /account) and populates auth store on success', async () => {
+  test('redirects to /account and populates auth store on success', async () => {
     const user = userEvent.setup({ delay: null })
     post().mockResolvedValue({ data: buildAuthResponse(), error: undefined })
     renderWithProviders(<Register />)
@@ -70,7 +70,7 @@ describe('Biz Register API', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/')
+      expect(mockNavigate).toHaveBeenCalledWith('/account')
     })
     expect(useAuthStore.getState().isAuthenticated).toBe(true)
   })
