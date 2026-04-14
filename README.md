@@ -36,7 +36,9 @@ bookit/
 │   ├── migrations/               # SQL migration files (*.up.sql / *.down.sql)
 │   ├── openapi/spec.yaml         # API contract — source of truth
 │   ├── oapi-codegen.yaml         # Code generation config
-│   └── Dockerfile
+│   ├── Dockerfile
+│   └── .claude/
+│       └── skills/code-go/       # /code-go skill (Go conventions)
 │
 ├── web/                          # React frontend (npm workspaces)
 │   ├── packages/
@@ -59,7 +61,9 @@ bookit/
 │   │           ├── mocks/        # Shared MSW handlers
 │   │           └── stores/       # Zustand stores
 │   ├── vite.config.shared.ts     # Shared Vite config (extended per package)
-│   └── Dockerfile.dev
+│   ├── Dockerfile.dev
+│   └── .claude/
+│       └── skills/code-react/    # /code-react skill (React conventions)
 │
 ├── docs/
 │   ├── BRD-Bookit-20260327.md        # Business requirements
