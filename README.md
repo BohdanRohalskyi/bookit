@@ -80,7 +80,11 @@ bookit/
 │   │   ├── ci.yml                # Go: test & lint
 │   │   └── web.yml               # React: typecheck, lint & test
 │   └── CODEOWNERS
-├── .claude/commands/             # Claude Code slash commands (/plan, /new-branch, etc.)
+├── .claude/
+│   └── skills/
+│       ├── plan/                 # /plan — create a structured implementation plan
+│       ├── new-branch/           # /new-branch — create a feature branch from main
+│       └── open-plan/            # /open-plan — open an existing plan by description
 ├── Makefile
 ├── docker-compose.yml
 ├── CLAUDE.md                     # AI assistant instructions
