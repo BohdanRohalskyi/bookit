@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Building2, PlusCircle, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { Building2, PlusCircle, Pencil, Trash2, AlertTriangle, GitBranch } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import type { components } from '@bookit/shared/api'
 import { EditBusinessModal } from '../components/EditBusinessModal'
@@ -97,14 +97,13 @@ function BusinessCard({ business, onEdit, onDelete, isDeleting }: BusinessCardPr
 
         {/* Footer actions */}
         <div className="flex items-center justify-between pt-2 border-t border-[rgba(2,9,5,0.06)] mt-auto">
-          <p className="text-xs text-[rgba(2,9,5,0.35)]">
-            Added{' '}
-            {new Date(business.created_at).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </p>
+          <Link
+            to={`/dashboard/businesses/${business.id}/branches`}
+            className="flex items-center gap-1.5 text-xs font-medium text-[#1069d1] hover:underline"
+          >
+            <GitBranch className="size-3.5" />
+            Branches
+          </Link>
           <div className="flex items-center gap-1">
             <button
               onClick={onEdit}

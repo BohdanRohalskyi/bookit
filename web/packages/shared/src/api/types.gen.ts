@@ -350,7 +350,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/locations": {
+    "/api/v1/branches": {
         parameters: {
             query?: never;
             header?: never;
@@ -361,29 +361,134 @@ export interface paths {
          * List locations
          * @description List locations for a business
          */
-        get: operations["listLocations"];
+        get: operations["listBranches"];
         put?: never;
         /** Create a location */
-        post: operations["createLocation"];
+        post: operations["createBranch"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/locations/{id}": {
+    "/api/v1/branches/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get a location */
-        get: operations["getLocation"];
-        /** Update a location */
-        put: operations["updateLocation"];
+        /** Get a branch */
+        get: operations["getBranch"];
+        /** Update a branch */
+        put: operations["updateBranch"];
+        post?: never;
+        /** Delete a branch */
+        delete: operations["deleteBranch"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get branch schedule */
+        get: operations["getBranchSchedule"];
+        put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/schedule/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace weekly schedule days */
+        put: operations["upsertScheduleDays"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/schedule/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List schedule exceptions */
+        get: operations["listScheduleExceptions"];
+        put?: never;
+        /** Create a schedule exception */
+        post: operations["createScheduleException"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/schedule/exceptions/{exception_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a schedule exception */
+        delete: operations["deleteScheduleException"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List branch photos */
+        get: operations["listBranchPhotos"];
+        put?: never;
+        /** Upload a branch photo */
+        post: operations["uploadBranchPhoto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/photos/{photo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a branch photo */
+        delete: operations["deleteBranchPhoto"];
         options?: never;
         head?: never;
         patch?: never;
@@ -601,7 +706,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/search/locations": {
+    "/api/v1/search/branches": {
         parameters: {
             query?: never;
             header?: never;
@@ -612,7 +717,7 @@ export interface paths {
          * Search locations
          * @description Public endpoint to search for locations/businesses
          */
-        get: operations["searchLocations"];
+        get: operations["searchBranches"];
         put?: never;
         post?: never;
         delete?: never;
@@ -863,7 +968,7 @@ export interface components {
             data: components["schemas"]["Business"][];
             pagination: components["schemas"]["Pagination"];
         };
-        Location: {
+        Branch: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -889,7 +994,7 @@ export interface components {
             /** @description Included in search results */
             business?: components["schemas"]["Business"];
         };
-        LocationCreate: {
+        BranchCreate: {
             /** Format: uuid */
             business_id: string;
             name: string;
@@ -906,7 +1011,7 @@ export interface components {
             /** @default Europe/Vilnius */
             timezone: string;
         };
-        LocationUpdate: {
+        BranchUpdate: {
             name?: string;
             address?: string;
             city?: string;
@@ -921,9 +1026,66 @@ export interface components {
             timezone?: string;
             is_active?: boolean;
         };
-        LocationList: {
-            data: components["schemas"]["Location"][];
+        BranchList: {
+            data: components["schemas"]["Branch"][];
             pagination: components["schemas"]["Pagination"];
+        };
+        Schedule: {
+            /** Format: uuid */
+            branch_id: string;
+            days: components["schemas"]["ScheduleDay"][];
+            /** @description Upcoming exceptions (returned on GET) */
+            exceptions?: components["schemas"]["ScheduleException"][];
+        };
+        ScheduleDay: {
+            /** Format: uuid */
+            id?: string;
+            /** @description 0 = Monday, 6 = Sunday */
+            day_of_week: number;
+            is_open: boolean;
+            /** @example 09:00 */
+            open_time?: string | null;
+            /** @example 18:00 */
+            close_time?: string | null;
+        };
+        ScheduleDayInput: {
+            day_of_week: number;
+            is_open: boolean;
+            open_time?: string | null;
+            close_time?: string | null;
+        };
+        ScheduleException: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            branch_id: string;
+            /** Format: date */
+            date: string;
+            is_closed: boolean;
+            open_time?: string | null;
+            close_time?: string | null;
+            reason?: string | null;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        ScheduleExceptionCreate: {
+            /** Format: date */
+            date: string;
+            is_closed: boolean;
+            open_time?: string | null;
+            close_time?: string | null;
+            reason?: string;
+        };
+        BranchPhoto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            branch_id: string;
+            /** Format: uri */
+            url: string;
+            display_order: number;
+            /** Format: date-time */
+            created_at: string;
         };
         /** @enum {string} */
         DurationType: "fixed" | "flexible";
@@ -933,7 +1095,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             name: string;
             description?: string | null;
             duration_type: components["schemas"]["DurationType"];
@@ -959,7 +1121,7 @@ export interface components {
         };
         ServiceCreate: {
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             name: string;
             description?: string;
             duration_type: components["schemas"]["DurationType"];
@@ -999,7 +1161,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             name: string;
             role?: string | null;
             /** Format: uri */
@@ -1012,7 +1174,7 @@ export interface components {
         };
         StaffCreate: {
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             name: string;
             role?: string;
         };
@@ -1029,7 +1191,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             name: string;
             /**
              * @description How many can be booked simultaneously
@@ -1044,7 +1206,7 @@ export interface components {
         };
         EquipmentCreate: {
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             name: string;
             /** @default 1 */
             capacity: number;
@@ -1064,7 +1226,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             /** Format: uuid */
             user_id: string;
             status: components["schemas"]["BookingStatus"];
@@ -1073,7 +1235,7 @@ export interface components {
             currency: string;
             notes?: string | null;
             items: components["schemas"]["BookingItem"][];
-            location?: components["schemas"]["Location"];
+            branch?: components["schemas"]["Branch"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1097,7 +1259,7 @@ export interface components {
         };
         BookingCreate: {
             /** Format: uuid */
-            location_id: string;
+            branch_id: string;
             items: components["schemas"]["BookingItemCreate"][];
             notes?: string;
         };
@@ -1138,11 +1300,11 @@ export interface components {
             duration_minutes?: number;
             slots: components["schemas"]["TimeSlot"][];
         };
-        LocationSearchResult: {
-            data: components["schemas"]["LocationSearchItem"][];
+        BranchSearchResult: {
+            data: components["schemas"]["BranchSearchItem"][];
             pagination: components["schemas"]["Pagination"];
         };
-        LocationSearchItem: {
+        BranchSearchItem: {
             /** Format: uuid */
             id: string;
             name: string;
@@ -1226,7 +1388,7 @@ export interface components {
         PageParam: number;
         PerPageParam: number;
         BusinessId: string;
-        LocationId: string;
+        BranchId: string;
         ServiceId: string;
         BookingId: string;
         StaffId: string;
@@ -1880,7 +2042,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listLocations: {
+    listBranches: {
         parameters: {
             query: {
                 business_id: string;
@@ -1893,20 +2055,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List of locations */
+            /** @description List of branches */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LocationList"];
+                    "application/json": components["schemas"]["BranchList"];
                 };
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
         };
     };
-    createLocation: {
+    createBranch: {
         parameters: {
             query?: never;
             header?: never;
@@ -1915,17 +2077,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocationCreate"];
+                "application/json": components["schemas"]["BranchCreate"];
             };
         };
         responses: {
-            /** @description Location created */
+            /** @description Branch created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Location"];
+                    "application/json": components["schemas"]["Branch"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -1933,55 +2095,297 @@ export interface operations {
             403: components["responses"]["ProviderRequired"];
         };
     };
-    getLocation: {
+    getBranch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["LocationId"];
+                id: components["parameters"]["BranchId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Location details */
+            /** @description Branch details */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Location"];
+                    "application/json": components["schemas"]["Branch"];
                 };
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };
-    updateLocation: {
+    updateBranch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["LocationId"];
+                id: components["parameters"]["BranchId"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocationUpdate"];
+                "application/json": components["schemas"]["BranchUpdate"];
             };
         };
         responses: {
-            /** @description Location updated */
+            /** @description Branch updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Location"];
+                    "application/json": components["schemas"]["Branch"];
                 };
             };
             400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branch deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getBranchSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branch schedule with days and upcoming exceptions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Schedule"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    upsertScheduleDays: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    days: components["schemas"]["ScheduleDayInput"][];
+                };
+            };
+        };
+        responses: {
+            /** @description Schedule updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Schedule"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listScheduleExceptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of schedule exceptions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["ScheduleException"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createScheduleException: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleExceptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Exception created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleException"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteScheduleException: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+                exception_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exception deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listBranchPhotos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of branch photos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["BranchPhoto"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    uploadBranchPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Photo uploaded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchPhoto"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteBranchPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+                photo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Photo deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
             404: components["responses"]["NotFound"];
@@ -1990,7 +2394,7 @@ export interface operations {
     listServices: {
         parameters: {
             query: {
-                location_id: string;
+                branch_id: string;
                 page?: components["parameters"]["PageParam"];
                 per_page?: components["parameters"]["PerPageParam"];
             };
@@ -2096,7 +2500,7 @@ export interface operations {
     listStaff: {
         parameters: {
             query: {
-                location_id: string;
+                branch_id: string;
                 page?: components["parameters"]["PageParam"];
                 per_page?: components["parameters"]["PerPageParam"];
             };
@@ -2203,7 +2607,7 @@ export interface operations {
     listEquipment: {
         parameters: {
             query: {
-                location_id: string;
+                branch_id: string;
                 page?: components["parameters"]["PageParam"];
                 per_page?: components["parameters"]["PerPageParam"];
             };
@@ -2431,7 +2835,7 @@ export interface operations {
     listProviderBookings: {
         parameters: {
             query?: {
-                location_id?: string;
+                branch_id?: string;
                 status?: components["schemas"]["BookingStatus"];
                 from_date?: string;
                 to_date?: string;
@@ -2492,7 +2896,7 @@ export interface operations {
             };
         };
     };
-    searchLocations: {
+    searchBranches: {
         parameters: {
             query?: {
                 /** @description Search query (business name, service name) */
@@ -2520,7 +2924,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LocationSearchResult"];
+                    "application/json": components["schemas"]["BranchSearchResult"];
                 };
             };
         };

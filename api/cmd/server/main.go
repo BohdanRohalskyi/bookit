@@ -178,6 +178,29 @@ func run() error {
 		businesses.POST("/:id/logo", catalogHandler.UploadLogo)
 	}
 
+	// Branch endpoints (protected)
+	branchRepo := catalog.NewBranchRepository(db.Pool)
+	branchService := catalog.NewBranchService(branchRepo, userRepo, catalogRepo, storageClient)
+	branchHandler := catalog.NewBranchHandler(branchService)
+
+	branches := router.Group("/api/v1/branches")
+	branches.Use(authHandler.AuthMiddleware())
+	{
+		branches.GET("", branchHandler.ListBranches)
+		branches.POST("", branchHandler.CreateBranch)
+		branches.GET("/:id", branchHandler.GetBranch)
+		branches.PUT("/:id", branchHandler.UpdateBranch)
+		branches.DELETE("/:id", branchHandler.DeleteBranch)
+		branches.GET("/:id/schedule", branchHandler.GetSchedule)
+		branches.PUT("/:id/schedule/days", branchHandler.UpsertScheduleDays)
+		branches.GET("/:id/schedule/exceptions", branchHandler.ListExceptions)
+		branches.POST("/:id/schedule/exceptions", branchHandler.CreateException)
+		branches.DELETE("/:id/schedule/exceptions/:exception_id", branchHandler.DeleteException)
+		branches.GET("/:id/photos", branchHandler.ListPhotos)
+		branches.POST("/:id/photos", branchHandler.UploadPhoto)
+		branches.DELETE("/:id/photos/:photo_id", branchHandler.DeletePhoto)
+	}
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.APIPort),

@@ -41,7 +41,7 @@ tags:
     description: Provider account management
   - name: Businesses
     description: Business management (provider only)
-  - name: Locations
+  - name: Branches
     description: Location management (provider only)
   - name: Services
     description: Service management (provider only)
@@ -629,12 +629,12 @@ paths:
   # ============================================================
   # LOCATIONS
   # ============================================================
-  /api/v1/locations:
+  /api/v1/branches:
     get:
-      tags: [Locations]
+      tags: [Branches]
       summary: List locations
       description: List locations for a business
-      operationId: listLocations
+      operationId: listBranches
       security:
         - BearerAuth: []
       parameters:
@@ -648,20 +648,20 @@ paths:
         - $ref: '#/components/parameters/PerPageParam'
       responses:
         '200':
-          description: List of locations
+          description: List of branches
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LocationList'
+                $ref: '#/components/schemas/BranchList'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/ProviderRequired'
 
     post:
-      tags: [Locations]
+      tags: [Branches]
       summary: Create a location
-      operationId: createLocation
+      operationId: createBranch
       security:
         - BearerAuth: []
       requestBody:
@@ -669,14 +669,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LocationCreate'
+              $ref: '#/components/schemas/BranchCreate'
       responses:
         '201':
-          description: Location created
+          description: Branch created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/Branch'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -684,50 +684,293 @@ paths:
         '403':
           $ref: '#/components/responses/ProviderRequired'
 
-  /api/v1/locations/{id}:
+  /api/v1/branches/{id}:
     get:
-      tags: [Locations]
-      summary: Get a location
-      operationId: getLocation
+      tags: [Branches]
+      summary: Get a branch
+      operationId: getBranch
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/LocationId'
+        - $ref: '#/components/parameters/BranchId'
       responses:
         '200':
-          description: Location details
+          description: Branch details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/Branch'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
     put:
-      tags: [Locations]
-      summary: Update a location
-      operationId: updateLocation
+      tags: [Branches]
+      summary: Update a branch
+      operationId: updateBranch
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/LocationId'
+        - $ref: '#/components/parameters/BranchId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LocationUpdate'
+              $ref: '#/components/schemas/BranchUpdate'
       responses:
         '200':
-          description: Location updated
+          description: Branch updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/Branch'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Branches]
+      summary: Delete a branch
+      operationId: deleteBranch
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '204':
+          description: Branch deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/schedule:
+    get:
+      tags: [Branches]
+      summary: Get branch schedule
+      operationId: getBranchSchedule
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: Branch schedule with days and upcoming exceptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/schedule/days:
+    put:
+      tags: [Branches]
+      summary: Replace weekly schedule days
+      operationId: upsertScheduleDays
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [days]
+              properties:
+                days:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ScheduleDayInput'
+      responses:
+        '200':
+          description: Schedule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/schedule/exceptions:
+    get:
+      tags: [Branches]
+      summary: List schedule exceptions
+      operationId: listScheduleExceptions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: List of schedule exceptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ScheduleException'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Branches]
+      summary: Create a schedule exception
+      operationId: createScheduleException
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleExceptionCreate'
+      responses:
+        '201':
+          description: Exception created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleException'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/schedule/exceptions/{exception_id}:
+    delete:
+      tags: [Branches]
+      summary: Delete a schedule exception
+      operationId: deleteScheduleException
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: exception_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Exception deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/photos:
+    get:
+      tags: [Branches]
+      summary: List branch photos
+      operationId: listBranchPhotos
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: List of branch photos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BranchPhoto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Branches]
+      summary: Upload a branch photo
+      operationId: uploadBranchPhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Photo uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchPhoto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/photos/{photo_id}:
+    delete:
+      tags: [Branches]
+      summary: Delete a branch photo
+      operationId: deleteBranchPhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: photo_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Photo deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -747,7 +990,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: location_id
+        - name: branch_id
           in: query
           required: true
           schema:
@@ -854,7 +1097,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: location_id
+        - name: branch_id
           in: query
           required: true
           schema:
@@ -963,7 +1206,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: location_id
+        - name: branch_id
           in: query
           required: true
           schema:
@@ -1182,7 +1425,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: location_id
+        - name: branch_id
           in: query
           required: false
           schema:
@@ -1267,12 +1510,12 @@ paths:
   # ============================================================
   # SEARCH
   # ============================================================
-  /api/v1/search/locations:
+  /api/v1/search/branches:
     get:
       tags: [Search]
       summary: Search locations
       description: Public endpoint to search for locations/businesses
-      operationId: searchLocations
+      operationId: searchBranches
       parameters:
         - name: q
           in: query
@@ -1320,7 +1563,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LocationSearchResult'
+                $ref: '#/components/schemas/BranchSearchResult'
 
   # ============================================================
   # PAYMENTS
@@ -1433,7 +1676,7 @@ components:
         type: string
         format: uuid
 
-    LocationId:
+    BranchId:
       name: id
       in: path
       required: true
@@ -1908,7 +2151,7 @@ components:
     # ----------------------------------------------------------
     # Catalog - Location
     # ----------------------------------------------------------
-    Location:
+    Branch:
       type: object
       required:
         - id
@@ -1964,7 +2207,7 @@ components:
           $ref: '#/components/schemas/Business'
           description: Included in search results
 
-    LocationCreate:
+    BranchCreate:
       type: object
       required:
         - business_id
@@ -2004,7 +2247,7 @@ components:
           type: string
           default: "Europe/Vilnius"
 
-    LocationUpdate:
+    BranchUpdate:
       type: object
       properties:
         name:
@@ -2036,7 +2279,7 @@ components:
         is_active:
           type: boolean
 
-    LocationList:
+    BranchList:
       type: object
       required:
         - data
@@ -2045,9 +2288,140 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Location'
+            $ref: '#/components/schemas/Branch'
         pagination:
           $ref: '#/components/schemas/Pagination'
+
+    # ----------------------------------------------------------
+    # Catalog - Schedule
+    # ----------------------------------------------------------
+    Schedule:
+      type: object
+      required: [branch_id, days]
+      properties:
+        branch_id:
+          type: string
+          format: uuid
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleDay'
+        exceptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleException'
+          description: Upcoming exceptions (returned on GET)
+
+    ScheduleDay:
+      type: object
+      required: [day_of_week, is_open]
+      properties:
+        id:
+          type: string
+          format: uuid
+        day_of_week:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: "0 = Monday, 6 = Sunday"
+        is_open:
+          type: boolean
+        open_time:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: "09:00"
+          nullable: true
+        close_time:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: "18:00"
+          nullable: true
+
+    ScheduleDayInput:
+      type: object
+      required: [day_of_week, is_open]
+      properties:
+        day_of_week:
+          type: integer
+          minimum: 0
+          maximum: 6
+        is_open:
+          type: boolean
+        open_time:
+          type: string
+          nullable: true
+        close_time:
+          type: string
+          nullable: true
+
+    ScheduleException:
+      type: object
+      required: [id, branch_id, date, is_closed]
+      properties:
+        id:
+          type: string
+          format: uuid
+        branch_id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        is_closed:
+          type: boolean
+        open_time:
+          type: string
+          nullable: true
+        close_time:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    ScheduleExceptionCreate:
+      type: object
+      required: [date, is_closed]
+      properties:
+        date:
+          type: string
+          format: date
+        is_closed:
+          type: boolean
+        open_time:
+          type: string
+          nullable: true
+        close_time:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          maxLength: 500
+
+    # ----------------------------------------------------------
+    # Catalog - Branch Photos
+    # ----------------------------------------------------------
+    BranchPhoto:
+      type: object
+      required: [id, branch_id, url, display_order, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        branch_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        display_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
 
     # ----------------------------------------------------------
     # Catalog - Service
@@ -2064,7 +2438,7 @@ components:
       type: object
       required:
         - id
-        - location_id
+        - branch_id
         - name
         - duration_type
         - price
@@ -2076,7 +2450,7 @@ components:
         id:
           type: string
           format: uuid
-        location_id:
+        branch_id:
           type: string
           format: uuid
         name:
@@ -2126,13 +2500,13 @@ components:
     ServiceCreate:
       type: object
       required:
-        - location_id
+        - branch_id
         - name
         - duration_type
         - price
         - price_type
       properties:
-        location_id:
+        branch_id:
           type: string
           format: uuid
         name:
@@ -2216,7 +2590,7 @@ components:
       type: object
       required:
         - id
-        - location_id
+        - branch_id
         - name
         - is_active
         - created_at
@@ -2224,7 +2598,7 @@ components:
         id:
           type: string
           format: uuid
-        location_id:
+        branch_id:
           type: string
           format: uuid
         name:
@@ -2248,10 +2622,10 @@ components:
     StaffCreate:
       type: object
       required:
-        - location_id
+        - branch_id
         - name
       properties:
-        location_id:
+        branch_id:
           type: string
           format: uuid
         name:
@@ -2295,7 +2669,7 @@ components:
       type: object
       required:
         - id
-        - location_id
+        - branch_id
         - name
         - capacity
         - is_active
@@ -2304,7 +2678,7 @@ components:
         id:
           type: string
           format: uuid
-        location_id:
+        branch_id:
           type: string
           format: uuid
         name:
@@ -2325,10 +2699,10 @@ components:
     EquipmentCreate:
       type: object
       required:
-        - location_id
+        - branch_id
         - name
       properties:
-        location_id:
+        branch_id:
           type: string
           format: uuid
         name:
@@ -2383,7 +2757,7 @@ components:
       type: object
       required:
         - id
-        - location_id
+        - branch_id
         - user_id
         - status
         - total_amount
@@ -2394,7 +2768,7 @@ components:
         id:
           type: string
           format: uuid
-        location_id:
+        branch_id:
           type: string
           format: uuid
         user_id:
@@ -2414,8 +2788,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BookingItem'
-        location:
-          $ref: '#/components/schemas/Location'
+        branch:
+          $ref: '#/components/schemas/Branch'
         created_at:
           type: string
           format: date-time
@@ -2460,10 +2834,10 @@ components:
     BookingCreate:
       type: object
       required:
-        - location_id
+        - branch_id
         - items
       properties:
-        location_id:
+        branch_id:
           type: string
           format: uuid
         items:
@@ -2557,7 +2931,7 @@ components:
     # ----------------------------------------------------------
     # Search
     # ----------------------------------------------------------
-    LocationSearchResult:
+    BranchSearchResult:
       type: object
       required:
         - data
@@ -2566,11 +2940,11 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/LocationSearchItem'
+            $ref: '#/components/schemas/BranchSearchItem'
         pagination:
           $ref: '#/components/schemas/Pagination'
 
-    LocationSearchItem:
+    BranchSearchItem:
       type: object
       required:
         - id
