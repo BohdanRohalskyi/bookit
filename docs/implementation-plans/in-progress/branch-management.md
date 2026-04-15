@@ -1,6 +1,6 @@
 ---
 title: "Branch Management"
-status: NEW
+status: DONE
 created: 2026-04-15
 author: "bohdan.rohalskyi@paysera.com"
 ---
