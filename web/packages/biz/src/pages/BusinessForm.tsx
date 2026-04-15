@@ -18,7 +18,7 @@ const schema = z.object({
     .min(1, 'Business name is required')
     .max(100, 'Max 100 characters'),
   category: z.enum(['beauty', 'sport', 'pet_care'], {
-    errorMap: () => ({ message: 'Please select a category' }),
+    message: 'Please select a category',
   }),
   description: z
     .string()
