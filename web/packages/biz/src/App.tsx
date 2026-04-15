@@ -7,7 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Businesses } from './pages/Businesses'
 import { BusinessForm } from './pages/BusinessForm'
 import { BranchList } from './pages/BranchList'
-import { BranchForm } from './pages/BranchForm'
+import { BranchWizard } from './pages/BranchWizard'
 import { BranchDetail } from './pages/BranchDetail'
 import { NotFound } from './pages/NotFound'
 import { DashboardLayout } from './components/DashboardLayout'
@@ -29,9 +29,9 @@ export default function App() {
 
           {/* Branch routes */}
           <Route path="/dashboard/businesses/:businessId/branches" element={<BranchList />} />
-          <Route path="/dashboard/businesses/:businessId/branches/new" element={<BranchForm />} />
+          <Route path="/dashboard/businesses/:businessId/branches/new" element={<BranchWizard />} />
           <Route path="/dashboard/businesses/:businessId/branches/:branchId" element={<BranchDetail />} />
-          <Route path="/dashboard/businesses/:businessId/branches/:branchId/edit" element={<BranchForm />} />
+          <Route path="/dashboard/businesses/:businessId/branches/:branchId/edit" element={<BranchWizard />} />
 
           <Route path="/account" element={<Account />} />
         </Route>
