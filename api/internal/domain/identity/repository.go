@@ -122,6 +122,17 @@ func (r *Repository) Create(ctx context.Context, email, passwordHash, name, phon
 	return &user, nil
 }
 
+func (r *Repository) GetProviderIDByUserID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	var providerID uuid.UUID
+	err := r.db.QueryRow(ctx, `
+		SELECT id FROM providers WHERE user_id = $1
+	`, userID).Scan(&providerID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, ErrUserNotFound
+	}
+	return providerID, err
+}
+
 func (r *Repository) IsProvider(ctx context.Context, userID uuid.UUID) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(ctx, `

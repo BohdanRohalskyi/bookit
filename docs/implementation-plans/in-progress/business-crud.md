@@ -113,7 +113,7 @@ echo -n "bookit-media-prod" | gcloud secrets create GCS_BUCKET --data-file=- --p
 
 ---
 
-### Phase 4: Go GCS upload service `[PENDING]`
+### Phase 4: Go GCS upload service `[DONE]`
 
 Create `api/internal/platform/storage/gcs.go`:
 

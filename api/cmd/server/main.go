@@ -13,11 +13,13 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/BohdanRohalskyi/bookit/api/internal/auth"
+	"github.com/BohdanRohalskyi/bookit/api/internal/catalog"
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
 	"github.com/BohdanRohalskyi/bookit/api/internal/mail"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/config"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
+	"github.com/BohdanRohalskyi/bookit/api/internal/platform/storage"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/logger"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/migrate"
 )
@@ -142,6 +144,26 @@ func run() error {
 	providersProtected.Use(authHandler.AuthMiddleware())
 	{
 		providersProtected.POST("", authHandler.CreateProvider)
+	}
+
+	// Catalog — business endpoints (protected)
+	gcsClient, err := storage.NewClient(ctx, cfg.GCSBucket)
+	if err != nil {
+		log.Warn("GCS client unavailable — logo upload disabled", "error", err)
+	}
+	catalogRepo := catalog.NewRepository(db.Pool)
+	catalogService := catalog.NewService(catalogRepo, userRepo, gcsClient)
+	catalogHandler := catalog.NewHandler(catalogService)
+
+	businesses := router.Group("/api/v1/businesses")
+	businesses.Use(authHandler.AuthMiddleware())
+	{
+		businesses.GET("", catalogHandler.ListBusinesses)
+		businesses.POST("", catalogHandler.CreateBusiness)
+		businesses.GET("/:id", catalogHandler.GetBusiness)
+		businesses.PUT("/:id", catalogHandler.UpdateBusiness)
+		businesses.DELETE("/:id", catalogHandler.DeleteBusiness)
+		businesses.POST("/:id/logo", catalogHandler.UploadLogo)
 	}
 
 	// Create HTTP server
