@@ -49,7 +49,7 @@ DROP TABLE IF EXISTS businesses;
 
 ---
 
-### Phase 2: OpenAPI spec — logo_url + DELETE + logo upload endpoint `[PENDING]`
+### Phase 2: OpenAPI spec — logo_url + DELETE + logo upload endpoint `[DONE]`
 
 **Changes to `api/openapi/spec.yaml`:**
 

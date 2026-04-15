@@ -572,6 +572,60 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+    delete:
+      tags: [Businesses]
+      summary: Delete a business
+      operationId: deleteBusiness
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '204':
+          description: Business deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/businesses/{id}/logo:
+    post:
+      tags: [Businesses]
+      summary: Upload business logo
+      operationId: uploadBusinessLogo
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Logo uploaded, returns updated business
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Business'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ============================================================
   # LOCATIONS
   # ============================================================
@@ -1816,6 +1870,10 @@ components:
         description:
           type: string
           maxLength: 1000
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
 
     BusinessUpdate:
       type: object
@@ -1829,6 +1887,10 @@ components:
           maxLength: 1000
         is_active:
           type: boolean
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
 
     BusinessList:
       type: object
