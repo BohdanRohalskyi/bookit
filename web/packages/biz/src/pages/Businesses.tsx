@@ -29,28 +29,28 @@ function BusinessCard({ business, onEdit, onDelete, isDeleting }: BusinessCardPr
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <div className="bg-white border border-[rgba(2,9,5,0.08)] rounded-lg overflow-hidden flex flex-col">
-      {/* Logo banner */}
-      {business.logo_url ? (
-        <img
-          src={business.logo_url}
-          alt={`${business.name} logo`}
-          className="w-full h-32 object-cover"
-        />
-      ) : (
-        <div className="w-full h-32 bg-[#e7f0fa] flex items-center justify-center">
-          <Building2 className="size-10 text-[#1069d1]" strokeWidth={1.5} />
-        </div>
-      )}
-
-      <div className="p-6 flex flex-col gap-4 flex-1">
+    <div className="bg-white border border-[rgba(2,9,5,0.08)] rounded-lg p-6 flex flex-col gap-4">
         {/* Info */}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-1.5 min-w-0">
-            <p className="font-heading font-semibold text-[#020905] truncate">{business.name}</p>
-            <span className="text-xs text-[rgba(2,9,5,0.5)] bg-[#f2f2f2] rounded px-2 py-0.5 w-fit capitalize">
-              {categoryLabels[business.category] ?? business.category}
-            </span>
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Logo or fallback icon */}
+            {business.logo_url ? (
+              <img
+                src={business.logo_url}
+                alt={`${business.name} logo`}
+                className="size-12 rounded-lg object-contain bg-[#e7f0fa] shrink-0"
+              />
+            ) : (
+              <div className="size-12 bg-[#e7f0fa] rounded-lg flex items-center justify-center shrink-0">
+                <Building2 className="size-6 text-[#1069d1]" />
+              </div>
+            )}
+            <div className="flex flex-col gap-1 min-w-0">
+              <p className="font-heading font-semibold text-[#020905] truncate">{business.name}</p>
+              <span className="text-xs text-[rgba(2,9,5,0.5)] bg-[#f2f2f2] rounded px-2 py-0.5 w-fit capitalize">
+                {categoryLabels[business.category] ?? business.category}
+              </span>
+            </div>
           </div>
           <span
             className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${
@@ -123,7 +123,6 @@ function BusinessCard({ business, onEdit, onDelete, isDeleting }: BusinessCardPr
             </button>
           </div>
         </div>
-      </div>
     </div>
   )
 }
