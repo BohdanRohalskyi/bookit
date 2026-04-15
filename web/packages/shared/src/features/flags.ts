@@ -4,6 +4,7 @@
  */
 export const FLAGS = {
   FEATURE_TEST: 'feature_test',
+  PROVIDER_DASHBOARD: 'provider_dashboard',
 } as const
 
 /** Union of all valid flag constant names (e.g. 'FEATURE_TEST'). */

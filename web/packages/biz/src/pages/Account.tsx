@@ -1,52 +1,17 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircle2, TriangleAlert, Phone, Building2, User, ArrowUpRight } from 'lucide-react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  CheckCircle2,
+  TriangleAlert,
+  Phone,
+  Building2,
+  ArrowUpRight,
+} from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
 
-// ─── Navbar ──────────────────────────────────────────────────────────────────
-
-function Navbar() {
-  const { user, logout } = useAuthStore()
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/')
-  }
-
-  return (
-    <nav className="bg-[#e7f0fa] h-[72px] shrink-0 w-full">
-      <div className="max-w-[1280px] mx-auto px-8 md:px-16 h-full flex items-center justify-between">
-        <Link to="/" className="text-[#020905] font-semibold text-lg font-heading">
-          Bookit Business
-        </Link>
-
-        <div className="hidden md:flex items-center gap-8">
-          <a href="#" className="text-[#020905] text-base hover:opacity-70 transition-opacity">
-            Dashboard
-          </a>
-          <a href="#" className="text-[#020905] text-base hover:opacity-70 transition-opacity">
-            Settings
-          </a>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-[#020905] hidden md:block">{user?.name}</span>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 text-sm font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    </nav>
-  )
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getInitials(name: string): string {
   return name
@@ -57,7 +22,7 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-// ─── Provider Profile Card ───────────────────────────────────────────────────
+// ─── Profile Card ─────────────────────────────────────────────────────────────
 
 interface ProfileCardProps {
   resendStatus: 'idle' | 'sending' | 'sent' | 'error'
@@ -84,7 +49,7 @@ function ProfileCard({ resendStatus, onResend }: ProfileCardProps) {
         </div>
       </div>
 
-      {/* Email verification badge */}
+      {/* Email verification */}
       <div className="flex flex-col items-center gap-2">
         {user.email_verified ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-200">
@@ -126,7 +91,6 @@ function ProfileCard({ resendStatus, onResend }: ProfileCardProps) {
         </div>
       )}
 
-      {/* Divider */}
       <div className="border-t border-[rgba(2,9,5,0.1)]" />
 
       {/* Account type */}
@@ -153,7 +117,6 @@ function ProfileCard({ resendStatus, onResend }: ProfileCardProps) {
 
 function AccountDetailsCard() {
   const { user } = useAuthStore()
-
   if (!user) return null
 
   const rows = [
@@ -165,7 +128,6 @@ function AccountDetailsCard() {
   return (
     <div className="bg-white border border-[rgba(2,9,5,0.15)] rounded-lg p-8 flex flex-col gap-6">
       <p className="font-heading font-semibold text-lg text-[#020905]">Account details</p>
-
       <div className="flex flex-col">
         {rows.map((row, i) => (
           <div key={row.label}>
@@ -179,7 +141,6 @@ function AccountDetailsCard() {
           </div>
         ))}
       </div>
-
       <div className="flex items-center gap-3">
         <button
           disabled
@@ -198,30 +159,34 @@ function AccountDetailsCard() {
 function BusinessCard() {
   return (
     <div className="bg-white border border-[rgba(2,9,5,0.15)] rounded-lg p-8 flex flex-col gap-6">
-      <p className="font-heading font-semibold text-lg text-[#020905]">Your business</p>
+      <div className="flex items-center justify-between">
+        <p className="font-heading font-semibold text-lg text-[#020905]">Your businesses</p>
+        <Link
+          to="/dashboard/businesses"
+          className="text-sm text-[#1069d1] hover:underline font-medium"
+        >
+          Manage
+        </Link>
+      </div>
 
-      {/* Placeholder state */}
-      <div className="flex flex-col items-center gap-4 py-8 text-center">
-        <Building2 className="size-12 text-[rgba(2,9,5,0.2)]" strokeWidth={1.5} />
-        <div className="flex flex-col gap-2">
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <Building2 className="size-10 text-[rgba(2,9,5,0.2)]" strokeWidth={1.5} />
+        <div className="flex flex-col gap-1">
           <p className="font-heading font-semibold text-base text-[#020905]">
-            No business set up yet
+            Set up your business
           </p>
-          <p className="text-sm text-[rgba(2,9,5,0.6)] max-w-[320px]">
+          <p className="text-sm text-[rgba(2,9,5,0.6)] max-w-[300px]">
             Add your business details to start accepting bookings
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          disabled
-          className="px-4 py-2 text-sm font-medium text-white bg-[#1069d1] border border-[#1069d1] rounded-[6px] opacity-50 cursor-not-allowed"
-        >
-          Add business
-        </button>
-        <p className="text-xs text-[rgba(2,9,5,0.4)]">Coming soon</p>
-      </div>
+      <Link
+        to="/dashboard/businesses/new"
+        className="w-full flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors"
+      >
+        Add business
+      </Link>
     </div>
   )
 }
@@ -232,9 +197,7 @@ function SecurityCard() {
   return (
     <div className="bg-white border border-[rgba(2,9,5,0.15)] rounded-lg p-8 flex flex-col gap-6">
       <p className="font-heading font-semibold text-lg text-[#020905]">Security</p>
-
       <div className="border-t border-[rgba(2,9,5,0.08)]" />
-
       <div className="flex items-center justify-between py-2">
         <div className="flex flex-col gap-0.5">
           <p className="text-sm font-medium text-[#020905]">Password</p>
@@ -257,63 +220,38 @@ function SecurityCard() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function Account() {
-  const navigate = useNavigate()
-  const { isAuthenticated, tokens } = useAuthStore()
+  const { tokens } = useAuthStore()
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login')
-    }
-  }, [isAuthenticated, navigate])
 
   const handleResendVerification = async () => {
     setResendStatus('sending')
-
     const { error } = await api.POST('/api/v1/auth/resend-verification', {
-      headers: {
-        Authorization: `Bearer ${tokens?.accessToken}`,
-      },
+      headers: { Authorization: `Bearer ${tokens?.accessToken}` },
     })
-
-    if (error) {
-      setResendStatus('error')
-      return
-    }
-
-    setResendStatus('sent')
+    setResendStatus(error ? 'error' : 'sent')
   }
 
-  if (!isAuthenticated) return null
-
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8f9fa] text-[#020905]">
-      <Navbar />
+    <div className="flex flex-col gap-8">
+      {/* Header */}
+      <div>
+        <p className="font-heading font-semibold text-2xl text-[#020905]">My Account</p>
+        <p className="text-sm text-[rgba(2,9,5,0.45)] mt-1">
+          Manage your profile and account settings
+        </p>
+      </div>
 
-      <main className="flex-1">
-        <div className="max-w-[1280px] mx-auto px-8 md:px-16 py-16">
-          {/* Page heading */}
-          <div className="flex items-center gap-3 mb-10">
-            <User className="size-6 text-[rgba(2,9,5,0.4)]" strokeWidth={1.5} />
-            <p className="font-heading font-semibold text-2xl text-[#020905]">My Account</p>
-          </div>
-
-          {/* Two-column grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            {/* Left column — Provider profile card (~1/3) */}
-            <div className="lg:col-span-1">
-              <ProfileCard resendStatus={resendStatus} onResend={handleResendVerification} />
-            </div>
-
-            {/* Right column — stacked cards (~2/3) */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
-              <AccountDetailsCard />
-              <BusinessCard />
-              <SecurityCard />
-            </div>
-          </div>
+      {/* Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-1">
+          <ProfileCard resendStatus={resendStatus} onResend={handleResendVerification} />
         </div>
-      </main>
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <AccountDetailsCard />
+          <BusinessCard />
+          <SecurityCard />
+        </div>
+      </div>
     </div>
   )
 }
