@@ -494,6 +494,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/branches/{id}/equipment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List equipment available at this branch */
+        get: operations["listBranchEquipment"];
+        put?: never;
+        /** Add equipment to branch */
+        post: operations["addBranchEquipment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/equipment/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove equipment from branch */
+        delete: operations["removeBranchEquipment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/staff-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List staff roles at this branch */
+        get: operations["listBranchStaffRoles"];
+        put?: never;
+        /** Assign a staff role to branch */
+        post: operations["addBranchStaffRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/staff-roles/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove staff role from branch */
+        delete: operations["removeBranchStaffRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List services offered at this branch */
+        get: operations["listBranchServices"];
+        put?: never;
+        /** Enable a service at this branch */
+        post: operations["addBranchService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/branches/{id}/services/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disable a service at this branch */
+        delete: operations["removeBranchService"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services": {
         parameters: {
             query?: never;
@@ -501,10 +606,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List services
-         * @description List services for a location
-         */
+        /** List services for a business */
         get: operations["listServices"];
         put?: never;
         /** Create a service */
@@ -524,10 +626,45 @@ export interface paths {
         };
         /** Get a service */
         get: operations["getService"];
-        /** Update a service */
-        put: operations["updateService"];
+        put?: never;
         post?: never;
+        /** Delete a service */
+        delete: operations["deleteService"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List staff roles for a business */
+        get: operations["listStaffRoles"];
+        put?: never;
+        /** Create a staff role */
+        post: operations["createStaffRole"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff-roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a staff role */
+        delete: operations["deleteStaffRole"];
         options?: never;
         head?: never;
         patch?: never;
@@ -579,10 +716,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List equipment
-         * @description List equipment for a location
-         */
+        /** List equipment for a business */
         get: operations["listEquipment"];
         put?: never;
         /** Create equipment */
@@ -602,10 +736,10 @@ export interface paths {
         };
         /** Get equipment */
         get: operations["getEquipment"];
-        /** Update equipment */
-        put: operations["updateEquipment"];
+        put?: never;
         post?: never;
-        delete?: never;
+        /** Delete equipment */
+        delete: operations["deleteEquipment"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1095,25 +1229,16 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            business_id: string;
             name: string;
             description?: string | null;
-            duration_type: components["schemas"]["DurationType"];
-            /** @description For fixed duration services */
-            duration_minutes?: number | null;
-            /** @description For flexible duration services (e.g., 30 or 60) */
-            time_unit_minutes?: number | null;
-            /** Format: decimal */
+            duration_minutes: number;
+            /** Format: double */
             price: number;
-            price_type: components["schemas"]["PriceType"];
-            /** @description For flexible duration services */
-            min_duration_minutes?: number | null;
-            /** @description For flexible duration services */
-            max_duration_minutes?: number | null;
             /** @example EUR */
             currency: string;
-            is_active: boolean;
-            display_order?: number;
+            equipment_requirements?: components["schemas"]["ServiceEquipmentRequirement"][];
+            staff_requirements?: components["schemas"]["ServiceStaffRequirement"][];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1121,41 +1246,100 @@ export interface components {
         };
         ServiceCreate: {
             /** Format: uuid */
-            branch_id: string;
+            business_id: string;
             name: string;
             description?: string;
-            duration_type: components["schemas"]["DurationType"];
-            /** @description Required for fixed duration */
-            duration_minutes?: number;
-            /**
-             * @description Required for flexible duration
-             * @enum {integer}
-             */
-            time_unit_minutes?: 30 | 60;
-            /** Format: decimal */
+            duration_minutes: number;
+            /** Format: double */
             price: number;
-            price_type: components["schemas"]["PriceType"];
-            /** @description Required for flexible duration */
-            min_duration_minutes?: number;
-            /** @description Required for flexible duration */
-            max_duration_minutes?: number;
             /** @default EUR */
             currency: string;
+            equipment_requirements?: {
+                /** Format: uuid */
+                equipment_id: string;
+                quantity_needed: number;
+            }[];
+            staff_requirements?: {
+                /** Format: uuid */
+                staff_role_id: string;
+                quantity_needed: number;
+            }[];
         };
-        ServiceUpdate: {
-            name?: string;
-            description?: string;
-            duration_minutes?: number;
-            /** Format: decimal */
-            price?: number;
-            min_duration_minutes?: number;
-            max_duration_minutes?: number;
-            is_active?: boolean;
-            display_order?: number;
+        ServiceEquipmentRequirement: {
+            /** Format: uuid */
+            equipment_id: string;
+            equipment_name: string;
+            quantity_needed: number;
+        };
+        ServiceStaffRequirement: {
+            /** Format: uuid */
+            staff_role_id: string;
+            job_title: string;
+            quantity_needed: number;
         };
         ServiceList: {
             data: components["schemas"]["Service"][];
-            pagination: components["schemas"]["Pagination"];
+        };
+        StaffRole: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            business_id: string;
+            job_title: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        StaffRoleCreate: {
+            /** Format: uuid */
+            business_id: string;
+            job_title: string;
+        };
+        StaffRoleList: {
+            data: components["schemas"]["StaffRole"][];
+        };
+        BranchEquipment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            branch_id: string;
+            /** Format: uuid */
+            equipment_id: string;
+            equipment_name: string;
+            quantity: number;
+        };
+        BranchEquipmentCreate: {
+            /** Format: uuid */
+            equipment_id: string;
+            quantity: number;
+        };
+        BranchStaffRole: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            branch_id: string;
+            /** Format: uuid */
+            staff_role_id: string;
+            job_title: string;
+            quantity: number;
+        };
+        BranchStaffRoleCreate: {
+            /** Format: uuid */
+            staff_role_id: string;
+            quantity: number;
+        };
+        BranchService: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            branch_id: string;
+            /** Format: uuid */
+            service_id: string;
+            is_active: boolean;
+            service?: components["schemas"]["Service"];
+        };
+        BranchServiceCreate: {
+            /** Format: uuid */
+            service_id: string;
         };
         Staff: {
             /** Format: uuid */
@@ -1191,34 +1375,18 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            business_id: string;
             name: string;
-            /**
-             * @description How many can be booked simultaneously
-             * @example 1
-             */
-            capacity: number;
-            is_active: boolean;
             /** Format: date-time */
             created_at: string;
-            /** Format: date-time */
-            updated_at?: string;
         };
         EquipmentCreate: {
             /** Format: uuid */
-            branch_id: string;
+            business_id: string;
             name: string;
-            /** @default 1 */
-            capacity: number;
-        };
-        EquipmentUpdate: {
-            name?: string;
-            capacity?: number;
-            is_active?: boolean;
         };
         EquipmentList: {
             data: components["schemas"]["Equipment"][];
-            pagination: components["schemas"]["Pagination"];
         };
         /** @enum {string} */
         BookingStatus: "pending_payment" | "confirmed" | "cancelled_by_customer" | "cancelled_by_provider" | "completed" | "no_show";
@@ -2391,12 +2559,250 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listBranchEquipment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branch equipment list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["BranchEquipment"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addBranchEquipment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchEquipmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Branch equipment added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchEquipment"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    removeBranchEquipment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branch equipment removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listBranchStaffRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branch staff roles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["BranchStaffRole"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addBranchStaffRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchStaffRoleCreate"];
+            };
+        };
+        responses: {
+            /** @description Branch staff role assigned */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchStaffRole"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    removeBranchStaffRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branch staff role removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listBranchServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branch services */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["BranchService"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addBranchService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchServiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Service enabled at branch */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchService"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    removeBranchService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BranchId"];
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Service disabled at branch */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listServices: {
         parameters: {
             query: {
-                branch_id: string;
-                page?: components["parameters"]["PageParam"];
-                per_page?: components["parameters"]["PerPageParam"];
+                business_id: string;
             };
             header?: never;
             path?: never;
@@ -2414,6 +2820,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
         };
     };
     createService: {
@@ -2467,7 +2874,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    updateService: {
+    deleteService: {
         parameters: {
             query?: never;
             header?: never;
@@ -2476,22 +2883,89 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceUpdate"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Service updated */
+            /** @description Service deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listStaffRoles: {
+        parameters: {
+            query: {
+                business_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of staff roles */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Service"];
+                    "application/json": components["schemas"]["StaffRoleList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+        };
+    };
+    createStaffRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffRoleCreate"];
+            };
+        };
+        responses: {
+            /** @description Staff role created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRole"];
                 };
             };
             400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+        };
+    };
+    deleteStaffRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Staff role deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
             404: components["responses"]["NotFound"];
@@ -2607,9 +3081,7 @@ export interface operations {
     listEquipment: {
         parameters: {
             query: {
-                branch_id: string;
-                page?: components["parameters"]["PageParam"];
-                per_page?: components["parameters"]["PerPageParam"];
+                business_id: string;
             };
             header?: never;
             path?: never;
@@ -2681,7 +3153,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    updateEquipment: {
+    deleteEquipment: {
         parameters: {
             query?: never;
             header?: never;
@@ -2690,22 +3162,15 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EquipmentUpdate"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Equipment updated */
-            200: {
+            /** @description Equipment deleted */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["Equipment"];
-                };
+                content?: never;
             };
-            400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
             404: components["responses"]["NotFound"];

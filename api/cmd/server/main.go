@@ -183,6 +183,11 @@ func run() error {
 	branchService := catalog.NewBranchService(branchRepo, userRepo, catalogRepo, storageClient)
 	branchHandler := catalog.NewBranchHandler(branchService)
 
+	// Catalog: equipment, staff roles, services, branch pivots (protected)
+	catalogItemRepo := catalog.NewCatalogRepository(db.Pool)
+	catalogItemService := catalog.NewCatalogService(catalogItemRepo, catalogRepo, userRepo, branchRepo)
+	catalogItemHandler := catalog.NewCatalogItemHandler(catalogItemService)
+
 	branches := router.Group("/api/v1/branches")
 	branches.Use(authHandler.AuthMiddleware())
 	{
@@ -199,6 +204,31 @@ func run() error {
 		branches.GET("/:id/photos", branchHandler.ListPhotos)
 		branches.POST("/:id/photos", branchHandler.UploadPhoto)
 		branches.DELETE("/:id/photos/:photo_id", branchHandler.DeletePhoto)
+		// Branch pivot: equipment, staff roles, services
+		branches.GET("/:id/equipment", catalogItemHandler.ListBranchEquipment)
+		branches.POST("/:id/equipment", catalogItemHandler.AddBranchEquipment)
+		branches.DELETE("/:id/equipment/:item_id", catalogItemHandler.RemoveBranchEquipment)
+		branches.GET("/:id/staff-roles", catalogItemHandler.ListBranchStaffRoles)
+		branches.POST("/:id/staff-roles", catalogItemHandler.AddBranchStaffRole)
+		branches.DELETE("/:id/staff-roles/:item_id", catalogItemHandler.RemoveBranchStaffRole)
+		branches.GET("/:id/services", catalogItemHandler.ListBranchServices)
+		branches.POST("/:id/services", catalogItemHandler.AddBranchService)
+		branches.DELETE("/:id/services/:item_id", catalogItemHandler.RemoveBranchService)
+	}
+
+	// Business-level catalog: equipment, staff roles, services
+	catalogProtected := router.Group("/api/v1")
+	catalogProtected.Use(authHandler.AuthMiddleware())
+	{
+		catalogProtected.GET("/equipment", catalogItemHandler.ListEquipment)
+		catalogProtected.POST("/equipment", catalogItemHandler.CreateEquipment)
+		catalogProtected.DELETE("/equipment/:id", catalogItemHandler.DeleteEquipment)
+		catalogProtected.GET("/staff-roles", catalogItemHandler.ListStaffRoles)
+		catalogProtected.POST("/staff-roles", catalogItemHandler.CreateStaffRole)
+		catalogProtected.DELETE("/staff-roles/:id", catalogItemHandler.DeleteStaffRole)
+		catalogProtected.GET("/services", catalogItemHandler.ListServices)
+		catalogProtected.POST("/services", catalogItemHandler.CreateService)
+		catalogProtected.DELETE("/services/:id", catalogItemHandler.DeleteService)
 	}
 
 	// Create HTTP server

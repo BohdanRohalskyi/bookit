@@ -979,25 +979,268 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ============================================================
+  # BRANCH PIVOTS — equipment, staff roles, services per branch
+  # ============================================================
+  /api/v1/branches/{id}/equipment:
+    get:
+      tags: [Branches]
+      summary: List equipment available at this branch
+      operationId: listBranchEquipment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: Branch equipment list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BranchEquipment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Branches]
+      summary: Add equipment to branch
+      operationId: addBranchEquipment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchEquipmentCreate'
+      responses:
+        '201':
+          description: Branch equipment added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchEquipment'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/equipment/{item_id}:
+    delete:
+      tags: [Branches]
+      summary: Remove equipment from branch
+      operationId: removeBranchEquipment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Branch equipment removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/staff-roles:
+    get:
+      tags: [Branches]
+      summary: List staff roles at this branch
+      operationId: listBranchStaffRoles
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: Branch staff roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BranchStaffRole'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Branches]
+      summary: Assign a staff role to branch
+      operationId: addBranchStaffRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchStaffRoleCreate'
+      responses:
+        '201':
+          description: Branch staff role assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchStaffRole'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/staff-roles/{item_id}:
+    delete:
+      tags: [Branches]
+      summary: Remove staff role from branch
+      operationId: removeBranchStaffRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Branch staff role removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/services:
+    get:
+      tags: [Branches]
+      summary: List services offered at this branch
+      operationId: listBranchServices
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: Branch services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BranchService'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Branches]
+      summary: Enable a service at this branch
+      operationId: addBranchService
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchServiceCreate'
+      responses:
+        '201':
+          description: Service enabled at branch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchService'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/branches/{id}/services/{item_id}:
+    delete:
+      tags: [Branches]
+      summary: Disable a service at this branch
+      operationId: removeBranchService
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Service disabled at branch
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
   # SERVICES
   # ============================================================
   /api/v1/services:
     get:
       tags: [Services]
-      summary: List services
-      description: List services for a location
+      summary: List services for a business
       operationId: listServices
       security:
         - BearerAuth: []
       parameters:
-        - name: branch_id
+        - name: business_id
           in: query
           required: true
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PerPageParam'
       responses:
         '200':
           description: List of services
@@ -1007,6 +1250,8 @@ paths:
                 $ref: '#/components/schemas/ServiceList'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
 
     post:
       tags: [Services]
@@ -1055,29 +1300,96 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-    put:
+    delete:
       tags: [Services]
-      summary: Update a service
-      operationId: updateService
+      summary: Delete a service
+      operationId: deleteService
       security:
         - BearerAuth: []
       parameters:
         - $ref: '#/components/parameters/ServiceId'
+      responses:
+        '204':
+          description: Service deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # STAFF ROLES (business-level job role catalog)
+  # ============================================================
+  /api/v1/staff-roles:
+    get:
+      tags: [StaffRoles]
+      summary: List staff roles for a business
+      operationId: listStaffRoles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: business_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of staff roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffRoleList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+
+    post:
+      tags: [StaffRoles]
+      summary: Create a staff role
+      operationId: createStaffRole
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ServiceUpdate'
+              $ref: '#/components/schemas/StaffRoleCreate'
       responses:
-        '200':
-          description: Service updated
+        '201':
+          description: Staff role created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Service'
+                $ref: '#/components/schemas/StaffRole'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+
+  /api/v1/staff-roles/{id}:
+    delete:
+      tags: [StaffRoles]
+      summary: Delete a staff role
+      operationId: deleteStaffRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Staff role deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1195,25 +1507,22 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ============================================================
-  # EQUIPMENT
+  # EQUIPMENT (business-level catalog)
   # ============================================================
   /api/v1/equipment:
     get:
       tags: [Equipment]
-      summary: List equipment
-      description: List equipment for a location
+      summary: List equipment for a business
       operationId: listEquipment
       security:
         - BearerAuth: []
       parameters:
-        - name: branch_id
+        - name: business_id
           in: query
           required: true
           schema:
             type: string
             format: uuid
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PerPageParam'
       responses:
         '200':
           description: List of equipment
@@ -1273,29 +1582,17 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-    put:
+    delete:
       tags: [Equipment]
-      summary: Update equipment
-      operationId: updateEquipment
+      summary: Delete equipment
+      operationId: deleteEquipment
       security:
         - BearerAuth: []
       parameters:
         - $ref: '#/components/parameters/EquipmentId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EquipmentUpdate'
       responses:
-        '200':
-          description: Equipment updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Equipment'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+        '204':
+          description: Equipment deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2438,19 +2735,17 @@ components:
       type: object
       required:
         - id
-        - branch_id
+        - business_id
         - name
-        - duration_type
+        - duration_minutes
         - price
-        - price_type
         - currency
-        - is_active
         - created_at
       properties:
         id:
           type: string
           format: uuid
-        branch_id:
+        business_id:
           type: string
           format: uuid
         name:
@@ -2458,38 +2753,24 @@ components:
         description:
           type: string
           nullable: true
-        duration_type:
-          $ref: '#/components/schemas/DurationType'
         duration_minutes:
           type: integer
-          description: For fixed duration services
-          nullable: true
-        time_unit_minutes:
-          type: integer
-          description: For flexible duration services (e.g., 30 or 60)
-          nullable: true
         price:
           type: number
-          format: decimal
-        price_type:
-          $ref: '#/components/schemas/PriceType'
-        min_duration_minutes:
-          type: integer
-          description: For flexible duration services
-          nullable: true
-        max_duration_minutes:
-          type: integer
-          description: For flexible duration services
-          nullable: true
+          format: double
         currency:
           type: string
           minLength: 3
           maxLength: 3
           example: "EUR"
-        is_active:
-          type: boolean
-        display_order:
-          type: integer
+        equipment_requirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEquipmentRequirement'
+        staff_requirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceStaffRequirement'
         created_at:
           type: string
           format: date-time
@@ -2500,13 +2781,12 @@ components:
     ServiceCreate:
       type: object
       required:
-        - branch_id
+        - business_id
         - name
-        - duration_type
+        - duration_minutes
         - price
-        - price_type
       properties:
-        branch_id:
+        business_id:
           type: string
           format: uuid
         name:
@@ -2515,76 +2795,207 @@ components:
           maxLength: 100
         description:
           type: string
-          maxLength: 500
-        duration_type:
-          $ref: '#/components/schemas/DurationType'
+          maxLength: 1000
         duration_minutes:
           type: integer
-          minimum: 15
-          description: Required for fixed duration
-        time_unit_minutes:
-          type: integer
-          enum: [30, 60]
-          description: Required for flexible duration
+          minimum: 1
         price:
           type: number
-          format: decimal
+          format: double
           minimum: 0
-        price_type:
-          $ref: '#/components/schemas/PriceType'
-        min_duration_minutes:
-          type: integer
-          minimum: 15
-          description: Required for flexible duration
-        max_duration_minutes:
-          type: integer
-          description: Required for flexible duration
         currency:
           type: string
           default: "EUR"
+        equipment_requirements:
+          type: array
+          items:
+            type: object
+            required: [equipment_id, quantity_needed]
+            properties:
+              equipment_id:
+                type: string
+                format: uuid
+              quantity_needed:
+                type: integer
+                minimum: 1
+        staff_requirements:
+          type: array
+          items:
+            type: object
+            required: [staff_role_id, quantity_needed]
+            properties:
+              staff_role_id:
+                type: string
+                format: uuid
+              quantity_needed:
+                type: integer
+                minimum: 1
 
-    ServiceUpdate:
+    ServiceEquipmentRequirement:
       type: object
+      required: [equipment_id, equipment_name, quantity_needed]
       properties:
-        name:
+        equipment_id:
           type: string
-          minLength: 1
-          maxLength: 100
-        description:
+          format: uuid
+        equipment_name:
           type: string
-          maxLength: 500
-        duration_minutes:
+        quantity_needed:
           type: integer
-          minimum: 15
-        price:
-          type: number
-          format: decimal
-          minimum: 0
-        min_duration_minutes:
-          type: integer
-          minimum: 15
-        max_duration_minutes:
-          type: integer
-        is_active:
-          type: boolean
-        display_order:
+
+    ServiceStaffRequirement:
+      type: object
+      required: [staff_role_id, job_title, quantity_needed]
+      properties:
+        staff_role_id:
+          type: string
+          format: uuid
+        job_title:
+          type: string
+        quantity_needed:
           type: integer
 
     ServiceList:
       type: object
       required:
         - data
-        - pagination
       properties:
         data:
           type: array
           items:
             $ref: '#/components/schemas/Service'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
 
     # ----------------------------------------------------------
-    # Staff
+    # Staff Roles (business-level catalog — not individual people)
+    # ----------------------------------------------------------
+    StaffRole:
+      type: object
+      required: [id, business_id, job_title, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        business_id:
+          type: string
+          format: uuid
+        job_title:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    StaffRoleCreate:
+      type: object
+      required: [business_id, job_title]
+      properties:
+        business_id:
+          type: string
+          format: uuid
+        job_title:
+          type: string
+          minLength: 1
+          maxLength: 100
+
+    StaffRoleList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffRole'
+
+    # ----------------------------------------------------------
+    # Branch pivot schemas
+    # ----------------------------------------------------------
+    BranchEquipment:
+      type: object
+      required: [id, branch_id, equipment_id, equipment_name, quantity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        branch_id:
+          type: string
+          format: uuid
+        equipment_id:
+          type: string
+          format: uuid
+        equipment_name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    BranchEquipmentCreate:
+      type: object
+      required: [equipment_id, quantity]
+      properties:
+        equipment_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+
+    BranchStaffRole:
+      type: object
+      required: [id, branch_id, staff_role_id, job_title, quantity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        branch_id:
+          type: string
+          format: uuid
+        staff_role_id:
+          type: string
+          format: uuid
+        job_title:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    BranchStaffRoleCreate:
+      type: object
+      required: [staff_role_id, quantity]
+      properties:
+        staff_role_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+
+    BranchService:
+      type: object
+      required: [id, branch_id, service_id, is_active]
+      properties:
+        id:
+          type: string
+          format: uuid
+        branch_id:
+          type: string
+          format: uuid
+        service_id:
+          type: string
+          format: uuid
+        is_active:
+          type: boolean
+        service:
+          $ref: '#/components/schemas/Service'
+
+    BranchServiceCreate:
+      type: object
+      required: [service_id]
+      properties:
+        service_id:
+          type: string
+          format: uuid
+
+    # ----------------------------------------------------------
+    # Staff (individual people — separate from StaffRole)
     # ----------------------------------------------------------
     Staff:
       type: object
@@ -2669,76 +3080,45 @@ components:
       type: object
       required:
         - id
-        - branch_id
+        - business_id
         - name
-        - capacity
-        - is_active
         - created_at
       properties:
         id:
           type: string
           format: uuid
-        branch_id:
+        business_id:
           type: string
           format: uuid
         name:
           type: string
-        capacity:
-          type: integer
-          description: How many can be booked simultaneously
-          example: 1
-        is_active:
-          type: boolean
         created_at:
-          type: string
-          format: date-time
-        updated_at:
           type: string
           format: date-time
 
     EquipmentCreate:
       type: object
       required:
-        - branch_id
+        - business_id
         - name
       properties:
-        branch_id:
+        business_id:
           type: string
           format: uuid
         name:
           type: string
           minLength: 1
           maxLength: 100
-        capacity:
-          type: integer
-          minimum: 1
-          default: 1
-
-    EquipmentUpdate:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 100
-        capacity:
-          type: integer
-          minimum: 1
-        is_active:
-          type: boolean
 
     EquipmentList:
       type: object
       required:
         - data
-        - pagination
       properties:
         data:
           type: array
           items:
             $ref: '#/components/schemas/Equipment'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
 
     # ----------------------------------------------------------
     # Booking
