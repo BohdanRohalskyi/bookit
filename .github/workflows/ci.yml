@@ -146,7 +146,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --add-cloudsql-instances=${{ secrets.GCP_PROJECT_ID }}:europe-west3:bookit-db \
-            --set-secrets="DATABASE_URL=bookit-database-url-${{ env.ENVIRONMENT }}:latest,JWT_SECRET=bookit-jwt-secret-${{ env.ENVIRONMENT }}:latest,CORS_ALLOWED_ORIGINS=bookit-cors-origins-${{ env.ENVIRONMENT }}:latest" \
+            --set-secrets="DATABASE_URL=bookit-database-url-${{ env.ENVIRONMENT }}:latest,JWT_SECRET=bookit-jwt-secret-${{ env.ENVIRONMENT }}:latest,CORS_ALLOWED_ORIGINS=bookit-cors-origins-${{ env.ENVIRONMENT }}:latest,GCS_BUCKET=GCS_BUCKET${{ env.ENVIRONMENT == 'prod' && '' || '_STAGING' }}:latest" \
             --set-env-vars="ENVIRONMENT=${{ env.ENVIRONMENT }},LOG_LEVEL=info,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }}" \
             --min-instances=0 \
             --max-instances=10 \

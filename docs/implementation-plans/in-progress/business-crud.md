@@ -62,7 +62,7 @@ After spec changes: `cd api && make generate` to regenerate `internal/api/types.
 
 ---
 
-### Phase 3: GCS infrastructure `[PENDING]`
+### Phase 3: GCS infrastructure `[DONE]`
 
 **Bucket provisioning** (run once per environment, user runs these commands):
 

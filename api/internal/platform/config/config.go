@@ -16,6 +16,7 @@ type Config struct {
 	DatabaseURL    string
 	JWTSecret      string
 	GCPProject     string
+	GCSBucket      string   // GCP Cloud Storage bucket for media uploads
 	AppURL         string   // Frontend URL for email links
 	AllowedOrigins []string // CORS allowed origins
 
@@ -45,6 +46,7 @@ func Load() (*Config, error) {
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		JWTSecret:      os.Getenv("JWT_SECRET"),
 		GCPProject:     os.Getenv("GCP_PROJECT"),
+		GCSBucket:      os.Getenv("GCS_BUCKET"),
 		AppURL:         getEnv("APP_URL", "http://localhost:5173"),
 		AllowedOrigins: getEnvAsStringSlice("CORS_ALLOWED_ORIGINS"),
 		AutoMigrate:    getEnvAsBool("AUTO_MIGRATE", env == "local"),
