@@ -63,13 +63,15 @@ export function EditBusinessModal({ business, onClose }: Props) {
         const { error } = await api.PUT('/api/v1/businesses/{id}', {
           params: { path: { id: business.id } },
           body: {
-            name: name.trim() || undefined,
-            description: description || undefined,
-            is_active: isActive,
+            ...(nameChanged ? { name: name.trim() } : {}),
+            ...(descChanged ? { description: description || undefined } : {}),
+            ...(activeChanged ? { is_active: isActive } : {}),
           },
         })
         if (error) throw error
       }
+
+      if (!logoFile) return 'ok'
 
       if (logoFile) {
         const formData = new FormData()
@@ -80,11 +82,16 @@ export function EditBusinessModal({ business, onClose }: Props) {
           body: formData,
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
-        if (!res.ok) throw new Error('Logo upload failed')
+        if (!res.ok) return 'logo_failed'
       }
+      return 'ok'
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['businesses'] })
+      if (result === 'logo_failed') {
+        setApiError('Details saved, but the logo could not be uploaded. Try again later.')
+        return
+      }
       onClose()
     },
     onError: () => {

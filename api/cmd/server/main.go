@@ -146,13 +146,25 @@ func run() error {
 		providersProtected.POST("", authHandler.CreateProvider)
 	}
 
-	// Catalog — business endpoints (protected)
-	gcsClient, err := storage.NewClient(ctx, cfg.GCSBucket)
-	if err != nil {
-		log.Warn("GCS client unavailable — logo upload disabled", "error", err)
+	// Catalog — storage backend (GCS in prod, local filesystem in dev)
+	var storageClient catalog.StorageUploader
+	if cfg.GCSBucket != "" {
+		gcsClient, err := storage.NewClient(ctx, cfg.GCSBucket)
+		if err != nil {
+			log.Warn("GCS client unavailable — logo upload disabled", "error", err)
+		} else {
+			storageClient = gcsClient
+		}
+	} else {
+		const uploadsDir = "./uploads"
+		apiBaseURL := fmt.Sprintf("http://localhost:%d", cfg.APIPort)
+		storageClient = storage.NewLocalClient(uploadsDir, apiBaseURL)
+		router.Static("/uploads", uploadsDir)
+		log.Info("GCS_BUCKET not set — using local filesystem storage", "dir", uploadsDir)
 	}
+
 	catalogRepo := catalog.NewRepository(db.Pool)
-	catalogService := catalog.NewService(catalogRepo, userRepo, gcsClient)
+	catalogService := catalog.NewService(catalogRepo, userRepo, storageClient)
 	catalogHandler := catalog.NewHandler(catalogService)
 
 	businesses := router.Group("/api/v1/businesses")

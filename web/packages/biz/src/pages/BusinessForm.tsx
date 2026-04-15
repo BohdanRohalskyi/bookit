@@ -35,6 +35,7 @@ export function BusinessForm() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [apiError, setApiError] = useState<string | null>(null)
+  const [logoWarning, setLogoWarning] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -80,23 +81,29 @@ export function BusinessForm() {
       if (error) throw error
       if (!data) throw new Error('No data returned')
 
-      // Step 2: upload logo if selected
+      // Step 2: upload logo if selected (non-fatal — business was created regardless)
       if (logoFile) {
         const formData = new FormData()
         formData.append('file', logoFile)
         const token = useAuthStore.getState().getAccessToken()
-        await fetch(`${API_URL}/api/v1/businesses/${data.id}/logo`, {
+        const res = await fetch(`${API_URL}/api/v1/businesses/${data.id}/logo`, {
           method: 'POST',
           body: formData,
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
-        // Logo failure is non-fatal — business was created successfully
+        if (!res.ok) {
+          return { ...data, logoFailed: true }
+        }
       }
 
-      return data
+      return { ...data, logoFailed: false }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['businesses'] })
+      if ('logoFailed' in data && data.logoFailed) {
+        setLogoWarning('Business created, but the logo could not be uploaded. You can add it later from the edit menu.')
+        return
+      }
       navigate('/dashboard/businesses')
     },
     onError: () => {
@@ -128,6 +135,19 @@ export function BusinessForm() {
         {apiError && (
           <div className="mb-6 px-4 py-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-[6px]">
             {apiError}
+          </div>
+        )}
+
+        {logoWarning && (
+          <div className="mb-6 px-4 py-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-[6px] flex flex-col gap-3">
+            <p>{logoWarning}</p>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/businesses')}
+              className="self-start text-xs font-medium text-amber-700 underline"
+            >
+              Go to businesses →
+            </button>
           </div>
         )}
 
