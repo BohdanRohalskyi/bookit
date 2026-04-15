@@ -19,9 +19,9 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/config"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
-	"github.com/BohdanRohalskyi/bookit/api/internal/platform/storage"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/logger"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/migrate"
+	"github.com/BohdanRohalskyi/bookit/api/internal/platform/storage"
 )
 
 var version = "1.0.2"

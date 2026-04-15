@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	ErrBusinessNotFound = errors.New("business not found")
-	ErrNotOwner         = errors.New("not the business owner")
-	ErrNotProvider      = errors.New("user is not a provider")
+	ErrBusinessNotFound     = errors.New("business not found")
+	ErrNotOwner             = errors.New("not the business owner")
+	ErrNotProvider          = errors.New("user is not a provider")
 	ErrStorageNotConfigured = errors.New("logo upload not available in this environment")
 )
 

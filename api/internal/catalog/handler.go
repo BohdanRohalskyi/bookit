@@ -136,8 +136,8 @@ func (h *Handler) ListBusinesses(c *gin.Context) {
 		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))         //nolint:errcheck // invalid input → default applied below
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20")) //nolint:errcheck // invalid input → default applied below
 	if page < 1 {
 		page = 1
 	}
@@ -149,7 +149,7 @@ func (h *Handler) ListBusinesses(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, ErrNotProvider) {
 			c.JSON(http.StatusOK, BusinessListResponse{
-				Data: []BusinessResponse{},
+				Data:       []BusinessResponse{},
 				Pagination: PaginationResponse{Total: 0, Page: page, PerPage: perPage, TotalPages: 0},
 			})
 			return
@@ -187,12 +187,7 @@ func (h *Handler) CreateBusiness(c *gin.Context) {
 		return
 	}
 
-	b, err := h.service.CreateBusiness(c.Request.Context(), userID, BusinessCreate{
-		Name:        req.Name,
-		Category:    req.Category,
-		Description: req.Description,
-		LogoURL:     req.LogoURL,
-	})
+	b, err := h.service.CreateBusiness(c.Request.Context(), userID, BusinessCreate(req))
 	if err != nil {
 		if errors.Is(err, ErrNotProvider) {
 			errResp(c, http.StatusForbidden, "provider-required", "Provider Required", "Only providers can create businesses")
@@ -253,12 +248,7 @@ func (h *Handler) UpdateBusiness(c *gin.Context) {
 		return
 	}
 
-	b, err := h.service.UpdateBusiness(c.Request.Context(), id, userID, BusinessUpdate{
-		Name:        req.Name,
-		Description: req.Description,
-		LogoURL:     req.LogoURL,
-		IsActive:    req.IsActive,
-	})
+	b, err := h.service.UpdateBusiness(c.Request.Context(), id, userID, BusinessUpdate(req))
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrBusinessNotFound):
@@ -320,7 +310,7 @@ func (h *Handler) UploadLogo(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "file field is required")
 		return
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // multipart file close; no meaningful error to handle
 
 	if header.Size > maxLogoSize {
 		errResp(c, http.StatusBadRequest, "file-too-large", "File Too Large", "Logo must be smaller than 5 MB")

@@ -17,9 +17,9 @@ type StorageUploader interface {
 
 // Service implements all business logic for the catalog domain.
 type Service struct {
-	repo        *Repository
+	repo         *Repository
 	identityRepo *identity.Repository
-	storage     StorageUploader // nil when GCS not configured (local dev)
+	storage      StorageUploader // nil when GCS not configured (local dev)
 }
 
 func NewService(repo *Repository, identityRepo *identity.Repository, storage StorageUploader) *Service {

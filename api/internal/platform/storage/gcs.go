@@ -33,7 +33,7 @@ func (c *Client) UploadFile(ctx context.Context, objectName string, r io.Reader,
 	wc.ContentType = contentType
 
 	if _, err := io.Copy(wc, r); err != nil {
-		_ = wc.Close()
+		_ = wc.Close() //nolint:errcheck // secondary error; write error takes precedence
 		return "", fmt.Errorf("io.Copy: %w", err)
 	}
 	if err := wc.Close(); err != nil {
