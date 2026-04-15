@@ -156,7 +156,7 @@ func run() error {
 			storageClient = gcsClient
 		}
 	} else {
-		const uploadsDir = "./uploads"
+		const uploadsDir = "/tmp/uploads"
 		apiBaseURL := fmt.Sprintf("http://localhost:%d", cfg.APIPort)
 		storageClient = storage.NewLocalClient(uploadsDir, apiBaseURL)
 		router.Static("/uploads", uploadsDir)
