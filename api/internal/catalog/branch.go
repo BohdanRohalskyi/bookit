@@ -66,12 +66,12 @@ type Schedule struct {
 }
 
 type ScheduleDay struct {
-	ID          uuid.UUID
-	ScheduleID  uuid.UUID
-	DayOfWeek   int // 0=Monday, 6=Sunday
-	IsOpen      bool
-	OpenTime    *string // "HH:MM"
-	CloseTime   *string
+	ID         uuid.UUID
+	ScheduleID uuid.UUID
+	DayOfWeek  int // 0=Monday, 6=Sunday
+	IsOpen     bool
+	OpenTime   *string // "HH:MM"
+	CloseTime  *string
 }
 
 type ScheduleDayInput struct {
