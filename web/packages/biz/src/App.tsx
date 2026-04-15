@@ -6,6 +6,9 @@ import { Account } from './pages/Account'
 import { Dashboard } from './pages/Dashboard'
 import { Businesses } from './pages/Businesses'
 import { BusinessForm } from './pages/BusinessForm'
+import { BranchList } from './pages/BranchList'
+import { BranchForm } from './pages/BranchForm'
+import { BranchDetail } from './pages/BranchDetail'
 import { NotFound } from './pages/NotFound'
 import { DashboardLayout } from './components/DashboardLayout'
 
@@ -18,11 +21,18 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Dashboard — auth + feature flag guarded inside DashboardLayout */}
+        {/* Dashboard — auth guarded inside DashboardLayout */}
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/businesses" element={<Businesses />} />
           <Route path="/dashboard/businesses/new" element={<BusinessForm />} />
+
+          {/* Branch routes */}
+          <Route path="/dashboard/businesses/:businessId/branches" element={<BranchList />} />
+          <Route path="/dashboard/businesses/:businessId/branches/new" element={<BranchForm />} />
+          <Route path="/dashboard/businesses/:businessId/branches/:branchId" element={<BranchDetail />} />
+          <Route path="/dashboard/businesses/:businessId/branches/:branchId/edit" element={<BranchForm />} />
+
           <Route path="/account" element={<Account />} />
         </Route>
 
