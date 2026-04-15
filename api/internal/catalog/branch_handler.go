@@ -26,16 +26,16 @@ func NewBranchHandler(service *BranchService) *BranchHandler {
 // ─── Request types ─────────────────────────────────────────────────────────────
 
 type CreateBranchRequest struct {
-	BusinessID string  `json:"business_id" binding:"required,uuid"`
-	Name       string  `json:"name"        binding:"required,min=1,max=100"`
-	Address    string  `json:"address"     binding:"required,max=200"`
-	City       string  `json:"city"        binding:"required,max=100"`
-	Country    string  `json:"country"     binding:"required,max=100"`
-	Phone      *string `json:"phone"`
-	Email      *string `json:"email"`
+	BusinessID string   `json:"business_id" binding:"required,uuid"`
+	Name       string   `json:"name"        binding:"required,min=1,max=100"`
+	Address    string   `json:"address"     binding:"required,max=200"`
+	City       string   `json:"city"        binding:"required,max=100"`
+	Country    string   `json:"country"     binding:"required,max=100"`
+	Phone      *string  `json:"phone"`
+	Email      *string  `json:"email"`
 	Lat        *float64 `json:"lat"`
 	Lng        *float64 `json:"lng"`
-	Timezone   string  `json:"timezone"`
+	Timezone   string   `json:"timezone"`
 }
 
 type UpdateBranchRequest struct {
@@ -73,24 +73,24 @@ type CreateExceptionRequest struct {
 // ─── Response types ────────────────────────────────────────────────────────────
 
 type BranchResponse struct {
-	ID        string   `json:"id"`
-	BusinessID string  `json:"business_id"`
-	Name      string   `json:"name"`
-	Address   string   `json:"address"`
-	City      string   `json:"city"`
-	Country   string   `json:"country"`
-	Phone     *string  `json:"phone"`
-	Email     *string  `json:"email"`
-	Lat       *float64 `json:"lat"`
-	Lng       *float64 `json:"lng"`
-	Timezone  string   `json:"timezone"`
-	IsActive  bool     `json:"is_active"`
-	CreatedAt string   `json:"created_at"`
-	UpdatedAt string   `json:"updated_at"`
+	ID         string   `json:"id"`
+	BusinessID string   `json:"business_id"`
+	Name       string   `json:"name"`
+	Address    string   `json:"address"`
+	City       string   `json:"city"`
+	Country    string   `json:"country"`
+	Phone      *string  `json:"phone"`
+	Email      *string  `json:"email"`
+	Lat        *float64 `json:"lat"`
+	Lng        *float64 `json:"lng"`
+	Timezone   string   `json:"timezone"`
+	IsActive   bool     `json:"is_active"`
+	CreatedAt  string   `json:"created_at"`
+	UpdatedAt  string   `json:"updated_at"`
 }
 
 type BranchListResponse struct {
-	Data       []BranchResponse `json:"data"`
+	Data       []BranchResponse   `json:"data"`
 	Pagination PaginationResponse `json:"pagination"`
 }
 
@@ -131,20 +131,20 @@ type BranchPhotoResponse struct {
 
 func toBranchResponse(b Branch) BranchResponse {
 	return BranchResponse{
-		ID:        b.ID.String(),
+		ID:         b.ID.String(),
 		BusinessID: b.BusinessID.String(),
-		Name:      b.Name,
-		Address:   b.Address,
-		City:      b.City,
-		Country:   b.Country,
-		Phone:     b.Phone,
-		Email:     b.Email,
-		Lat:       b.Lat,
-		Lng:       b.Lng,
-		Timezone:  b.Timezone,
-		IsActive:  b.IsActive,
-		CreatedAt: b.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
-		UpdatedAt: b.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		Name:       b.Name,
+		Address:    b.Address,
+		City:       b.City,
+		Country:    b.Country,
+		Phone:      b.Phone,
+		Email:      b.Email,
+		Lat:        b.Lat,
+		Lng:        b.Lng,
+		Timezone:   b.Timezone,
+		IsActive:   b.IsActive,
+		CreatedAt:  b.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:  b.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
 
@@ -265,7 +265,11 @@ func (h *BranchHandler) CreateBranch(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, _ := uuid.Parse(req.BusinessID)
+	businessID, err := uuid.Parse(req.BusinessID)
+	if err != nil {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "business_id is not a valid UUID")
+		return
+	}
 	tz := req.Timezone
 	if tz == "" {
 		tz = "Europe/Vilnius"
@@ -389,12 +393,7 @@ func (h *BranchHandler) UpsertScheduleDays(c *gin.Context) {
 	}
 	inputs := make([]ScheduleDayInput, len(req.Days))
 	for i, d := range req.Days {
-		inputs[i] = ScheduleDayInput{
-			DayOfWeek: d.DayOfWeek,
-			IsOpen:    d.IsOpen,
-			OpenTime:  d.OpenTime,
-			CloseTime: d.CloseTime,
-		}
+		inputs[i] = ScheduleDayInput(d)
 	}
 	s, err := h.service.UpsertScheduleDays(c.Request.Context(), id, userID, inputs)
 	if err != nil {
@@ -452,13 +451,7 @@ func (h *BranchHandler) CreateException(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	e, err := h.service.CreateException(c.Request.Context(), id, userID, ScheduleExceptionCreate{
-		Date:      req.Date,
-		IsClosed:  req.IsClosed,
-		OpenTime:  req.OpenTime,
-		CloseTime: req.CloseTime,
-		Reason:    req.Reason,
-	})
+	e, err := h.service.CreateException(c.Request.Context(), id, userID, ScheduleExceptionCreate(req))
 	if err != nil {
 		h.branchErrResp(c, err)
 		return

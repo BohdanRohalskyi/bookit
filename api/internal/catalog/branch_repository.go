@@ -339,4 +339,3 @@ func (r *BranchRepository) GetPhotoOwnerBranchID(ctx context.Context, photoID uu
 	}
 	return branchID, err
 }
-
