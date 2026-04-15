@@ -113,9 +113,11 @@ jobs:
           if [[ "${{ github.event_name }}" == "push" ]]; then
             echo "ENVIRONMENT=prod" >> $GITHUB_ENV
             echo "SERVICE_NAME=bookit-api-prod" >> $GITHUB_ENV
+            echo "GCS_BUCKET_SECRET=GCS_BUCKET" >> $GITHUB_ENV
           else
             echo "ENVIRONMENT=staging" >> $GITHUB_ENV
             echo "SERVICE_NAME=bookit-api-staging" >> $GITHUB_ENV
+            echo "GCS_BUCKET_SECRET=GCS_BUCKET_STAGING" >> $GITHUB_ENV
           fi
 
       - name: Authenticate to Google Cloud
@@ -146,7 +148,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --add-cloudsql-instances=${{ secrets.GCP_PROJECT_ID }}:europe-west3:bookit-db \
-            --set-secrets="DATABASE_URL=bookit-database-url-${{ env.ENVIRONMENT }}:latest,JWT_SECRET=bookit-jwt-secret-${{ env.ENVIRONMENT }}:latest,CORS_ALLOWED_ORIGINS=bookit-cors-origins-${{ env.ENVIRONMENT }}:latest,GCS_BUCKET=GCS_BUCKET${{ env.ENVIRONMENT == 'prod' && '' || '_STAGING' }}:latest" \
+            --set-secrets="DATABASE_URL=bookit-database-url-${{ env.ENVIRONMENT }}:latest,JWT_SECRET=bookit-jwt-secret-${{ env.ENVIRONMENT }}:latest,CORS_ALLOWED_ORIGINS=bookit-cors-origins-${{ env.ENVIRONMENT }}:latest,GCS_BUCKET=${{ env.GCS_BUCKET_SECRET }}:latest" \
             --set-env-vars="ENVIRONMENT=${{ env.ENVIRONMENT }},LOG_LEVEL=info,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }}" \
             --min-instances=0 \
             --max-instances=10 \
