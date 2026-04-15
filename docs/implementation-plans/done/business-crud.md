@@ -1,6 +1,6 @@
 ---
 title: "Business CRUD"
-status: IN_PROGRESS
+status: DONE
 created: 2026-04-15
 author: "bohdan.rohalskyi@paysera.com"
 ---
@@ -185,7 +185,7 @@ Local dev: `GCS_BUCKET` is empty → GCSClient is nil → UploadLogo returns a "
 
 ---
 
-### Phase 7: Frontend — BusinessForm with file picker `[PENDING]`
+### Phase 7: Frontend — BusinessForm with file picker `[DONE]`
 
 Update `web/packages/biz/src/pages/BusinessForm.tsx`:
 - Replace logo_url text field with image file picker
@@ -198,7 +198,7 @@ Update `web/packages/biz/src/pages/BusinessForm.tsx`:
 
 ---
 
-### Phase 8: Frontend — Edit business modal `[PENDING]`
+### Phase 8: Frontend — Edit business modal `[DONE]`
 
 Create `web/packages/biz/src/components/EditBusinessModal.tsx`:
 - Pre-fills name, description, logo (shows current logo, allows replacement)
@@ -212,7 +212,7 @@ Update `Businesses.tsx`:
 
 ---
 
-### Phase 9: Frontend — Delete business `[PENDING]`
+### Phase 9: Frontend — Delete business `[DONE]`
 
 Update `Businesses.tsx`:
 - Enable Delete button on each BusinessCard

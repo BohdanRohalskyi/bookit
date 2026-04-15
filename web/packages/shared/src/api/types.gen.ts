@@ -326,6 +326,24 @@ export interface paths {
         /** Update a business */
         put: operations["updateBusiness"];
         post?: never;
+        /** Delete a business */
+        delete: operations["deleteBusiness"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/{id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload business logo */
+        post: operations["uploadBusinessLogo"];
         delete?: never;
         options?: never;
         head?: never;
@@ -831,11 +849,15 @@ export interface components {
             name: string;
             category: components["schemas"]["BusinessCategory"];
             description?: string;
+            /** Format: uri */
+            logo_url?: string | null;
         };
         BusinessUpdate: {
             name?: string;
             description?: string;
             is_active?: boolean;
+            /** Format: uri */
+            logo_url?: string | null;
         };
         BusinessList: {
             data: components["schemas"]["Business"][];
@@ -1788,6 +1810,62 @@ export interface operations {
         };
         responses: {
             /** @description Business updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Business"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteBusiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BusinessId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Business deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    uploadBusinessLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BusinessId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Logo uploaded, returns updated business */
             200: {
                 headers: {
                     [name: string]: unknown;
