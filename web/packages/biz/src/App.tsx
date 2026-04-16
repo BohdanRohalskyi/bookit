@@ -6,9 +6,9 @@ import { Account } from './pages/Account'
 import { Dashboard } from './pages/Dashboard'
 import { Businesses } from './pages/Businesses'
 import { BusinessForm } from './pages/BusinessForm'
-import { BranchList } from './pages/BranchList'
-import { BranchWizard } from './pages/BranchWizard'
-import { BranchDetail } from './pages/BranchDetail'
+import { LocationList } from './pages/LocationList'
+import { LocationWizard } from './pages/LocationWizard'
+import { LocationDetail } from './pages/LocationDetail'
 import { NotFound } from './pages/NotFound'
 import { DashboardLayout } from './components/DashboardLayout'
 
@@ -27,11 +27,11 @@ export default function App() {
           <Route path="/dashboard/businesses" element={<Businesses />} />
           <Route path="/dashboard/businesses/new" element={<BusinessForm />} />
 
-          {/* Branch routes */}
-          <Route path="/dashboard/businesses/:businessId/branches" element={<BranchList />} />
-          <Route path="/dashboard/businesses/:businessId/branches/new" element={<BranchWizard />} />
-          <Route path="/dashboard/businesses/:businessId/branches/:branchId" element={<BranchDetail />} />
-          <Route path="/dashboard/businesses/:businessId/branches/:branchId/edit" element={<BranchWizard />} />
+          {/* Location routes */}
+          <Route path="/dashboard/locations" element={<LocationList />} />
+          <Route path="/dashboard/locations/new" element={<LocationWizard />} />
+          <Route path="/dashboard/locations/:locationId" element={<LocationDetail />} />
+          <Route path="/dashboard/locations/:locationId/edit" element={<LocationWizard />} />
 
           <Route path="/account" element={<Account />} />
         </Route>

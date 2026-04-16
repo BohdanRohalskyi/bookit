@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   PlusCircle,
   Building2,
+  MapPin,
   CalendarCheck,
   Users,
   Calendar,
@@ -15,6 +16,8 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
+import { useFeatureFlag } from '@bookit/shared'
+import { BusinessSelector } from './BusinessSelector'
 
 // ─── Nav config ──────────────────────────────────────────────────────────────
 
@@ -51,6 +54,7 @@ export function DashboardLayout() {
   const { user, isAuthenticated, logout } = useAuthStore()
   const { switchTo } = useAppSwitch()
   const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
+  const locationsEnabled = useFeatureFlag('ADMIN_LOCATIONS')
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/login')
@@ -97,6 +101,22 @@ export function DashboardLayout() {
               </NavLink>
             )
           })}
+
+          {locationsEnabled && (
+            <NavLink
+              to="/dashboard/locations"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-[#1069d1] text-white'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`
+              }
+            >
+              <MapPin className="size-4 shrink-0" />
+              Locations
+            </NavLink>
+          )}
 
           <div className="border-t border-white/10 my-3" />
 
@@ -147,7 +167,8 @@ export function DashboardLayout() {
       {/* ── Main area ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="h-16 shrink-0 bg-white border-b border-[rgba(2,9,5,0.08)] flex items-center justify-end px-8 gap-6">
+        <header className="h-16 shrink-0 bg-white border-b border-[rgba(2,9,5,0.08)] flex items-center justify-between px-8 gap-6">
+          <BusinessSelector />
           <button
             onClick={() => switchTo(consumerUrl)}
             className="flex items-center gap-1.5 text-sm text-[rgba(2,9,5,0.5)] hover:text-[#020905] transition-colors"

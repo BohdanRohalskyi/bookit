@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { Building2, PlusCircle, Pencil, Trash2, AlertTriangle, GitBranch } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Building2, PlusCircle, Pencil, Trash2, AlertTriangle, MapPin } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import type { components } from '@bookit/shared/api'
+import { useBusinessStore } from '@bookit/shared/stores'
 import { EditBusinessModal } from '../components/EditBusinessModal'
 
 type Business = components['schemas']['Business']
@@ -23,9 +24,10 @@ interface BusinessCardProps {
   onEdit: () => void
   onDelete: () => void
   isDeleting: boolean
+  onViewLocations: () => void
 }
 
-function BusinessCard({ business, onEdit, onDelete, isDeleting }: BusinessCardProps) {
+function BusinessCard({ business, onEdit, onDelete, isDeleting, onViewLocations }: BusinessCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
@@ -97,13 +99,13 @@ function BusinessCard({ business, onEdit, onDelete, isDeleting }: BusinessCardPr
 
         {/* Footer actions */}
         <div className="flex items-center justify-between pt-2 border-t border-[rgba(2,9,5,0.06)] mt-auto">
-          <Link
-            to={`/dashboard/businesses/${business.id}/branches`}
+          <button
+            onClick={onViewLocations}
             className="flex items-center gap-1.5 text-xs font-medium text-[#1069d1] hover:underline"
           >
-            <GitBranch className="size-3.5" />
-            Branches
-          </Link>
+            <MapPin className="size-3.5" />
+            Locations
+          </button>
           <div className="flex items-center gap-1">
             <button
               onClick={onEdit}
@@ -144,8 +146,15 @@ function Skeleton() {
 
 export function Businesses() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { setActiveBusiness } = useBusinessStore()
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleViewLocations = (businessId: string) => {
+    setActiveBusiness(businessId)
+    navigate('/dashboard/locations')
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['businesses'],
@@ -224,6 +233,7 @@ export function Businesses() {
                 onEdit={() => setEditingBusiness(biz)}
                 onDelete={() => deleteBusiness(biz.id)}
                 isDeleting={deletingId === biz.id}
+                onViewLocations={() => handleViewLocations(biz.id)}
               />
             ))}
           </div>

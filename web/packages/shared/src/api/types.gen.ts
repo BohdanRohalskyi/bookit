@@ -350,7 +350,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches": {
+    "/api/v1/locations": {
         parameters: {
             query?: never;
             header?: never;
@@ -361,44 +361,44 @@ export interface paths {
          * List locations
          * @description List locations for a business
          */
-        get: operations["listBranches"];
+        get: operations["listLocations"];
         put?: never;
         /** Create a location */
-        post: operations["createBranch"];
+        post: operations["createLocation"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}": {
+    "/api/v1/locations/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get a branch */
-        get: operations["getBranch"];
-        /** Update a branch */
-        put: operations["updateBranch"];
+        /** Get a location */
+        get: operations["getLocation"];
+        /** Update a location */
+        put: operations["updateLocation"];
         post?: never;
-        /** Delete a branch */
-        delete: operations["deleteBranch"];
+        /** Delete a location */
+        delete: operations["deleteLocation"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/schedule": {
+    "/api/v1/locations/{id}/schedule": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get branch schedule */
-        get: operations["getBranchSchedule"];
+        /** Get location schedule */
+        get: operations["getLocationSchedule"];
         put?: never;
         post?: never;
         delete?: never;
@@ -407,7 +407,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/schedule/days": {
+    "/api/v1/locations/{id}/schedule/days": {
         parameters: {
             query?: never;
             header?: never;
@@ -424,7 +424,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/schedule/exceptions": {
+    "/api/v1/locations/{id}/schedule/exceptions": {
         parameters: {
             query?: never;
             header?: never;
@@ -442,7 +442,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/schedule/exceptions/{exception_id}": {
+    "/api/v1/locations/{id}/schedule/exceptions/{exception_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -459,25 +459,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/photos": {
+    "/api/v1/locations/{id}/photos": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List branch photos */
-        get: operations["listBranchPhotos"];
+        /** List location photos */
+        get: operations["listLocationPhotos"];
         put?: never;
-        /** Upload a branch photo */
-        post: operations["uploadBranchPhoto"];
+        /** Upload a location photo */
+        post: operations["uploadLocationPhoto"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/photos/{photo_id}": {
+    "/api/v1/locations/{id}/photos/{photo_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -487,32 +487,32 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete a branch photo */
-        delete: operations["deleteBranchPhoto"];
+        /** Delete a location photo */
+        delete: operations["deleteLocationPhoto"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/equipment": {
+    "/api/v1/locations/{id}/equipment": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List equipment available at this branch */
-        get: operations["listBranchEquipment"];
+        /** List equipment available at this location */
+        get: operations["listLocationEquipment"];
         put?: never;
-        /** Add equipment to branch */
-        post: operations["addBranchEquipment"];
+        /** Add equipment to location */
+        post: operations["addLocationEquipment"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/equipment/{item_id}": {
+    "/api/v1/locations/{id}/equipment/{item_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -522,32 +522,32 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove equipment from branch */
-        delete: operations["removeBranchEquipment"];
+        /** Remove equipment from location */
+        delete: operations["removeLocationEquipment"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/staff-roles": {
+    "/api/v1/locations/{id}/staff-roles": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List staff roles at this branch */
-        get: operations["listBranchStaffRoles"];
+        /** List staff roles at this location */
+        get: operations["listLocationStaffRoles"];
         put?: never;
-        /** Assign a staff role to branch */
-        post: operations["addBranchStaffRole"];
+        /** Assign a staff role to location */
+        post: operations["addLocationStaffRole"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/staff-roles/{item_id}": {
+    "/api/v1/locations/{id}/staff-roles/{item_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -557,32 +557,32 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove staff role from branch */
-        delete: operations["removeBranchStaffRole"];
+        /** Remove staff role from location */
+        delete: operations["removeLocationStaffRole"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/services": {
+    "/api/v1/locations/{id}/services": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List services offered at this branch */
-        get: operations["listBranchServices"];
+        /** List services offered at this location */
+        get: operations["listLocationServices"];
         put?: never;
-        /** Enable a service at this branch */
-        post: operations["addBranchService"];
+        /** Enable a service at this location */
+        post: operations["addLocationService"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/branches/{id}/services/{item_id}": {
+    "/api/v1/locations/{id}/services/{item_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -592,8 +592,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Disable a service at this branch */
-        delete: operations["removeBranchService"];
+        /** Disable a service at this location */
+        delete: operations["removeLocationService"];
         options?: never;
         head?: never;
         patch?: never;
@@ -840,7 +840,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/search/branches": {
+    "/api/v1/search/locations": {
         parameters: {
             query?: never;
             header?: never;
@@ -851,7 +851,7 @@ export interface paths {
          * Search locations
          * @description Public endpoint to search for locations/businesses
          */
-        get: operations["searchBranches"];
+        get: operations["searchLocations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1102,7 +1102,7 @@ export interface components {
             data: components["schemas"]["Business"][];
             pagination: components["schemas"]["Pagination"];
         };
-        Branch: {
+        Location: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -1128,7 +1128,7 @@ export interface components {
             /** @description Included in search results */
             business?: components["schemas"]["Business"];
         };
-        BranchCreate: {
+        LocationCreate: {
             /** Format: uuid */
             business_id: string;
             name: string;
@@ -1145,7 +1145,7 @@ export interface components {
             /** @default Europe/Vilnius */
             timezone: string;
         };
-        BranchUpdate: {
+        LocationUpdate: {
             name?: string;
             address?: string;
             city?: string;
@@ -1160,13 +1160,13 @@ export interface components {
             timezone?: string;
             is_active?: boolean;
         };
-        BranchList: {
-            data: components["schemas"]["Branch"][];
+        LocationList: {
+            data: components["schemas"]["Location"][];
             pagination: components["schemas"]["Pagination"];
         };
         Schedule: {
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             days: components["schemas"]["ScheduleDay"][];
             /** @description Upcoming exceptions (returned on GET) */
             exceptions?: components["schemas"]["ScheduleException"][];
@@ -1192,7 +1192,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             /** Format: date */
             date: string;
             is_closed: boolean;
@@ -1210,11 +1210,11 @@ export interface components {
             close_time?: string | null;
             reason?: string;
         };
-        BranchPhoto: {
+        LocationPhoto: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             /** Format: uri */
             url: string;
             display_order: number;
@@ -1297,47 +1297,47 @@ export interface components {
         StaffRoleList: {
             data: components["schemas"]["StaffRole"][];
         };
-        BranchEquipment: {
+        LocationEquipment: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             /** Format: uuid */
             equipment_id: string;
             equipment_name: string;
             quantity: number;
         };
-        BranchEquipmentCreate: {
+        LocationEquipmentCreate: {
             /** Format: uuid */
             equipment_id: string;
             quantity: number;
         };
-        BranchStaffRole: {
+        LocationStaffRole: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             /** Format: uuid */
             staff_role_id: string;
             job_title: string;
             quantity: number;
         };
-        BranchStaffRoleCreate: {
+        LocationStaffRoleCreate: {
             /** Format: uuid */
             staff_role_id: string;
             quantity: number;
         };
-        BranchService: {
+        LocationService: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             /** Format: uuid */
             service_id: string;
             is_active: boolean;
             service?: components["schemas"]["Service"];
         };
-        BranchServiceCreate: {
+        LocationServiceCreate: {
             /** Format: uuid */
             service_id: string;
         };
@@ -1345,7 +1345,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             name: string;
             role?: string | null;
             /** Format: uri */
@@ -1358,7 +1358,7 @@ export interface components {
         };
         StaffCreate: {
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             name: string;
             role?: string;
         };
@@ -1394,7 +1394,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             /** Format: uuid */
             user_id: string;
             status: components["schemas"]["BookingStatus"];
@@ -1403,7 +1403,7 @@ export interface components {
             currency: string;
             notes?: string | null;
             items: components["schemas"]["BookingItem"][];
-            branch?: components["schemas"]["Branch"];
+            location?: components["schemas"]["Location"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1427,7 +1427,7 @@ export interface components {
         };
         BookingCreate: {
             /** Format: uuid */
-            branch_id: string;
+            location_id: string;
             items: components["schemas"]["BookingItemCreate"][];
             notes?: string;
         };
@@ -1468,11 +1468,11 @@ export interface components {
             duration_minutes?: number;
             slots: components["schemas"]["TimeSlot"][];
         };
-        BranchSearchResult: {
-            data: components["schemas"]["BranchSearchItem"][];
+        LocationSearchResult: {
+            data: components["schemas"]["LocationSearchItem"][];
             pagination: components["schemas"]["Pagination"];
         };
-        BranchSearchItem: {
+        LocationSearchItem: {
             /** Format: uuid */
             id: string;
             name: string;
@@ -1556,7 +1556,7 @@ export interface components {
         PageParam: number;
         PerPageParam: number;
         BusinessId: string;
-        BranchId: string;
+        LocationId: string;
         ServiceId: string;
         BookingId: string;
         StaffId: string;
@@ -2210,7 +2210,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listBranches: {
+    listLocations: {
         parameters: {
             query: {
                 business_id: string;
@@ -2223,20 +2223,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List of branches */
+            /** @description List of locations */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BranchList"];
+                    "application/json": components["schemas"]["LocationList"];
                 };
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
         };
     };
-    createBranch: {
+    createLocation: {
         parameters: {
             query?: never;
             header?: never;
@@ -2245,17 +2245,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BranchCreate"];
+                "application/json": components["schemas"]["LocationCreate"];
             };
         };
         responses: {
-            /** @description Branch created */
+            /** @description Location created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Branch"];
+                    "application/json": components["schemas"]["Location"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -2263,52 +2263,52 @@ export interface operations {
             403: components["responses"]["ProviderRequired"];
         };
     };
-    getBranch: {
+    getLocation: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch details */
+            /** @description Location details */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Branch"];
+                    "application/json": components["schemas"]["Location"];
                 };
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };
-    updateBranch: {
+    updateLocation: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BranchUpdate"];
+                "application/json": components["schemas"]["LocationUpdate"];
             };
         };
         responses: {
-            /** @description Branch updated */
+            /** @description Location updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Branch"];
+                    "application/json": components["schemas"]["Location"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -2317,18 +2317,18 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    deleteBranch: {
+    deleteLocation: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch deleted */
+            /** @description Location deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -2340,18 +2340,18 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    getBranchSchedule: {
+    getLocationSchedule: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch schedule with days and upcoming exceptions */
+            /** @description Location schedule with days and upcoming exceptions */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2369,7 +2369,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
@@ -2401,7 +2401,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
@@ -2427,7 +2427,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
@@ -2457,7 +2457,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
                 exception_id: string;
             };
             cookie?: never;
@@ -2476,25 +2476,25 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listBranchPhotos: {
+    listLocationPhotos: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description List of branch photos */
+            /** @description List of location photos */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["BranchPhoto"][];
+                        data?: components["schemas"]["LocationPhoto"][];
                     };
                 };
             };
@@ -2502,12 +2502,12 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    uploadBranchPhoto: {
+    uploadLocationPhoto: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
@@ -2526,7 +2526,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BranchPhoto"];
+                    "application/json": components["schemas"]["LocationPhoto"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -2535,12 +2535,12 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    deleteBranchPhoto: {
+    deleteLocationPhoto: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
                 photo_id: string;
             };
             cookie?: never;
@@ -2559,25 +2559,25 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listBranchEquipment: {
+    listLocationEquipment: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch equipment list */
+            /** @description Location equipment list */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["BranchEquipment"][];
+                        data?: components["schemas"]["LocationEquipment"][];
                     };
                 };
             };
@@ -2585,28 +2585,28 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    addBranchEquipment: {
+    addLocationEquipment: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BranchEquipmentCreate"];
+                "application/json": components["schemas"]["LocationEquipmentCreate"];
             };
         };
         responses: {
-            /** @description Branch equipment added */
+            /** @description Location equipment added */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BranchEquipment"];
+                    "application/json": components["schemas"]["LocationEquipment"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -2615,19 +2615,19 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    removeBranchEquipment: {
+    removeLocationEquipment: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
                 item_id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch equipment removed */
+            /** @description Location equipment removed */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -2639,25 +2639,25 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listBranchStaffRoles: {
+    listLocationStaffRoles: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch staff roles */
+            /** @description Location staff roles */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["BranchStaffRole"][];
+                        data?: components["schemas"]["LocationStaffRole"][];
                     };
                 };
             };
@@ -2665,28 +2665,28 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    addBranchStaffRole: {
+    addLocationStaffRole: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BranchStaffRoleCreate"];
+                "application/json": components["schemas"]["LocationStaffRoleCreate"];
             };
         };
         responses: {
-            /** @description Branch staff role assigned */
+            /** @description Location staff role assigned */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BranchStaffRole"];
+                    "application/json": components["schemas"]["LocationStaffRole"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -2695,19 +2695,19 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    removeBranchStaffRole: {
+    removeLocationStaffRole: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
                 item_id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch staff role removed */
+            /** @description Location staff role removed */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -2719,25 +2719,25 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listBranchServices: {
+    listLocationServices: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Branch services */
+            /** @description Location services */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["BranchService"][];
+                        data?: components["schemas"]["LocationService"][];
                     };
                 };
             };
@@ -2745,28 +2745,28 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    addBranchService: {
+    addLocationService: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BranchServiceCreate"];
+                "application/json": components["schemas"]["LocationServiceCreate"];
             };
         };
         responses: {
-            /** @description Service enabled at branch */
+            /** @description Service enabled at location */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BranchService"];
+                    "application/json": components["schemas"]["LocationService"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -2775,19 +2775,19 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    removeBranchService: {
+    removeLocationService: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: components["parameters"]["BranchId"];
+                id: components["parameters"]["LocationId"];
                 item_id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Service disabled at branch */
+            /** @description Service disabled at location */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -2974,7 +2974,7 @@ export interface operations {
     listStaff: {
         parameters: {
             query: {
-                branch_id: string;
+                location_id: string;
                 page?: components["parameters"]["PageParam"];
                 per_page?: components["parameters"]["PerPageParam"];
             };
@@ -3300,7 +3300,7 @@ export interface operations {
     listProviderBookings: {
         parameters: {
             query?: {
-                branch_id?: string;
+                location_id?: string;
                 status?: components["schemas"]["BookingStatus"];
                 from_date?: string;
                 to_date?: string;
@@ -3361,7 +3361,7 @@ export interface operations {
             };
         };
     };
-    searchBranches: {
+    searchLocations: {
         parameters: {
             query?: {
                 /** @description Search query (business name, service name) */
@@ -3389,7 +3389,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BranchSearchResult"];
+                    "application/json": components["schemas"]["LocationSearchResult"];
                 };
             };
         };
