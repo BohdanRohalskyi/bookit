@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -16,18 +17,33 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
-import { useFeatureFlag } from '@bookit/shared'
 import { BusinessSelector } from './BusinessSelector'
 
 // ─── Nav config ──────────────────────────────────────────────────────────────
 
-const activeNav = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', end: true },
-  { icon: PlusCircle, label: 'Add Business', path: '/dashboard/businesses/new', end: false },
-  { icon: Building2, label: 'Manage Businesses', path: '/dashboard/businesses', end: true },
-]
+type ImplementedNavItem = {
+  icon: React.ElementType
+  label: string
+  path: string
+  end: boolean
+}
 
-const disabledNav = [
+type PlaceholderNavItem = {
+  icon: React.ElementType
+  label: string
+}
+
+type NavItem = ImplementedNavItem | PlaceholderNavItem
+
+function isImplemented(item: NavItem): item is ImplementedNavItem {
+  return 'path' in item
+}
+
+const navItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', end: true },
+  { icon: Building2, label: 'Manage Businesses', path: '/dashboard/businesses', end: true },
+  { icon: PlusCircle, label: 'Add Business', path: '/dashboard/businesses/new', end: false },
+  { icon: MapPin, label: 'Locations', path: '/dashboard/locations', end: true },
   { icon: CalendarCheck, label: 'Bookings' },
   { icon: Users, label: 'Team' },
   { icon: Calendar, label: 'Calendar' },
@@ -35,6 +51,48 @@ const disabledNav = [
   { icon: CreditCard, label: 'Payment' },
   { icon: Settings, label: 'Settings' },
 ]
+
+// ─── NotImplementedOverlay ────────────────────────────────────────────────────
+
+function NotImplementedOverlay({ children }: { children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false)
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const ref = useRef<HTMLDivElement>(null)
+
+  const handleMouseEnter = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect()
+      setPos({ x: rect.right + 10, y: rect.top + rect.height / 2 })
+    }
+    setVisible(true)
+  }
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {children}
+      {/* Click blocker */}
+      <div className="absolute inset-0 rounded-lg cursor-not-allowed" />
+      {/* Portal tooltip — escapes overflow-y:auto clipping */}
+      {visible &&
+        createPortal(
+          <div
+            className="fixed px-2.5 py-1.5 bg-white text-[#020905] text-xs font-medium rounded-md shadow-lg whitespace-nowrap pointer-events-none z-[9999]"
+            style={{ left: pos.x, top: pos.y, transform: 'translateY(-50%)' }}
+          >
+            {/* Arrow pointing left */}
+            <div className="absolute right-full top-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-white" />
+            Coming soon
+          </div>,
+          document.body,
+        )}
+    </div>
+  )
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,13 +112,15 @@ export function DashboardLayout() {
   const { user, isAuthenticated, logout } = useAuthStore()
   const { switchTo } = useAppSwitch()
   const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
-  const locationsEnabled = useFeatureFlag('ADMIN_LOCATIONS')
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/login')
   }, [isAuthenticated, navigate])
 
   if (!isAuthenticated) return null
+
+  const navLinkBase =
+    'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors'
 
   return (
     <div className="flex h-screen bg-[#f8f9fa] overflow-hidden">
@@ -81,15 +141,27 @@ export function DashboardLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-5 overflow-y-auto flex flex-col gap-0.5">
-          {activeNav.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon
+
+            if (!isImplemented(item)) {
+              return (
+                <NotImplementedOverlay key={item.label}>
+                  <div className={`${navLinkBase} text-white/25 select-none`}>
+                    <Icon className="size-4 shrink-0" />
+                    {item.label}
+                  </div>
+                </NotImplementedOverlay>
+              )
+            }
+
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
                 end={item.end}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  `${navLinkBase} ${
                     isActive
                       ? 'bg-[#1069d1] text-white'
                       : 'text-white/70 hover:bg-white/10 hover:text-white'
@@ -99,37 +171,6 @@ export function DashboardLayout() {
                 <Icon className="size-4 shrink-0" />
                 {item.label}
               </NavLink>
-            )
-          })}
-
-          {locationsEnabled && (
-            <NavLink
-              to="/dashboard/locations"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#1069d1] text-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                }`
-              }
-            >
-              <MapPin className="size-4 shrink-0" />
-              Locations
-            </NavLink>
-          )}
-
-          <div className="border-t border-white/10 my-3" />
-
-          {disabledNav.map((item) => {
-            const Icon = item.icon
-            return (
-              <div
-                key={item.label}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-white/25 cursor-not-allowed select-none"
-              >
-                <Icon className="size-4 shrink-0" />
-                {item.label}
-              </div>
             )
           })}
         </nav>
@@ -155,7 +196,10 @@ export function DashboardLayout() {
             </div>
           </NavLink>
           <button
-            onClick={() => { logout(); navigate('/') }}
+            onClick={() => {
+              logout()
+              navigate('/')
+            }}
             className="mt-1 w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/40 hover:bg-white/10 hover:text-white/70 transition-colors"
           >
             <LogOut className="size-4" />
