@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Check, ArrowLeft } from 'lucide-react'
+import { useBusinessStore } from '@bookit/shared/stores'
 import { StepBasicInfo } from '../components/wizard/StepBasicInfo'
 import { StepSchedule } from '../components/wizard/StepSchedule'
 import { StepTeamEquipment } from '../components/wizard/StepTeamEquipment'
@@ -57,17 +58,15 @@ function Tab({ num, label, active, done, enabled, onClick }: TabProps) {
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
-export function BranchWizard() {
-  const { businessId, branchId: paramBranchId } = useParams<{
-    businessId: string
-    branchId?: string
-  }>()
+export function LocationWizard() {
+  const { locationId: paramLocationId } = useParams<{ locationId?: string }>()
   const navigate = useNavigate()
-  const isEdit = Boolean(paramBranchId)
+  const { activeBusinessId } = useBusinessStore()
 
-  const [branchId, setBranchId] = useState<string | null>(paramBranchId ?? null)
+  const isEdit = Boolean(paramLocationId)
+  const [locationId, setLocationId] = useState<string | null>(paramLocationId ?? null)
   const [step, setStep] = useState(1)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
     isEdit ? new Set([1]) : new Set()
@@ -76,35 +75,52 @@ export function BranchWizard() {
   const markComplete = (s: number) =>
     setCompletedSteps((prev) => new Set([...prev, s]))
 
-  const canGoToStep = (s: number) => s === 1 || branchId !== null
+  const canGoToStep = (s: number) => s === 1 || locationId !== null
 
   const goToStep = (s: number) => {
     if (canGoToStep(s)) setStep(s)
   }
 
-  const handleBranchSaved = (id: string) => {
-    setBranchId(id)
+  const handleLocationSaved = (id: string) => {
+    setLocationId(id)
     markComplete(1)
     setStep(2)
   }
 
   const handleFinish = () => {
-    navigate(`/dashboard/businesses/${businessId}/branches/${branchId}`)
+    navigate(`/dashboard/locations/${locationId}`)
+  }
+
+  if (!activeBusinessId) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-24 text-center">
+        <p className="font-heading font-semibold text-lg text-[#020905]">No business selected</p>
+        <p className="text-sm text-[rgba(2,9,5,0.45)]">
+          Select a business from the top bar to add a location
+        </p>
+        <Link
+          to="/dashboard/locations"
+          className="text-sm text-[#1069d1] hover:underline"
+        >
+          ← Back to Locations
+        </Link>
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col gap-0 max-w-3xl">
       {/* Back link */}
       <Link
-        to={`/dashboard/businesses/${businessId}/branches`}
+        to="/dashboard/locations"
         className="flex items-center gap-1.5 text-sm text-[rgba(2,9,5,0.5)] hover:text-[#020905] transition-colors mb-6"
       >
         <ArrowLeft className="size-4" />
-        Branches
+        Locations
       </Link>
 
       <p className="font-heading font-semibold text-2xl text-[#020905] mb-6">
-        {isEdit ? 'Edit Branch' : 'New Branch'}
+        {isEdit ? 'Edit Location' : 'New Location'}
       </p>
 
       {/* Tab bar */}
@@ -128,30 +144,30 @@ export function BranchWizard() {
       {/* Step content */}
       {step === 1 && (
         <StepBasicInfo
-          businessId={businessId!}
-          branchId={branchId}
-          onSaved={handleBranchSaved}
+          businessId={activeBusinessId}
+          locationId={locationId}
+          onSaved={handleLocationSaved}
         />
       )}
-      {step === 2 && branchId && (
+      {step === 2 && locationId && (
         <StepSchedule
-          branchId={branchId}
+          locationId={locationId}
           onNext={() => { markComplete(2); setStep(3) }}
           onBack={() => setStep(1)}
         />
       )}
-      {step === 3 && branchId && (
+      {step === 3 && locationId && (
         <StepTeamEquipment
-          businessId={businessId!}
-          branchId={branchId}
+          businessId={activeBusinessId}
+          locationId={locationId}
           onNext={() => { markComplete(3); setStep(4) }}
           onBack={() => setStep(2)}
         />
       )}
-      {step === 4 && branchId && (
+      {step === 4 && locationId && (
         <StepServices
-          businessId={businessId!}
-          branchId={branchId}
+          businessId={activeBusinessId}
+          locationId={locationId}
           onFinish={handleFinish}
           onBack={() => setStep(3)}
         />

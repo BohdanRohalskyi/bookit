@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 
-// ─── Local types (matching API response shapes) ────────────────────────────────
+// ─── Local types ──────────────────────────────────────────────────────────────
 
 interface EquipmentItem {
   id: string
@@ -19,17 +19,17 @@ interface StaffRoleItem {
   created_at: string
 }
 
-interface BranchEquipmentItem {
+interface LocationEquipmentItem {
   id: string
-  branch_id: string
+  location_id: string
   equipment_id: string
   equipment_name: string
   quantity: number
 }
 
-interface BranchStaffRoleItem {
+interface LocationStaffRoleItem {
   id: string
-  branch_id: string
+  location_id: string
   staff_role_id: string
   job_title: string
   quantity: number
@@ -37,7 +37,7 @@ interface BranchStaffRoleItem {
 
 // ─── Equipment section ────────────────────────────────────────────────────────
 
-function EquipmentSection({ businessId, branchId }: { businessId: string; branchId: string }) {
+function EquipmentSection({ businessId, locationId }: { businessId: string; locationId: string }) {
   const queryClient = useQueryClient()
   const [showAdd, setShowAdd] = useState(false)
   const [mode, setMode] = useState<'select' | 'create'>('select')
@@ -55,26 +55,26 @@ function EquipmentSection({ businessId, branchId }: { businessId: string; branch
     },
   })
 
-  const { data: branchItems } = useQuery({
-    queryKey: ['branch-equipment', branchId],
+  const { data: locationItems } = useQuery({
+    queryKey: ['location-equipment', locationId],
     queryFn: async () => {
-      const { data } = await api.GET('/api/v1/branches/{id}/equipment', {
-        params: { path: { id: branchId } },
+      const { data } = await api.GET('/api/v1/locations/{id}/equipment', {
+        params: { path: { id: locationId } },
       })
-      return (data as { data: BranchEquipmentItem[] } | null)?.data ?? []
+      return (data as { data: LocationEquipmentItem[] } | null)?.data ?? []
     },
   })
 
-  const { mutate: addToBranch, isPending: adding } = useMutation({
+  const { mutate: addToLocation, isPending: adding } = useMutation({
     mutationFn: async (equipmentId: string) => {
-      const { error } = await api.POST('/api/v1/branches/{id}/equipment', {
-        params: { path: { id: branchId } },
+      const { error } = await api.POST('/api/v1/locations/{id}/equipment', {
+        params: { path: { id: locationId } },
         body: { equipment_id: equipmentId, quantity },
       })
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['branch-equipment', branchId] })
+      queryClient.invalidateQueries({ queryKey: ['location-equipment', locationId] })
       setShowAdd(false)
       setSelectedId('')
       setQuantity(1)
@@ -92,21 +92,21 @@ function EquipmentSection({ businessId, branchId }: { businessId: string; branch
     },
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ['equipment-catalog', businessId] })
-      addToBranch(id)
+      addToLocation(id)
     },
   })
 
-  const { mutate: removeFromBranch } = useMutation({
+  const { mutate: removeFromLocation } = useMutation({
     mutationFn: async (itemId: string) => {
-      await api.DELETE('/api/v1/branches/{id}/equipment/{item_id}', {
-        params: { path: { id: branchId, item_id: itemId } },
+      await api.DELETE('/api/v1/locations/{id}/equipment/{item_id}', {
+        params: { path: { id: locationId, item_id: itemId } },
       })
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['branch-equipment', branchId] }),
+      queryClient.invalidateQueries({ queryKey: ['location-equipment', locationId] }),
   })
 
-  const items = branchItems ?? []
+  const items = locationItems ?? []
   const catalogItems = catalog ?? []
   const usedIds = new Set(items.map((i) => i.equipment_id))
   const available = catalogItems.filter((e) => !usedIds.has(e.id))
@@ -114,7 +114,6 @@ function EquipmentSection({ businessId, branchId }: { businessId: string; branch
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Branch equipment list */}
       {items.length > 0 && (
         <div className="flex flex-col gap-2">
           {items.map((item) => (
@@ -127,7 +126,7 @@ function EquipmentSection({ businessId, branchId }: { businessId: string; branch
                 <p className="text-xs text-[rgba(2,9,5,0.45)]">{item.quantity} unit{item.quantity !== 1 ? 's' : ''}</p>
               </div>
               <button
-                onClick={() => removeFromBranch(item.id)}
+                onClick={() => removeFromLocation(item.id)}
                 className="size-7 flex items-center justify-center rounded-lg text-[rgba(2,9,5,0.3)] hover:bg-red-50 hover:text-red-600 transition-colors"
               >
                 <Trash2 className="size-3.5" />
@@ -137,7 +136,6 @@ function EquipmentSection({ businessId, branchId }: { businessId: string; branch
         </div>
       )}
 
-      {/* Add form */}
       {showAdd ? (
         <div className="p-4 border-2 border-dashed border-[rgba(2,9,5,0.15)] rounded-lg flex flex-col gap-4">
           <div className="flex gap-2">
@@ -186,7 +184,7 @@ function EquipmentSection({ businessId, branchId }: { businessId: string; branch
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => mode === 'select' ? addToBranch(selectedId) : createAndAdd()}
+              onClick={() => mode === 'select' ? addToLocation(selectedId) : createAndAdd()}
               disabled={isPending || (mode === 'select' ? !selectedId : !newName.trim())}
               className="px-4 py-2 text-sm font-medium text-white bg-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] disabled:opacity-60 transition-colors"
             >
@@ -215,7 +213,7 @@ function EquipmentSection({ businessId, branchId }: { businessId: string; branch
 
 // ─── Staff roles section ──────────────────────────────────────────────────────
 
-function StaffRolesSection({ businessId, branchId }: { businessId: string; branchId: string }) {
+function StaffRolesSection({ businessId, locationId }: { businessId: string; locationId: string }) {
   const queryClient = useQueryClient()
   const [showAdd, setShowAdd] = useState(false)
   const [mode, setMode] = useState<'select' | 'create'>('select')
@@ -233,26 +231,26 @@ function StaffRolesSection({ businessId, branchId }: { businessId: string; branc
     },
   })
 
-  const { data: branchItems } = useQuery({
-    queryKey: ['branch-staff-roles', branchId],
+  const { data: locationItems } = useQuery({
+    queryKey: ['location-staff-roles', locationId],
     queryFn: async () => {
-      const { data } = await api.GET('/api/v1/branches/{id}/staff-roles', {
-        params: { path: { id: branchId } },
+      const { data } = await api.GET('/api/v1/locations/{id}/staff-roles', {
+        params: { path: { id: locationId } },
       })
-      return (data as { data: BranchStaffRoleItem[] } | null)?.data ?? []
+      return (data as { data: LocationStaffRoleItem[] } | null)?.data ?? []
     },
   })
 
-  const { mutate: addToBranch, isPending: adding } = useMutation({
+  const { mutate: addToLocation, isPending: adding } = useMutation({
     mutationFn: async (staffRoleId: string) => {
-      const { error } = await api.POST('/api/v1/branches/{id}/staff-roles', {
-        params: { path: { id: branchId } },
+      const { error } = await api.POST('/api/v1/locations/{id}/staff-roles', {
+        params: { path: { id: locationId } },
         body: { staff_role_id: staffRoleId, quantity },
       })
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['branch-staff-roles', branchId] })
+      queryClient.invalidateQueries({ queryKey: ['location-staff-roles', locationId] })
       setShowAdd(false)
       setSelectedId('')
       setQuantity(1)
@@ -270,21 +268,21 @@ function StaffRolesSection({ businessId, branchId }: { businessId: string; branc
     },
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ['staff-roles-catalog', businessId] })
-      addToBranch(id)
+      addToLocation(id)
     },
   })
 
-  const { mutate: removeFromBranch } = useMutation({
+  const { mutate: removeFromLocation } = useMutation({
     mutationFn: async (itemId: string) => {
-      await api.DELETE('/api/v1/branches/{id}/staff-roles/{item_id}', {
-        params: { path: { id: branchId, item_id: itemId } },
+      await api.DELETE('/api/v1/locations/{id}/staff-roles/{item_id}', {
+        params: { path: { id: locationId, item_id: itemId } },
       })
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['branch-staff-roles', branchId] }),
+      queryClient.invalidateQueries({ queryKey: ['location-staff-roles', locationId] }),
   })
 
-  const items = branchItems ?? []
+  const items = locationItems ?? []
   const catalogItems = catalog ?? []
   const usedIds = new Set(items.map((i) => i.staff_role_id))
   const available = catalogItems.filter((r) => !usedIds.has(r.id))
@@ -304,7 +302,7 @@ function StaffRolesSection({ businessId, branchId }: { businessId: string; branc
                 <p className="text-xs text-[rgba(2,9,5,0.45)]">{item.quantity} person{item.quantity !== 1 ? 's' : ''}</p>
               </div>
               <button
-                onClick={() => removeFromBranch(item.id)}
+                onClick={() => removeFromLocation(item.id)}
                 className="size-7 flex items-center justify-center rounded-lg text-[rgba(2,9,5,0.3)] hover:bg-red-50 hover:text-red-600 transition-colors"
               >
                 <Trash2 className="size-3.5" />
@@ -362,7 +360,7 @@ function StaffRolesSection({ businessId, branchId }: { businessId: string; branc
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => mode === 'select' ? addToBranch(selectedId) : createAndAdd()}
+              onClick={() => mode === 'select' ? addToLocation(selectedId) : createAndAdd()}
               disabled={isPending || (mode === 'select' ? !selectedId : !newTitle.trim())}
               className="px-4 py-2 text-sm font-medium text-white bg-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] disabled:opacity-60 transition-colors"
             >
@@ -393,28 +391,25 @@ function StaffRolesSection({ businessId, branchId }: { businessId: string; branc
 
 interface Props {
   businessId: string
-  branchId: string
+  locationId: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepTeamEquipment({ businessId, branchId, onNext, onBack }: Props) {
+export function StepTeamEquipment({ businessId, locationId, onNext, onBack }: Props) {
   return (
     <div className="flex flex-col gap-6">
-      {/* Two columns: Equipment | Staff */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Equipment */}
         <div className="bg-white border border-[rgba(2,9,5,0.08)] rounded-lg p-6 flex flex-col gap-4">
           <div>
             <p className="font-heading font-semibold text-base text-[#020905]">Equipment</p>
             <p className="text-xs text-[rgba(2,9,5,0.45)] mt-0.5">
-              Add equipment available at this branch with quantity
+              Add equipment available at this location with quantity
             </p>
           </div>
-          <EquipmentSection businessId={businessId} branchId={branchId} />
+          <EquipmentSection businessId={businessId} locationId={locationId} />
         </div>
 
-        {/* Staff roles */}
         <div className="bg-white border border-[rgba(2,9,5,0.08)] rounded-lg p-6 flex flex-col gap-4">
           <div>
             <p className="font-heading font-semibold text-base text-[#020905]">Staff Roles</p>
@@ -422,11 +417,10 @@ export function StepTeamEquipment({ businessId, branchId, onNext, onBack }: Prop
               Add job roles and how many people fill each role
             </p>
           </div>
-          <StaffRolesSection businessId={businessId} branchId={branchId} />
+          <StaffRolesSection businessId={businessId} locationId={locationId} />
         </div>
       </div>
 
-      {/* Navigation */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}

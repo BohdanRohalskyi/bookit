@@ -16,21 +16,21 @@ interface LocalDay {
 }
 
 interface Props {
-  branchId: string
+  locationId: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepSchedule({ branchId, onNext, onBack }: Props) {
+export function StepSchedule({ locationId, onNext, onBack }: Props) {
   const queryClient = useQueryClient()
   const [days, setDays] = useState<LocalDay[] | null>(null)
   const [saved, setSaved] = useState(false)
 
   const { data: schedule, isLoading } = useQuery({
-    queryKey: ['schedule', branchId],
+    queryKey: ['schedule', locationId],
     queryFn: async () => {
-      const { data } = await api.GET('/api/v1/branches/{id}/schedule', {
-        params: { path: { id: branchId } },
+      const { data } = await api.GET('/api/v1/locations/{id}/schedule', {
+        params: { path: { id: locationId } },
       })
       return data ?? null
     },
@@ -46,7 +46,7 @@ export function StepSchedule({ branchId, onNext, onBack }: Props) {
     })) ??
       Array.from({ length: 7 }, (_, i) => ({
         day_of_week: i,
-        is_open: i < 5, // Mon–Fri open by default
+        is_open: i < 5,
         open_time: '09:00',
         close_time: '18:00',
       })))
@@ -56,8 +56,8 @@ export function StepSchedule({ branchId, onNext, onBack }: Props) {
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: async () => {
-      const { error } = await api.PUT('/api/v1/branches/{id}/schedule/days', {
-        params: { path: { id: branchId } },
+      const { error } = await api.PUT('/api/v1/locations/{id}/schedule/days', {
+        params: { path: { id: locationId } },
         body: {
           days: effectiveDays.map((d) => ({
             day_of_week: d.day_of_week,
@@ -70,7 +70,7 @@ export function StepSchedule({ branchId, onNext, onBack }: Props) {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule', branchId] })
+      queryClient.invalidateQueries({ queryKey: ['schedule', locationId] })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     },
@@ -95,7 +95,7 @@ export function StepSchedule({ branchId, onNext, onBack }: Props) {
       <div>
         <p className="font-heading font-semibold text-lg text-[#020905] mb-1">Working Schedule</p>
         <p className="text-sm text-[rgba(2,9,5,0.45)]">
-          Set the regular weekly schedule for this branch
+          Set the regular weekly schedule for this location
         </p>
       </div>
 

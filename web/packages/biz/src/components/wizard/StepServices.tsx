@@ -20,9 +20,9 @@ interface ServiceItem {
   staff_requirements: Array<{ staff_role_id: string; job_title: string; quantity_needed: number }>
 }
 
-interface BranchServiceItem {
+interface LocationServiceItem {
   id: string
-  branch_id: string
+  location_id: string
   service_id: string
   is_active: boolean
   service: ServiceItem
@@ -120,14 +120,14 @@ function RequirementsColumn({ title, options, rows, onAdd, onRemove }: Requireme
 
 interface AddServiceFormProps {
   businessId: string
-  branchId: string
+  locationId: string
   equipment: EquipmentItem[]
   staffRoles: StaffRoleItem[]
   onCreated: () => void
   onCancel: () => void
 }
 
-function AddServiceForm({ businessId, branchId, equipment, staffRoles, onCreated, onCancel }: AddServiceFormProps) {
+function AddServiceForm({ businessId, locationId, equipment, staffRoles, onCreated, onCancel }: AddServiceFormProps) {
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -140,7 +140,6 @@ function AddServiceForm({ businessId, branchId, equipment, staffRoles, onCreated
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () => {
-      // 1. Create service at business level
       const { data: svcData, error: svcErr } = await api.POST('/api/v1/services', {
         body: {
           business_id: businessId,
@@ -162,16 +161,15 @@ function AddServiceForm({ businessId, branchId, equipment, staffRoles, onCreated
       if (svcErr) throw svcErr
       const svcId = (svcData as ServiceItem).id
 
-      // 2. Enable at this branch
-      const { error: linkErr } = await api.POST('/api/v1/branches/{id}/services', {
-        params: { path: { id: branchId } },
+      const { error: linkErr } = await api.POST('/api/v1/locations/{id}/services', {
+        params: { path: { id: locationId } },
         body: { service_id: svcId },
       })
       if (linkErr) throw linkErr
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services-catalog', businessId] })
-      queryClient.invalidateQueries({ queryKey: ['branch-services', branchId] })
+      queryClient.invalidateQueries({ queryKey: ['location-services', locationId] })
       onCreated()
     },
     onError: () => setError('Failed to create service. Please try again.'),
@@ -233,7 +231,6 @@ function AddServiceForm({ businessId, branchId, equipment, staffRoles, onCreated
         </div>
       </div>
 
-      {/* Two-column requirements */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 bg-white border border-[rgba(2,9,5,0.08)] rounded-lg">
         <RequirementsColumn
           title="Equipment needed"
@@ -271,16 +268,15 @@ function AddServiceForm({ businessId, branchId, equipment, staffRoles, onCreated
 
 interface Props {
   businessId: string
-  branchId: string
+  locationId: string
   onFinish: () => void
   onBack: () => void
 }
 
-export function StepServices({ businessId, branchId, onFinish, onBack }: Props) {
+export function StepServices({ businessId, locationId, onFinish, onBack }: Props) {
   const queryClient = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
 
-  // Business-level equipment & staff roles (for requirements picker)
   const { data: equipmentCatalog } = useQuery({
     queryKey: ['equipment-catalog', businessId],
     queryFn: async () => {
@@ -301,28 +297,27 @@ export function StepServices({ businessId, branchId, onFinish, onBack }: Props) 
     },
   })
 
-  // Services enabled at this branch
-  const { data: branchServices, isLoading } = useQuery({
-    queryKey: ['branch-services', branchId],
+  const { data: locationServices, isLoading } = useQuery({
+    queryKey: ['location-services', locationId],
     queryFn: async () => {
-      const { data } = await api.GET('/api/v1/branches/{id}/services', {
-        params: { path: { id: branchId } },
+      const { data } = await api.GET('/api/v1/locations/{id}/services', {
+        params: { path: { id: locationId } },
       })
-      return (data as { data: BranchServiceItem[] } | null)?.data ?? []
+      return (data as { data: LocationServiceItem[] } | null)?.data ?? []
     },
   })
 
   const { mutate: removeService } = useMutation({
     mutationFn: async (itemId: string) => {
-      await api.DELETE('/api/v1/branches/{id}/services/{item_id}', {
-        params: { path: { id: branchId, item_id: itemId } },
+      await api.DELETE('/api/v1/locations/{id}/services/{item_id}', {
+        params: { path: { id: locationId, item_id: itemId } },
       })
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['branch-services', branchId] }),
+      queryClient.invalidateQueries({ queryKey: ['location-services', locationId] }),
   })
 
-  const services = branchServices ?? []
+  const services = locationServices ?? []
   const equipment = equipmentCatalog ?? []
   const staffRoles = staffRolesCatalog ?? []
 
@@ -338,28 +333,27 @@ export function StepServices({ businessId, branchId, onFinish, onBack }: Props) 
           </div>
         </div>
 
-        {/* Service list */}
         {isLoading ? (
           <div className="h-16 bg-gray-50 rounded-lg animate-pulse" />
         ) : services.length > 0 ? (
           <div className="flex flex-col gap-2">
-            {services.map((bs) => (
-              <div key={bs.id} className="flex items-start justify-between px-4 py-3 bg-[#f8f9fa] rounded-lg">
+            {services.map((ls) => (
+              <div key={ls.id} className="flex items-start justify-between px-4 py-3 bg-[#f8f9fa] rounded-lg">
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium text-[#020905]">{bs.service.name}</p>
+                  <p className="text-sm font-medium text-[#020905]">{ls.service.name}</p>
                   <div className="flex items-center gap-3 text-xs text-[rgba(2,9,5,0.5)]">
-                    <span>{bs.service.duration_minutes} min</span>
-                    <span>{bs.service.price} {bs.service.currency}</span>
-                    {bs.service.equipment_requirements.length > 0 && (
-                      <span>{bs.service.equipment_requirements.map((e) => e.equipment_name).join(', ')}</span>
+                    <span>{ls.service.duration_minutes} min</span>
+                    <span>{ls.service.price} {ls.service.currency}</span>
+                    {ls.service.equipment_requirements.length > 0 && (
+                      <span>{ls.service.equipment_requirements.map((e) => e.equipment_name).join(', ')}</span>
                     )}
-                    {bs.service.staff_requirements.length > 0 && (
-                      <span>{bs.service.staff_requirements.map((s) => s.job_title).join(', ')}</span>
+                    {ls.service.staff_requirements.length > 0 && (
+                      <span>{ls.service.staff_requirements.map((s) => s.job_title).join(', ')}</span>
                     )}
                   </div>
                 </div>
                 <button
-                  onClick={() => removeService(bs.id)}
+                  onClick={() => removeService(ls.id)}
                   className="size-7 flex items-center justify-center rounded-lg text-[rgba(2,9,5,0.3)] hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
                 >
                   <Trash2 className="size-3.5" />
@@ -369,11 +363,10 @@ export function StepServices({ businessId, branchId, onFinish, onBack }: Props) 
           </div>
         ) : null}
 
-        {/* Add service form or button */}
         {showAddForm ? (
           <AddServiceForm
             businessId={businessId}
-            branchId={branchId}
+            locationId={locationId}
             equipment={equipment}
             staffRoles={staffRoles}
             onCreated={() => setShowAddForm(false)}
@@ -390,7 +383,6 @@ export function StepServices({ businessId, branchId, onFinish, onBack }: Props) 
         )}
       </div>
 
-      {/* Navigation */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
