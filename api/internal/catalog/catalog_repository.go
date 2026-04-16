@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// CatalogRepository handles equipment, staff roles, services and branch pivots.
+// CatalogRepository handles equipment, staff roles, services and location pivots.
 type CatalogRepository struct {
 	db *pgxpool.Pool
 }
@@ -286,193 +286,193 @@ func (r *CatalogRepository) GetServiceBusinessID(ctx context.Context, id uuid.UU
 	return bID, err
 }
 
-// ─── Branch equipment pivot ───────────────────────────────────────────────────
+// ─── Location equipment pivot ─────────────────────────────────────────────────
 
-func (r *CatalogRepository) AddBranchEquipment(ctx context.Context, branchID uuid.UUID, req BranchEquipmentCreate) (BranchEquipment, error) {
-	var be BranchEquipment
+func (r *CatalogRepository) AddLocationEquipment(ctx context.Context, locationID uuid.UUID, req LocationEquipmentCreate) (LocationEquipment, error) {
+	var le LocationEquipment
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO branch_equipment (branch_id, equipment_id, quantity)
+		INSERT INTO location_equipment (location_id, equipment_id, quantity)
 		VALUES ($1,$2,$3)
-		ON CONFLICT (branch_id, equipment_id) DO UPDATE SET quantity = EXCLUDED.quantity
-		RETURNING id, branch_id, equipment_id, quantity
-	`, branchID, req.EquipmentID, req.Quantity).Scan(&be.ID, &be.BranchID, &be.EquipmentID, &be.Quantity)
+		ON CONFLICT (location_id, equipment_id) DO UPDATE SET quantity = EXCLUDED.quantity
+		RETURNING id, location_id, equipment_id, quantity
+	`, locationID, req.EquipmentID, req.Quantity).Scan(&le.ID, &le.LocationID, &le.EquipmentID, &le.Quantity)
 	if err != nil {
-		return BranchEquipment{}, err
+		return LocationEquipment{}, err
 	}
-	_ = r.db.QueryRow(ctx, `SELECT name FROM equipment WHERE id = $1`, req.EquipmentID).Scan(&be.EquipmentName) //nolint:errcheck // best-effort name denorm
-	return be, nil
+	_ = r.db.QueryRow(ctx, `SELECT name FROM equipment WHERE id = $1`, req.EquipmentID).Scan(&le.EquipmentName) //nolint:errcheck // best-effort name denorm
+	return le, nil
 }
 
-func (r *CatalogRepository) ListBranchEquipment(ctx context.Context, branchID uuid.UUID) ([]BranchEquipment, error) {
+func (r *CatalogRepository) ListLocationEquipment(ctx context.Context, locationID uuid.UUID) ([]LocationEquipment, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT be.id, be.branch_id, be.equipment_id, e.name, be.quantity
-		FROM branch_equipment be
-		JOIN equipment e ON e.id = be.equipment_id
-		WHERE be.branch_id = $1 ORDER BY e.name
-	`, branchID)
+		SELECT le.id, le.location_id, le.equipment_id, e.name, le.quantity
+		FROM location_equipment le
+		JOIN equipment e ON e.id = le.equipment_id
+		WHERE le.location_id = $1 ORDER BY e.name
+	`, locationID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []BranchEquipment
+	var items []LocationEquipment
 	for rows.Next() {
-		var be BranchEquipment
-		if err := rows.Scan(&be.ID, &be.BranchID, &be.EquipmentID, &be.EquipmentName, &be.Quantity); err != nil {
+		var le LocationEquipment
+		if err := rows.Scan(&le.ID, &le.LocationID, &le.EquipmentID, &le.EquipmentName, &le.Quantity); err != nil {
 			return nil, err
 		}
-		items = append(items, be)
+		items = append(items, le)
 	}
 	if items == nil {
-		items = []BranchEquipment{}
+		items = []LocationEquipment{}
 	}
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) RemoveBranchEquipment(ctx context.Context, itemID uuid.UUID) error {
-	res, err := r.db.Exec(ctx, `DELETE FROM branch_equipment WHERE id = $1`, itemID)
+func (r *CatalogRepository) RemoveLocationEquipment(ctx context.Context, itemID uuid.UUID) error {
+	res, err := r.db.Exec(ctx, `DELETE FROM location_equipment WHERE id = $1`, itemID)
 	if err != nil {
 		return err
 	}
 	if res.RowsAffected() == 0 {
-		return ErrBranchItemNotFound
+		return ErrLocationItemNotFound
 	}
 	return nil
 }
 
-func (r *CatalogRepository) GetBranchEquipmentBranchID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
-	var bID uuid.UUID
-	err := r.db.QueryRow(ctx, `SELECT branch_id FROM branch_equipment WHERE id = $1`, itemID).Scan(&bID)
+func (r *CatalogRepository) GetLocationEquipmentLocationID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
+	var lID uuid.UUID
+	err := r.db.QueryRow(ctx, `SELECT location_id FROM location_equipment WHERE id = $1`, itemID).Scan(&lID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrBranchItemNotFound
+		return uuid.Nil, ErrLocationItemNotFound
 	}
-	return bID, err
+	return lID, err
 }
 
-// ─── Branch staff roles pivot ─────────────────────────────────────────────────
+// ─── Location staff roles pivot ───────────────────────────────────────────────
 
-func (r *CatalogRepository) AddBranchStaffRole(ctx context.Context, branchID uuid.UUID, req BranchStaffRoleCreate) (BranchStaffRole, error) {
-	var bs BranchStaffRole
+func (r *CatalogRepository) AddLocationStaffRole(ctx context.Context, locationID uuid.UUID, req LocationStaffRoleCreate) (LocationStaffRole, error) {
+	var ls LocationStaffRole
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO branch_staff_roles (branch_id, staff_role_id, quantity)
+		INSERT INTO location_staff_roles (location_id, staff_role_id, quantity)
 		VALUES ($1,$2,$3)
-		ON CONFLICT (branch_id, staff_role_id) DO UPDATE SET quantity = EXCLUDED.quantity
-		RETURNING id, branch_id, staff_role_id, quantity
-	`, branchID, req.StaffRoleID, req.Quantity).Scan(&bs.ID, &bs.BranchID, &bs.StaffRoleID, &bs.Quantity)
+		ON CONFLICT (location_id, staff_role_id) DO UPDATE SET quantity = EXCLUDED.quantity
+		RETURNING id, location_id, staff_role_id, quantity
+	`, locationID, req.StaffRoleID, req.Quantity).Scan(&ls.ID, &ls.LocationID, &ls.StaffRoleID, &ls.Quantity)
 	if err != nil {
-		return BranchStaffRole{}, err
+		return LocationStaffRole{}, err
 	}
-	_ = r.db.QueryRow(ctx, `SELECT job_title FROM staff_roles WHERE id = $1`, req.StaffRoleID).Scan(&bs.JobTitle) //nolint:errcheck // best-effort name denorm
-	return bs, nil
+	_ = r.db.QueryRow(ctx, `SELECT job_title FROM staff_roles WHERE id = $1`, req.StaffRoleID).Scan(&ls.JobTitle) //nolint:errcheck // best-effort name denorm
+	return ls, nil
 }
 
-func (r *CatalogRepository) ListBranchStaffRoles(ctx context.Context, branchID uuid.UUID) ([]BranchStaffRole, error) {
+func (r *CatalogRepository) ListLocationStaffRoles(ctx context.Context, locationID uuid.UUID) ([]LocationStaffRole, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT bs.id, bs.branch_id, bs.staff_role_id, sr.job_title, bs.quantity
-		FROM branch_staff_roles bs
-		JOIN staff_roles sr ON sr.id = bs.staff_role_id
-		WHERE bs.branch_id = $1 ORDER BY sr.job_title
-	`, branchID)
+		SELECT ls.id, ls.location_id, ls.staff_role_id, sr.job_title, ls.quantity
+		FROM location_staff_roles ls
+		JOIN staff_roles sr ON sr.id = ls.staff_role_id
+		WHERE ls.location_id = $1 ORDER BY sr.job_title
+	`, locationID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []BranchStaffRole
+	var items []LocationStaffRole
 	for rows.Next() {
-		var bs BranchStaffRole
-		if err := rows.Scan(&bs.ID, &bs.BranchID, &bs.StaffRoleID, &bs.JobTitle, &bs.Quantity); err != nil {
+		var ls LocationStaffRole
+		if err := rows.Scan(&ls.ID, &ls.LocationID, &ls.StaffRoleID, &ls.JobTitle, &ls.Quantity); err != nil {
 			return nil, err
 		}
-		items = append(items, bs)
+		items = append(items, ls)
 	}
 	if items == nil {
-		items = []BranchStaffRole{}
+		items = []LocationStaffRole{}
 	}
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) RemoveBranchStaffRole(ctx context.Context, itemID uuid.UUID) error {
-	res, err := r.db.Exec(ctx, `DELETE FROM branch_staff_roles WHERE id = $1`, itemID)
+func (r *CatalogRepository) RemoveLocationStaffRole(ctx context.Context, itemID uuid.UUID) error {
+	res, err := r.db.Exec(ctx, `DELETE FROM location_staff_roles WHERE id = $1`, itemID)
 	if err != nil {
 		return err
 	}
 	if res.RowsAffected() == 0 {
-		return ErrBranchItemNotFound
+		return ErrLocationItemNotFound
 	}
 	return nil
 }
 
-func (r *CatalogRepository) GetBranchStaffRoleBranchID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
-	var bID uuid.UUID
-	err := r.db.QueryRow(ctx, `SELECT branch_id FROM branch_staff_roles WHERE id = $1`, itemID).Scan(&bID)
+func (r *CatalogRepository) GetLocationStaffRoleLocationID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
+	var lID uuid.UUID
+	err := r.db.QueryRow(ctx, `SELECT location_id FROM location_staff_roles WHERE id = $1`, itemID).Scan(&lID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrBranchItemNotFound
+		return uuid.Nil, ErrLocationItemNotFound
 	}
-	return bID, err
+	return lID, err
 }
 
-// ─── Branch services pivot ────────────────────────────────────────────────────
+// ─── Location services pivot ──────────────────────────────────────────────────
 
-func (r *CatalogRepository) AddBranchService(ctx context.Context, branchID uuid.UUID, req BranchServiceItemCreate) (BranchServiceItem, error) {
-	var bs BranchServiceItem
+func (r *CatalogRepository) AddLocationService(ctx context.Context, locationID uuid.UUID, req LocationServiceItemCreate) (LocationServiceItem, error) {
+	var ls LocationServiceItem
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO branch_services (branch_id, service_id)
+		INSERT INTO location_services (location_id, service_id)
 		VALUES ($1,$2)
-		ON CONFLICT (branch_id, service_id) DO UPDATE SET is_active = true
-		RETURNING id, branch_id, service_id, is_active
-	`, branchID, req.ServiceID).Scan(&bs.ID, &bs.BranchID, &bs.ServiceID, &bs.IsActive)
+		ON CONFLICT (location_id, service_id) DO UPDATE SET is_active = true
+		RETURNING id, location_id, service_id, is_active
+	`, locationID, req.ServiceID).Scan(&ls.ID, &ls.LocationID, &ls.ServiceID, &ls.IsActive)
 	if err != nil {
-		return BranchServiceItem{}, err
+		return LocationServiceItem{}, err
 	}
 	svc, err := r.getServiceWithRequirements(ctx, req.ServiceID)
 	if err == nil {
-		bs.ServiceItem = svc
+		ls.ServiceItem = svc
 	}
-	return bs, nil
+	return ls, nil
 }
 
-func (r *CatalogRepository) ListBranchServices(ctx context.Context, branchID uuid.UUID) ([]BranchServiceItem, error) {
+func (r *CatalogRepository) ListLocationServices(ctx context.Context, locationID uuid.UUID) ([]LocationServiceItem, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, branch_id, service_id, is_active FROM branch_services
-		WHERE branch_id = $1
-	`, branchID)
+		SELECT id, location_id, service_id, is_active FROM location_services
+		WHERE location_id = $1
+	`, locationID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []BranchServiceItem
+	var items []LocationServiceItem
 	for rows.Next() {
-		var bs BranchServiceItem
-		if err := rows.Scan(&bs.ID, &bs.BranchID, &bs.ServiceID, &bs.IsActive); err != nil {
+		var ls LocationServiceItem
+		if err := rows.Scan(&ls.ID, &ls.LocationID, &ls.ServiceID, &ls.IsActive); err != nil {
 			return nil, err
 		}
-		svc, err := r.getServiceWithRequirements(ctx, bs.ServiceID)
+		svc, err := r.getServiceWithRequirements(ctx, ls.ServiceID)
 		if err == nil {
-			bs.ServiceItem = svc
+			ls.ServiceItem = svc
 		}
-		items = append(items, bs)
+		items = append(items, ls)
 	}
 	if items == nil {
-		items = []BranchServiceItem{}
+		items = []LocationServiceItem{}
 	}
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) RemoveBranchService(ctx context.Context, itemID uuid.UUID) error {
-	res, err := r.db.Exec(ctx, `DELETE FROM branch_services WHERE id = $1`, itemID)
+func (r *CatalogRepository) RemoveLocationService(ctx context.Context, itemID uuid.UUID) error {
+	res, err := r.db.Exec(ctx, `DELETE FROM location_services WHERE id = $1`, itemID)
 	if err != nil {
 		return err
 	}
 	if res.RowsAffected() == 0 {
-		return ErrBranchItemNotFound
+		return ErrLocationItemNotFound
 	}
 	return nil
 }
 
-func (r *CatalogRepository) GetBranchServiceBranchID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
-	var bID uuid.UUID
-	err := r.db.QueryRow(ctx, `SELECT branch_id FROM branch_services WHERE id = $1`, itemID).Scan(&bID)
+func (r *CatalogRepository) GetLocationServiceLocationID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
+	var lID uuid.UUID
+	err := r.db.QueryRow(ctx, `SELECT location_id FROM location_services WHERE id = $1`, itemID).Scan(&lID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrBranchItemNotFound
+		return uuid.Nil, ErrLocationItemNotFound
 	}
-	return bID, err
+	return lID, err
 }

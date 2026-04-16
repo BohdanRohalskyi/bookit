@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	ErrBranchNotFound = errors.New("branch not found")
-	ErrBranchNotOwner = errors.New("not the branch owner")
+	ErrLocationNotFound = errors.New("location not found")
+	ErrLocationNotOwner = errors.New("not the location owner")
 )
 
-// Branch is the full branch entity returned from the DB.
-type Branch struct {
+// Location is the full location entity returned from the DB.
+type Location struct {
 	ID         uuid.UUID
 	BusinessID uuid.UUID
 	Name       string
@@ -30,7 +30,7 @@ type Branch struct {
 	UpdatedAt  time.Time
 }
 
-type BranchCreate struct {
+type LocationCreate struct {
 	BusinessID uuid.UUID
 	Name       string
 	Address    string
@@ -43,7 +43,7 @@ type BranchCreate struct {
 	Timezone   string
 }
 
-type BranchUpdate struct {
+type LocationUpdate struct {
 	Name     *string
 	Address  *string
 	City     *string
@@ -60,7 +60,7 @@ type BranchUpdate struct {
 
 type Schedule struct {
 	ID         uuid.UUID
-	BranchID   uuid.UUID
+	LocationID uuid.UUID
 	Days       []ScheduleDay
 	Exceptions []ScheduleException
 }
@@ -83,7 +83,7 @@ type ScheduleDayInput struct {
 
 type ScheduleException struct {
 	ID         uuid.UUID
-	BranchID   uuid.UUID
+	LocationID uuid.UUID
 	ScheduleID uuid.UUID
 	Date       string // "YYYY-MM-DD"
 	IsClosed   bool
@@ -101,11 +101,11 @@ type ScheduleExceptionCreate struct {
 	Reason    *string
 }
 
-// BranchPhoto types
+// LocationPhoto types
 
-type BranchPhoto struct {
+type LocationPhoto struct {
 	ID           uuid.UUID
-	BranchID     uuid.UUID
+	LocationID   uuid.UUID
 	URL          string
 	DisplayOrder int
 	CreatedAt    time.Time
