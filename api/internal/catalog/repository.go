@@ -133,3 +133,14 @@ func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 	return nil
 }
+
+// GetBusinessProviderID returns the provider_id for a business.
+// Used by the RBAC identity adapter to verify ownership without loading the full record.
+func (r *Repository) GetBusinessProviderID(ctx context.Context, businessID uuid.UUID) (uuid.UUID, error) {
+	var providerID uuid.UUID
+	err := r.db.QueryRow(ctx, `SELECT provider_id FROM businesses WHERE id = $1`, businessID).Scan(&providerID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, ErrBusinessNotFound
+	}
+	return providerID, err
+}

@@ -9,6 +9,9 @@ import { BusinessForm } from './pages/BusinessForm'
 import { LocationList } from './pages/LocationList'
 import { LocationWizard } from './pages/LocationWizard'
 import { LocationDetail } from './pages/LocationDetail'
+import { StaffList } from './pages/StaffList'
+import { SpacePicker } from './pages/SpacePicker'
+import { InviteAccept } from './pages/InviteAccept'
 import { NotFound } from './pages/NotFound'
 import { DashboardLayout } from './components/DashboardLayout'
 
@@ -20,8 +23,12 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/invites" element={<InviteAccept />} />
 
-        {/* Dashboard — auth guarded inside DashboardLayout */}
+        {/* Space picker — requires auth, no space needed */}
+        <Route path="/spaces" element={<SpacePicker />} />
+
+        {/* Dashboard — auth + space guarded inside DashboardLayout */}
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/businesses" element={<Businesses />} />
@@ -32,6 +39,9 @@ export default function App() {
           <Route path="/dashboard/locations/new" element={<LocationWizard />} />
           <Route path="/dashboard/locations/:locationId" element={<LocationDetail />} />
           <Route path="/dashboard/locations/:locationId/edit" element={<LocationWizard />} />
+
+          {/* Staff management */}
+          <Route path="/dashboard/staff" element={<StaffList />} />
 
           <Route path="/account" element={<Account />} />
         </Route>

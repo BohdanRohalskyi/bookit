@@ -15,6 +15,7 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/auth"
 	"github.com/BohdanRohalskyi/bookit/api/internal/catalog"
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
+	"github.com/BohdanRohalskyi/bookit/api/internal/domain/rbac"
 	"github.com/BohdanRohalskyi/bookit/api/internal/mail"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/config"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
@@ -22,6 +23,7 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/logger"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/migrate"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/storage"
+	"github.com/BohdanRohalskyi/bookit/api/internal/staff"
 )
 
 var version = "1.0.2"
@@ -229,6 +231,53 @@ func run() error {
 		catalogProtected.GET("/services", catalogItemHandler.ListServices)
 		catalogProtected.POST("/services", catalogItemHandler.CreateService)
 		catalogProtected.DELETE("/services/:id", catalogItemHandler.DeleteService)
+	}
+
+	// ── RBAC ──────────────────────────────────────────────────────────────────
+	rbacRepo := rbac.NewRepository(db.Pool)
+	ownerAdapter := rbac.NewIdentityOwnerAdapter(userRepo, catalogRepo)
+	rbacSvc := rbac.NewService(rbacRepo, ownerAdapter)
+	_ = rbacSvc // used by RequirePermission on protected routes below
+
+	// ── Staff management ──────────────────────────────────────────────────────
+	staffRepo := staff.NewRepository(db.Pool)
+	staffSvc := staff.NewService(staffRepo, rbacRepo, mailProvider, mailTemplates, cfg.BizURL)
+	staffHandler := staff.NewHandler(staffSvc)
+
+	// Current user memberships (space picker)
+	meGroup := router.Group("/api/v1/me")
+	meGroup.Use(authHandler.AuthMiddleware())
+	{
+		meGroup.GET("/memberships", staffHandler.GetMemberships)
+	}
+
+	// Staff management — owner OR administrator with staff:read / staff:write
+	membersGroup := router.Group("/api/v1/businesses/:id/members")
+	membersGroup.Use(authHandler.AuthMiddleware())
+	{
+		membersGroup.GET("",
+			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionRead),
+			staffHandler.ListMembers,
+		)
+		membersGroup.POST("/invite",
+			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionWrite),
+			staffHandler.InviteMember,
+		)
+		membersGroup.DELETE("/:memberId",
+			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionWrite),
+			staffHandler.RemoveMember,
+		)
+	}
+
+	// Invite acceptance — preview is public, accept requires auth
+	invitesGroup := router.Group("/api/v1/invites")
+	{
+		invitesGroup.GET("/:token", staffHandler.PreviewInvite)
+	}
+	invitesProtected := router.Group("/api/v1/invites")
+	invitesProtected.Use(authHandler.AuthMiddleware())
+	{
+		invitesProtected.POST("/:token/accept", staffHandler.AcceptInvite)
 	}
 
 	// Create HTTP server

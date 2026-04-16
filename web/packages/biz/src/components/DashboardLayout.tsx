@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   PlusCircle,
@@ -14,23 +14,30 @@ import {
   Settings,
   LogOut,
   ArrowUpRight,
+  ChevronDown,
 } from 'lucide-react'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
 import { BusinessSelector } from './BusinessSelector'
+import { useSpaceStore } from '../stores/spaceStore'
+import { useMyRole } from '../hooks/useMyRole'
 
 // ─── Nav config ──────────────────────────────────────────────────────────────
+
+type NavVisibility = 'all' | 'admin' | 'owner'
 
 type ImplementedNavItem = {
   icon: React.ElementType
   label: string
   path: string
   end: boolean
+  showTo: NavVisibility
 }
 
 type PlaceholderNavItem = {
   icon: React.ElementType
   label: string
+  showTo: NavVisibility
 }
 
 type NavItem = ImplementedNavItem | PlaceholderNavItem
@@ -40,16 +47,16 @@ function isImplemented(item: NavItem): item is ImplementedNavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', end: true },
-  { icon: Building2, label: 'Manage Businesses', path: '/dashboard/businesses', end: true },
-  { icon: PlusCircle, label: 'Add Business', path: '/dashboard/businesses/new', end: false },
-  { icon: MapPin, label: 'Locations', path: '/dashboard/locations', end: true },
-  { icon: CalendarCheck, label: 'Bookings' },
-  { icon: Users, label: 'Team' },
-  { icon: Calendar, label: 'Calendar' },
-  { icon: FileText, label: 'Reports' },
-  { icon: CreditCard, label: 'Payment' },
-  { icon: Settings, label: 'Settings' },
+  { icon: LayoutDashboard, label: 'Dashboard',          path: '/dashboard',             end: true,  showTo: 'all' },
+  { icon: Building2,       label: 'Manage Businesses',  path: '/dashboard/businesses',  end: true,  showTo: 'owner' },
+  { icon: PlusCircle,      label: 'Add Business',       path: '/dashboard/businesses/new', end: false, showTo: 'owner' },
+  { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'all' },
+  { icon: Users,           label: 'Team',               path: '/dashboard/staff',       end: true,  showTo: 'admin' },
+  { icon: CalendarCheck,   label: 'Bookings',                                                        showTo: 'all' },
+  { icon: Calendar,        label: 'Calendar',                                                        showTo: 'admin' },
+  { icon: FileText,        label: 'Reports',                                                         showTo: 'owner' },
+  { icon: CreditCard,      label: 'Payment',                                                         showTo: 'owner' },
+  { icon: Settings,        label: 'Settings',                                                        showTo: 'owner' },
 ]
 
 // ─── NotImplementedOverlay ────────────────────────────────────────────────────
@@ -75,16 +82,13 @@ function NotImplementedOverlay({ children }: { children: React.ReactNode }) {
       onMouseLeave={() => setVisible(false)}
     >
       {children}
-      {/* Click blocker */}
       <div className="absolute inset-0 rounded-lg cursor-not-allowed" />
-      {/* Portal tooltip — escapes overflow-y:auto clipping */}
       {visible &&
         createPortal(
           <div
             className="fixed px-2.5 py-1.5 bg-white text-[#020905] text-xs font-medium rounded-md shadow-lg whitespace-nowrap pointer-events-none z-[9999]"
             style={{ left: pos.x, top: pos.y, transform: 'translateY(-50%)' }}
           >
-            {/* Arrow pointing left */}
             <div className="absolute right-full top-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-white" />
             Coming soon
           </div>,
@@ -105,22 +109,49 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
+function isVisible(showTo: NavVisibility, isOwner: boolean, isAdmin: boolean): boolean {
+  if (showTo === 'all') return true
+  if (showTo === 'admin') return isAdmin
+  if (showTo === 'owner') return isOwner
+  return true
+}
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export function DashboardLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, isAuthenticated, logout } = useAuthStore()
   const { switchTo } = useAppSwitch()
   const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
+
+  const { businessId, businessName, role, clearSpace } = useSpaceStore()
+  // isOwner/isAdmin: if no space selected yet, default to owner (existing provider flow)
+  const { isOwner, isAdmin } = useMyRole()
+  const effectiveIsOwner = role === null ? true : isOwner
+  const effectiveIsAdmin = role === null ? true : isAdmin
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/login')
   }, [isAuthenticated, navigate])
 
+  // Redirect to space picker if on a dashboard route without a selected space
+  useEffect(() => {
+    if (isAuthenticated && location.pathname.startsWith('/dashboard') && !businessId) {
+      navigate('/spaces')
+    }
+  }, [isAuthenticated, location.pathname, businessId, navigate])
+
   if (!isAuthenticated) return null
 
   const navLinkBase =
     'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors'
+
+  function handleLogout() {
+    clearSpace()
+    logout()
+    navigate('/')
+  }
 
   return (
     <div className="flex h-screen bg-[#f8f9fa] overflow-hidden">
@@ -139,40 +170,56 @@ export function DashboardLayout() {
           </span>
         </Link>
 
+        {/* Space indicator */}
+        {businessName && (
+          <button
+            onClick={() => { clearSpace(); navigate('/spaces') }}
+            className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 hover:bg-white/5 transition-colors group"
+          >
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-xs text-white/40 leading-none mb-0.5">Current workspace</p>
+              <p className="text-xs font-medium text-white/70 truncate">{businessName}</p>
+            </div>
+            <ChevronDown className="size-3.5 text-white/30 shrink-0 group-hover:text-white/50 transition-colors" />
+          </button>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 px-3 py-5 overflow-y-auto flex flex-col gap-0.5">
-          {navItems.map((item) => {
-            const Icon = item.icon
+          {navItems
+            .filter((item) => isVisible(item.showTo, effectiveIsOwner, effectiveIsAdmin))
+            .map((item) => {
+              const Icon = item.icon
 
-            if (!isImplemented(item)) {
+              if (!isImplemented(item)) {
+                return (
+                  <NotImplementedOverlay key={item.label}>
+                    <div className={`${navLinkBase} text-white/25 select-none`}>
+                      <Icon className="size-4 shrink-0" />
+                      {item.label}
+                    </div>
+                  </NotImplementedOverlay>
+                )
+              }
+
               return (
-                <NotImplementedOverlay key={item.label}>
-                  <div className={`${navLinkBase} text-white/25 select-none`}>
-                    <Icon className="size-4 shrink-0" />
-                    {item.label}
-                  </div>
-                </NotImplementedOverlay>
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `${navLinkBase} ${
+                      isActive
+                        ? 'bg-[#1069d1] text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`
+                  }
+                >
+                  <Icon className="size-4 shrink-0" />
+                  {item.label}
+                </NavLink>
               )
-            }
-
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.end}
-                className={({ isActive }) =>
-                  `${navLinkBase} ${
-                    isActive
-                      ? 'bg-[#1069d1] text-white'
-                      : 'text-white/70 hover:bg-white/10 hover:text-white'
-                  }`
-                }
-              >
-                <Icon className="size-4 shrink-0" />
-                {item.label}
-              </NavLink>
-            )
-          })}
+            })}
         </nav>
 
         {/* User */}
@@ -192,14 +239,13 @@ export function DashboardLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-white/40 truncate">{user?.email}</p>
+              <p className="text-xs text-white/40 truncate">
+                {role ? role.charAt(0).toUpperCase() + role.slice(1) : user?.email}
+              </p>
             </div>
           </NavLink>
           <button
-            onClick={() => {
-              logout()
-              navigate('/')
-            }}
+            onClick={handleLogout}
             className="mt-1 w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/40 hover:bg-white/10 hover:text-white/70 transition-colors"
           >
             <LogOut className="size-4" />
