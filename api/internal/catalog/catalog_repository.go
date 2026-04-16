@@ -299,7 +299,7 @@ func (r *CatalogRepository) AddBranchEquipment(ctx context.Context, branchID uui
 	if err != nil {
 		return BranchEquipment{}, err
 	}
-	_ = r.db.QueryRow(ctx, `SELECT name FROM equipment WHERE id = $1`, req.EquipmentID).Scan(&be.EquipmentName)
+	_ = r.db.QueryRow(ctx, `SELECT name FROM equipment WHERE id = $1`, req.EquipmentID).Scan(&be.EquipmentName) //nolint:errcheck // best-effort name denorm
 	return be, nil
 }
 
@@ -361,7 +361,7 @@ func (r *CatalogRepository) AddBranchStaffRole(ctx context.Context, branchID uui
 	if err != nil {
 		return BranchStaffRole{}, err
 	}
-	_ = r.db.QueryRow(ctx, `SELECT job_title FROM staff_roles WHERE id = $1`, req.StaffRoleID).Scan(&bs.JobTitle)
+	_ = r.db.QueryRow(ctx, `SELECT job_title FROM staff_roles WHERE id = $1`, req.StaffRoleID).Scan(&bs.JobTitle) //nolint:errcheck // best-effort name denorm
 	return bs, nil
 }
 
