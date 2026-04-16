@@ -41,7 +41,7 @@ tags:
     description: Provider account management
   - name: Businesses
     description: Business management (provider only)
-  - name: Branches
+  - name: Locations
     description: Location management (provider only)
   - name: Services
     description: Service management (provider only)
@@ -629,12 +629,12 @@ paths:
   # ============================================================
   # LOCATIONS
   # ============================================================
-  /api/v1/branches:
+  /api/v1/locations:
     get:
-      tags: [Branches]
+      tags: [Locations]
       summary: List locations
       description: List locations for a business
-      operationId: listBranches
+      operationId: listLocations
       security:
         - BearerAuth: []
       parameters:
@@ -648,20 +648,20 @@ paths:
         - $ref: '#/components/parameters/PerPageParam'
       responses:
         '200':
-          description: List of branches
+          description: List of locations
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BranchList'
+                $ref: '#/components/schemas/LocationList'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/ProviderRequired'
 
     post:
-      tags: [Branches]
+      tags: [Locations]
       summary: Create a location
-      operationId: createBranch
+      operationId: createLocation
       security:
         - BearerAuth: []
       requestBody:
@@ -669,14 +669,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BranchCreate'
+              $ref: '#/components/schemas/LocationCreate'
       responses:
         '201':
-          description: Branch created
+          description: Location created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Branch'
+                $ref: '#/components/schemas/Location'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -684,48 +684,48 @@ paths:
         '403':
           $ref: '#/components/responses/ProviderRequired'
 
-  /api/v1/branches/{id}:
+  /api/v1/locations/{id}:
     get:
-      tags: [Branches]
-      summary: Get a branch
-      operationId: getBranch
+      tags: [Locations]
+      summary: Get a location
+      operationId: getLocation
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '200':
-          description: Branch details
+          description: Location details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Branch'
+                $ref: '#/components/schemas/Location'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
     put:
-      tags: [Branches]
-      summary: Update a branch
-      operationId: updateBranch
+      tags: [Locations]
+      summary: Update a location
+      operationId: updateLocation
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BranchUpdate'
+              $ref: '#/components/schemas/LocationUpdate'
       responses:
         '200':
-          description: Branch updated
+          description: Location updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Branch'
+                $ref: '#/components/schemas/Location'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -736,16 +736,16 @@ paths:
           $ref: '#/components/responses/NotFound'
 
     delete:
-      tags: [Branches]
-      summary: Delete a branch
-      operationId: deleteBranch
+      tags: [Locations]
+      summary: Delete a location
+      operationId: deleteLocation
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '204':
-          description: Branch deleted
+          description: Location deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -753,18 +753,18 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/schedule:
+  /api/v1/locations/{id}/schedule:
     get:
-      tags: [Branches]
-      summary: Get branch schedule
-      operationId: getBranchSchedule
+      tags: [Locations]
+      summary: Get location schedule
+      operationId: getLocationSchedule
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '200':
-          description: Branch schedule with days and upcoming exceptions
+          description: Location schedule with days and upcoming exceptions
           content:
             application/json:
               schema:
@@ -774,15 +774,15 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/schedule/days:
+  /api/v1/locations/{id}/schedule/days:
     put:
-      tags: [Branches]
+      tags: [Locations]
       summary: Replace weekly schedule days
       operationId: upsertScheduleDays
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       requestBody:
         required: true
         content:
@@ -811,15 +811,15 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/schedule/exceptions:
+  /api/v1/locations/{id}/schedule/exceptions:
     get:
-      tags: [Branches]
+      tags: [Locations]
       summary: List schedule exceptions
       operationId: listScheduleExceptions
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '200':
           description: List of schedule exceptions
@@ -838,13 +838,13 @@ paths:
           $ref: '#/components/responses/NotFound'
 
     post:
-      tags: [Branches]
+      tags: [Locations]
       summary: Create a schedule exception
       operationId: createScheduleException
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       requestBody:
         required: true
         content:
@@ -867,15 +867,15 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/schedule/exceptions/{exception_id}:
+  /api/v1/locations/{id}/schedule/exceptions/{exception_id}:
     delete:
-      tags: [Branches]
+      tags: [Locations]
       summary: Delete a schedule exception
       operationId: deleteScheduleException
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
         - name: exception_id
           in: path
           required: true
@@ -892,18 +892,18 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/photos:
+  /api/v1/locations/{id}/photos:
     get:
-      tags: [Branches]
-      summary: List branch photos
-      operationId: listBranchPhotos
+      tags: [Locations]
+      summary: List location photos
+      operationId: listLocationPhotos
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '200':
-          description: List of branch photos
+          description: List of location photos
           content:
             application/json:
               schema:
@@ -912,20 +912,20 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/BranchPhoto'
+                      $ref: '#/components/schemas/LocationPhoto'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
     post:
-      tags: [Branches]
-      summary: Upload a branch photo
-      operationId: uploadBranchPhoto
+      tags: [Locations]
+      summary: Upload a location photo
+      operationId: uploadLocationPhoto
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       requestBody:
         required: true
         content:
@@ -943,7 +943,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BranchPhoto'
+                $ref: '#/components/schemas/LocationPhoto'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -953,15 +953,15 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/photos/{photo_id}:
+  /api/v1/locations/{id}/photos/{photo_id}:
     delete:
-      tags: [Branches]
-      summary: Delete a branch photo
-      operationId: deleteBranchPhoto
+      tags: [Locations]
+      summary: Delete a location photo
+      operationId: deleteLocationPhoto
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
         - name: photo_id
           in: path
           required: true
@@ -979,20 +979,20 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ============================================================
-  # BRANCH PIVOTS — equipment, staff roles, services per branch
+  # LOCATION PIVOTS — equipment, staff roles, services per location
   # ============================================================
-  /api/v1/branches/{id}/equipment:
+  /api/v1/locations/{id}/equipment:
     get:
-      tags: [Branches]
-      summary: List equipment available at this branch
-      operationId: listBranchEquipment
+      tags: [Locations]
+      summary: List equipment available at this location
+      operationId: listLocationEquipment
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '200':
-          description: Branch equipment list
+          description: Location equipment list
           content:
             application/json:
               schema:
@@ -1001,33 +1001,33 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/BranchEquipment'
+                      $ref: '#/components/schemas/LocationEquipment'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
     post:
-      tags: [Branches]
-      summary: Add equipment to branch
-      operationId: addBranchEquipment
+      tags: [Locations]
+      summary: Add equipment to location
+      operationId: addLocationEquipment
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BranchEquipmentCreate'
+              $ref: '#/components/schemas/LocationEquipmentCreate'
       responses:
         '201':
-          description: Branch equipment added
+          description: Location equipment added
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BranchEquipment'
+                $ref: '#/components/schemas/LocationEquipment'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -1037,15 +1037,15 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/equipment/{item_id}:
+  /api/v1/locations/{id}/equipment/{item_id}:
     delete:
-      tags: [Branches]
-      summary: Remove equipment from branch
-      operationId: removeBranchEquipment
+      tags: [Locations]
+      summary: Remove equipment from location
+      operationId: removeLocationEquipment
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
         - name: item_id
           in: path
           required: true
@@ -1054,7 +1054,7 @@ paths:
             format: uuid
       responses:
         '204':
-          description: Branch equipment removed
+          description: Location equipment removed
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1062,18 +1062,18 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/staff-roles:
+  /api/v1/locations/{id}/staff-roles:
     get:
-      tags: [Branches]
-      summary: List staff roles at this branch
-      operationId: listBranchStaffRoles
+      tags: [Locations]
+      summary: List staff roles at this location
+      operationId: listLocationStaffRoles
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '200':
-          description: Branch staff roles
+          description: Location staff roles
           content:
             application/json:
               schema:
@@ -1082,33 +1082,33 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/BranchStaffRole'
+                      $ref: '#/components/schemas/LocationStaffRole'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
     post:
-      tags: [Branches]
-      summary: Assign a staff role to branch
-      operationId: addBranchStaffRole
+      tags: [Locations]
+      summary: Assign a staff role to location
+      operationId: addLocationStaffRole
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BranchStaffRoleCreate'
+              $ref: '#/components/schemas/LocationStaffRoleCreate'
       responses:
         '201':
-          description: Branch staff role assigned
+          description: Location staff role assigned
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BranchStaffRole'
+                $ref: '#/components/schemas/LocationStaffRole'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -1118,15 +1118,15 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/staff-roles/{item_id}:
+  /api/v1/locations/{id}/staff-roles/{item_id}:
     delete:
-      tags: [Branches]
-      summary: Remove staff role from branch
-      operationId: removeBranchStaffRole
+      tags: [Locations]
+      summary: Remove staff role from location
+      operationId: removeLocationStaffRole
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
         - name: item_id
           in: path
           required: true
@@ -1135,7 +1135,7 @@ paths:
             format: uuid
       responses:
         '204':
-          description: Branch staff role removed
+          description: Location staff role removed
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1143,18 +1143,18 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/services:
+  /api/v1/locations/{id}/services:
     get:
-      tags: [Branches]
-      summary: List services offered at this branch
-      operationId: listBranchServices
+      tags: [Locations]
+      summary: List services offered at this location
+      operationId: listLocationServices
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       responses:
         '200':
-          description: Branch services
+          description: Location services
           content:
             application/json:
               schema:
@@ -1163,33 +1163,33 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/BranchService'
+                      $ref: '#/components/schemas/LocationService'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
     post:
-      tags: [Branches]
-      summary: Enable a service at this branch
-      operationId: addBranchService
+      tags: [Locations]
+      summary: Enable a service at this location
+      operationId: addLocationService
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BranchServiceCreate'
+              $ref: '#/components/schemas/LocationServiceCreate'
       responses:
         '201':
-          description: Service enabled at branch
+          description: Service enabled at location
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BranchService'
+                $ref: '#/components/schemas/LocationService'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -1199,15 +1199,15 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/branches/{id}/services/{item_id}:
+  /api/v1/locations/{id}/services/{item_id}:
     delete:
-      tags: [Branches]
-      summary: Disable a service at this branch
-      operationId: removeBranchService
+      tags: [Locations]
+      summary: Disable a service at this location
+      operationId: removeLocationService
       security:
         - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BranchId'
+        - $ref: '#/components/parameters/LocationId'
         - name: item_id
           in: path
           required: true
@@ -1216,7 +1216,7 @@ paths:
             format: uuid
       responses:
         '204':
-          description: Service disabled at branch
+          description: Service disabled at location
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1409,7 +1409,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: branch_id
+        - name: location_id
           in: query
           required: true
           schema:
@@ -1722,7 +1722,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: branch_id
+        - name: location_id
           in: query
           required: false
           schema:
@@ -1807,12 +1807,12 @@ paths:
   # ============================================================
   # SEARCH
   # ============================================================
-  /api/v1/search/branches:
+  /api/v1/search/locations:
     get:
       tags: [Search]
       summary: Search locations
       description: Public endpoint to search for locations/businesses
-      operationId: searchBranches
+      operationId: searchLocations
       parameters:
         - name: q
           in: query
@@ -1860,7 +1860,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BranchSearchResult'
+                $ref: '#/components/schemas/LocationSearchResult'
 
   # ============================================================
   # PAYMENTS
@@ -1973,7 +1973,7 @@ components:
         type: string
         format: uuid
 
-    BranchId:
+    LocationId:
       name: id
       in: path
       required: true
@@ -2448,7 +2448,7 @@ components:
     # ----------------------------------------------------------
     # Catalog - Location
     # ----------------------------------------------------------
-    Branch:
+    Location:
       type: object
       required:
         - id
@@ -2504,7 +2504,7 @@ components:
           $ref: '#/components/schemas/Business'
           description: Included in search results
 
-    BranchCreate:
+    LocationCreate:
       type: object
       required:
         - business_id
@@ -2544,7 +2544,7 @@ components:
           type: string
           default: "Europe/Vilnius"
 
-    BranchUpdate:
+    LocationUpdate:
       type: object
       properties:
         name:
@@ -2576,7 +2576,7 @@ components:
         is_active:
           type: boolean
 
-    BranchList:
+    LocationList:
       type: object
       required:
         - data
@@ -2585,7 +2585,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Branch'
+            $ref: '#/components/schemas/Location'
         pagination:
           $ref: '#/components/schemas/Pagination'
 
@@ -2594,9 +2594,9 @@ components:
     # ----------------------------------------------------------
     Schedule:
       type: object
-      required: [branch_id, days]
+      required: [location_id, days]
       properties:
-        branch_id:
+        location_id:
           type: string
           format: uuid
         days:
@@ -2653,12 +2653,12 @@ components:
 
     ScheduleException:
       type: object
-      required: [id, branch_id, date, is_closed]
+      required: [id, location_id, date, is_closed]
       properties:
         id:
           type: string
           format: uuid
-        branch_id:
+        location_id:
           type: string
           format: uuid
         date:
@@ -2699,16 +2699,16 @@ components:
           maxLength: 500
 
     # ----------------------------------------------------------
-    # Catalog - Branch Photos
+    # Catalog - Location Photos
     # ----------------------------------------------------------
-    BranchPhoto:
+    LocationPhoto:
       type: object
-      required: [id, branch_id, url, display_order, created_at]
+      required: [id, location_id, url, display_order, created_at]
       properties:
         id:
           type: string
           format: uuid
-        branch_id:
+        location_id:
           type: string
           format: uuid
         url:
@@ -2906,16 +2906,16 @@ components:
             $ref: '#/components/schemas/StaffRole'
 
     # ----------------------------------------------------------
-    # Branch pivot schemas
+    # Location pivot schemas
     # ----------------------------------------------------------
-    BranchEquipment:
+    LocationEquipment:
       type: object
-      required: [id, branch_id, equipment_id, equipment_name, quantity]
+      required: [id, location_id, equipment_id, equipment_name, quantity]
       properties:
         id:
           type: string
           format: uuid
-        branch_id:
+        location_id:
           type: string
           format: uuid
         equipment_id:
@@ -2927,7 +2927,7 @@ components:
           type: integer
           minimum: 1
 
-    BranchEquipmentCreate:
+    LocationEquipmentCreate:
       type: object
       required: [equipment_id, quantity]
       properties:
@@ -2938,14 +2938,14 @@ components:
           type: integer
           minimum: 1
 
-    BranchStaffRole:
+    LocationStaffRole:
       type: object
-      required: [id, branch_id, staff_role_id, job_title, quantity]
+      required: [id, location_id, staff_role_id, job_title, quantity]
       properties:
         id:
           type: string
           format: uuid
-        branch_id:
+        location_id:
           type: string
           format: uuid
         staff_role_id:
@@ -2957,7 +2957,7 @@ components:
           type: integer
           minimum: 1
 
-    BranchStaffRoleCreate:
+    LocationStaffRoleCreate:
       type: object
       required: [staff_role_id, quantity]
       properties:
@@ -2968,14 +2968,14 @@ components:
           type: integer
           minimum: 1
 
-    BranchService:
+    LocationService:
       type: object
-      required: [id, branch_id, service_id, is_active]
+      required: [id, location_id, service_id, is_active]
       properties:
         id:
           type: string
           format: uuid
-        branch_id:
+        location_id:
           type: string
           format: uuid
         service_id:
@@ -2986,7 +2986,7 @@ components:
         service:
           $ref: '#/components/schemas/Service'
 
-    BranchServiceCreate:
+    LocationServiceCreate:
       type: object
       required: [service_id]
       properties:
@@ -3001,7 +3001,7 @@ components:
       type: object
       required:
         - id
-        - branch_id
+        - location_id
         - name
         - is_active
         - created_at
@@ -3009,7 +3009,7 @@ components:
         id:
           type: string
           format: uuid
-        branch_id:
+        location_id:
           type: string
           format: uuid
         name:
@@ -3033,10 +3033,10 @@ components:
     StaffCreate:
       type: object
       required:
-        - branch_id
+        - location_id
         - name
       properties:
-        branch_id:
+        location_id:
           type: string
           format: uuid
         name:
@@ -3137,7 +3137,7 @@ components:
       type: object
       required:
         - id
-        - branch_id
+        - location_id
         - user_id
         - status
         - total_amount
@@ -3148,7 +3148,7 @@ components:
         id:
           type: string
           format: uuid
-        branch_id:
+        location_id:
           type: string
           format: uuid
         user_id:
@@ -3168,8 +3168,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BookingItem'
-        branch:
-          $ref: '#/components/schemas/Branch'
+        location:
+          $ref: '#/components/schemas/Location'
         created_at:
           type: string
           format: date-time
@@ -3214,10 +3214,10 @@ components:
     BookingCreate:
       type: object
       required:
-        - branch_id
+        - location_id
         - items
       properties:
-        branch_id:
+        location_id:
           type: string
           format: uuid
         items:
@@ -3311,7 +3311,7 @@ components:
     # ----------------------------------------------------------
     # Search
     # ----------------------------------------------------------
-    BranchSearchResult:
+    LocationSearchResult:
       type: object
       required:
         - data
@@ -3320,11 +3320,11 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/BranchSearchItem'
+            $ref: '#/components/schemas/LocationSearchItem'
         pagination:
           $ref: '#/components/schemas/Pagination'
 
-    BranchSearchItem:
+    LocationSearchItem:
       type: object
       required:
         - id

@@ -10,7 +10,7 @@ import (
 )
 
 // CatalogHandler exposes endpoints for equipment, staff roles, services
-// and branch pivot management.
+// and location pivot management.
 type CatalogItemHandler struct {
 	service *CatalogService
 }
@@ -43,10 +43,10 @@ func (h *CatalogItemHandler) queryUUID(c *gin.Context, key string) (uuid.UUID, b
 func (h *CatalogItemHandler) catalogErr(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrEquipmentNotFound), errors.Is(err, ErrStaffRoleNotFound),
-		errors.Is(err, ErrServiceNotFound), errors.Is(err, ErrBranchItemNotFound),
-		errors.Is(err, ErrBranchNotFound), errors.Is(err, ErrBusinessNotFound):
+		errors.Is(err, ErrServiceNotFound), errors.Is(err, ErrLocationItemNotFound),
+		errors.Is(err, ErrLocationNotFound), errors.Is(err, ErrBusinessNotFound):
 		errResp(c, http.StatusNotFound, "not-found", "Not Found", err.Error())
-	case errors.Is(err, ErrNotProvider), errors.Is(err, ErrNotOwner), errors.Is(err, ErrBranchNotOwner):
+	case errors.Is(err, ErrNotProvider), errors.Is(err, ErrNotOwner), errors.Is(err, ErrLocationNotOwner):
 		errResp(c, http.StatusForbidden, "forbidden", "Forbidden", "You do not own this resource")
 	default:
 		slog.Error("catalog operation", "error", err)
@@ -376,44 +376,44 @@ func (h *CatalogItemHandler) DeleteService(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// ─── Branch pivot handlers ────────────────────────────────────────────────────
+// ─── Location pivot handlers ──────────────────────────────────────────────────
 
-func (h *CatalogItemHandler) branchID(c *gin.Context) (uuid.UUID, bool) {
+func (h *CatalogItemHandler) locationID(c *gin.Context) (uuid.UUID, bool) {
 	return h.pathID(c, "id")
 }
 
-func (h *CatalogItemHandler) ListBranchEquipment(c *gin.Context) {
+func (h *CatalogItemHandler) ListLocationEquipment(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	items, err := h.service.ListBranchEquipment(c.Request.Context(), userID, branchID)
+	items, err := h.service.ListLocationEquipment(c.Request.Context(), userID, locationID)
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
 	resp := make([]gin.H, len(items))
-	for i, be := range items {
-		resp[i] = gin.H{"id": be.ID, "branch_id": be.BranchID, "equipment_id": be.EquipmentID, "equipment_name": be.EquipmentName, "quantity": be.Quantity}
+	for i, le := range items {
+		resp[i] = gin.H{"id": le.ID, "location_id": le.LocationID, "equipment_id": le.EquipmentID, "equipment_name": le.EquipmentName, "quantity": le.Quantity}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-func (h *CatalogItemHandler) AddBranchEquipment(c *gin.Context) {
+func (h *CatalogItemHandler) AddLocationEquipment(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	var req struct {
@@ -425,23 +425,23 @@ func (h *CatalogItemHandler) AddBranchEquipment(c *gin.Context) {
 		return
 	}
 	eqID, _ := uuid.Parse(req.EquipmentID) //nolint:errcheck // binding:"uuid" already validated
-	be, err := h.service.AddBranchEquipment(c.Request.Context(), userID, branchID, BranchEquipmentCreate{EquipmentID: eqID, Quantity: req.Quantity})
+	le, err := h.service.AddLocationEquipment(c.Request.Context(), userID, locationID, LocationEquipmentCreate{EquipmentID: eqID, Quantity: req.Quantity})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": be.ID, "branch_id": be.BranchID, "equipment_id": be.EquipmentID, "equipment_name": be.EquipmentName, "quantity": be.Quantity})
+	c.JSON(http.StatusCreated, gin.H{"id": le.ID, "location_id": le.LocationID, "equipment_id": le.EquipmentID, "equipment_name": le.EquipmentName, "quantity": le.Quantity})
 }
 
-func (h *CatalogItemHandler) RemoveBranchEquipment(c *gin.Context) {
+func (h *CatalogItemHandler) RemoveLocationEquipment(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	itemID, ok := h.pathID(c, "item_id")
@@ -449,45 +449,45 @@ func (h *CatalogItemHandler) RemoveBranchEquipment(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Item ID must be a valid UUID")
 		return
 	}
-	if err := h.service.RemoveBranchEquipment(c.Request.Context(), userID, branchID, itemID); err != nil {
+	if err := h.service.RemoveLocationEquipment(c.Request.Context(), userID, locationID, itemID); err != nil {
 		h.catalogErr(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
 }
 
-func (h *CatalogItemHandler) ListBranchStaffRoles(c *gin.Context) {
+func (h *CatalogItemHandler) ListLocationStaffRoles(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	items, err := h.service.ListBranchStaffRoles(c.Request.Context(), userID, branchID)
+	items, err := h.service.ListLocationStaffRoles(c.Request.Context(), userID, locationID)
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
 	resp := make([]gin.H, len(items))
-	for i, bs := range items {
-		resp[i] = gin.H{"id": bs.ID, "branch_id": bs.BranchID, "staff_role_id": bs.StaffRoleID, "job_title": bs.JobTitle, "quantity": bs.Quantity}
+	for i, ls := range items {
+		resp[i] = gin.H{"id": ls.ID, "location_id": ls.LocationID, "staff_role_id": ls.StaffRoleID, "job_title": ls.JobTitle, "quantity": ls.Quantity}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-func (h *CatalogItemHandler) AddBranchStaffRole(c *gin.Context) {
+func (h *CatalogItemHandler) AddLocationStaffRole(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	var req struct {
@@ -499,23 +499,23 @@ func (h *CatalogItemHandler) AddBranchStaffRole(c *gin.Context) {
 		return
 	}
 	srID, _ := uuid.Parse(req.StaffRoleID) //nolint:errcheck // binding:"uuid" already validated
-	bs, err := h.service.AddBranchStaffRole(c.Request.Context(), userID, branchID, BranchStaffRoleCreate{StaffRoleID: srID, Quantity: req.Quantity})
+	ls, err := h.service.AddLocationStaffRole(c.Request.Context(), userID, locationID, LocationStaffRoleCreate{StaffRoleID: srID, Quantity: req.Quantity})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": bs.ID, "branch_id": bs.BranchID, "staff_role_id": bs.StaffRoleID, "job_title": bs.JobTitle, "quantity": bs.Quantity})
+	c.JSON(http.StatusCreated, gin.H{"id": ls.ID, "location_id": ls.LocationID, "staff_role_id": ls.StaffRoleID, "job_title": ls.JobTitle, "quantity": ls.Quantity})
 }
 
-func (h *CatalogItemHandler) RemoveBranchStaffRole(c *gin.Context) {
+func (h *CatalogItemHandler) RemoveLocationStaffRole(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	itemID, ok := h.pathID(c, "item_id")
@@ -523,45 +523,45 @@ func (h *CatalogItemHandler) RemoveBranchStaffRole(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Item ID must be a valid UUID")
 		return
 	}
-	if err := h.service.RemoveBranchStaffRole(c.Request.Context(), userID, branchID, itemID); err != nil {
+	if err := h.service.RemoveLocationStaffRole(c.Request.Context(), userID, locationID, itemID); err != nil {
 		h.catalogErr(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
 }
 
-func (h *CatalogItemHandler) ListBranchServices(c *gin.Context) {
+func (h *CatalogItemHandler) ListLocationServices(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	items, err := h.service.ListBranchServices(c.Request.Context(), userID, branchID)
+	items, err := h.service.ListLocationServices(c.Request.Context(), userID, locationID)
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
 	resp := make([]gin.H, len(items))
-	for i, bs := range items {
-		resp[i] = gin.H{"id": bs.ID, "branch_id": bs.BranchID, "service_id": bs.ServiceID, "is_active": bs.IsActive, "service": toServiceResp(bs.ServiceItem)}
+	for i, ls := range items {
+		resp[i] = gin.H{"id": ls.ID, "location_id": ls.LocationID, "service_id": ls.ServiceID, "is_active": ls.IsActive, "service": toServiceResp(ls.ServiceItem)}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-func (h *CatalogItemHandler) AddBranchService(c *gin.Context) {
+func (h *CatalogItemHandler) AddLocationService(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	var req struct {
@@ -572,23 +572,23 @@ func (h *CatalogItemHandler) AddBranchService(c *gin.Context) {
 		return
 	}
 	svcID, _ := uuid.Parse(req.ServiceID) //nolint:errcheck // binding:"uuid" already validated
-	bs, err := h.service.AddBranchService(c.Request.Context(), userID, branchID, BranchServiceItemCreate{ServiceID: svcID})
+	ls, err := h.service.AddLocationService(c.Request.Context(), userID, locationID, LocationServiceItemCreate{ServiceID: svcID})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": bs.ID, "branch_id": bs.BranchID, "service_id": bs.ServiceID, "is_active": bs.IsActive, "service": toServiceResp(bs.ServiceItem)})
+	c.JSON(http.StatusCreated, gin.H{"id": ls.ID, "location_id": ls.LocationID, "service_id": ls.ServiceID, "is_active": ls.IsActive, "service": toServiceResp(ls.ServiceItem)})
 }
 
-func (h *CatalogItemHandler) RemoveBranchService(c *gin.Context) {
+func (h *CatalogItemHandler) RemoveLocationService(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	branchID, ok := h.branchID(c)
+	locationID, ok := h.locationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	itemID, ok := h.pathID(c, "item_id")
@@ -596,7 +596,7 @@ func (h *CatalogItemHandler) RemoveBranchService(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Item ID must be a valid UUID")
 		return
 	}
-	if err := h.service.RemoveBranchService(c.Request.Context(), userID, branchID, itemID); err != nil {
+	if err := h.service.RemoveLocationService(c.Request.Context(), userID, locationID, itemID); err != nil {
 		h.catalogErr(c, err)
 		return
 	}

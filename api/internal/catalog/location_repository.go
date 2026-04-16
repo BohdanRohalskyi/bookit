@@ -10,59 +10,59 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type BranchRepository struct {
+type LocationRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewBranchRepository(db *pgxpool.Pool) *BranchRepository {
-	return &BranchRepository{db: db}
+func NewLocationRepository(db *pgxpool.Pool) *LocationRepository {
+	return &LocationRepository{db: db}
 }
 
-func scanBranch(row pgx.Row) (Branch, error) {
-	var b Branch
+func scanLocation(row pgx.Row) (Location, error) {
+	var l Location
 	err := row.Scan(
-		&b.ID, &b.BusinessID, &b.Name, &b.Address, &b.City, &b.Country,
-		&b.Phone, &b.Email, &b.Lat, &b.Lng, &b.Timezone, &b.IsActive,
-		&b.CreatedAt, &b.UpdatedAt,
+		&l.ID, &l.BusinessID, &l.Name, &l.Address, &l.City, &l.Country,
+		&l.Phone, &l.Email, &l.Lat, &l.Lng, &l.Timezone, &l.IsActive,
+		&l.CreatedAt, &l.UpdatedAt,
 	)
-	return b, err
+	return l, err
 }
 
-func (r *BranchRepository) Create(ctx context.Context, req BranchCreate) (Branch, error) {
+func (r *LocationRepository) Create(ctx context.Context, req LocationCreate) (Location, error) {
 	tz := req.Timezone
 	if tz == "" {
 		tz = "Europe/Vilnius"
 	}
 	row := r.db.QueryRow(ctx, `
-		INSERT INTO branches (business_id, name, address, city, country, phone, email, lat, lng, timezone)
+		INSERT INTO locations (business_id, name, address, city, country, phone, email, lat, lng, timezone)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		RETURNING id, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
 	`, req.BusinessID, req.Name, req.Address, req.City, req.Country,
 		req.Phone, req.Email, req.Lat, req.Lng, tz)
-	return scanBranch(row)
+	return scanLocation(row)
 }
 
-func (r *BranchRepository) GetByID(ctx context.Context, id uuid.UUID) (Branch, error) {
+func (r *LocationRepository) GetByID(ctx context.Context, id uuid.UUID) (Location, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
-		FROM branches WHERE id = $1
+		FROM locations WHERE id = $1
 	`, id)
-	b, err := scanBranch(row)
+	l, err := scanLocation(row)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Branch{}, ErrBranchNotFound
+		return Location{}, ErrLocationNotFound
 	}
-	return b, err
+	return l, err
 }
 
-func (r *BranchRepository) ListByBusinessID(ctx context.Context, businessID uuid.UUID, page, perPage int) ([]Branch, int, error) {
+func (r *LocationRepository) ListByBusinessID(ctx context.Context, businessID uuid.UUID, page, perPage int) ([]Location, int, error) {
 	offset := (page - 1) * perPage
 	var total int
-	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM branches WHERE business_id = $1`, businessID).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM locations WHERE business_id = $1`, businessID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	rows, err := r.db.Query(ctx, `
 		SELECT id, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
-		FROM branches WHERE business_id = $1
+		FROM locations WHERE business_id = $1
 		ORDER BY created_at ASC
 		LIMIT $2 OFFSET $3
 	`, businessID, perPage, offset)
@@ -70,23 +70,23 @@ func (r *BranchRepository) ListByBusinessID(ctx context.Context, businessID uuid
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var branches []Branch
+	var locations []Location
 	for rows.Next() {
-		b, err := scanBranch(rows)
+		l, err := scanLocation(rows)
 		if err != nil {
 			return nil, 0, err
 		}
-		branches = append(branches, b)
+		locations = append(locations, l)
 	}
-	if branches == nil {
-		branches = []Branch{}
+	if locations == nil {
+		locations = []Location{}
 	}
-	return branches, total, rows.Err()
+	return locations, total, rows.Err()
 }
 
-func (r *BranchRepository) Update(ctx context.Context, id uuid.UUID, req BranchUpdate) (Branch, error) {
+func (r *LocationRepository) Update(ctx context.Context, id uuid.UUID, req LocationUpdate) (Location, error) {
 	row := r.db.QueryRow(ctx, `
-		UPDATE branches SET
+		UPDATE locations SET
 			name      = COALESCE($2, name),
 			address   = COALESCE($3, address),
 			city      = COALESCE($4, city),
@@ -101,40 +101,40 @@ func (r *BranchRepository) Update(ctx context.Context, id uuid.UUID, req BranchU
 		WHERE id = $1
 		RETURNING id, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
 	`, id, req.Name, req.Address, req.City, req.Country, req.Phone, req.Email, req.Lat, req.Lng, req.Timezone, req.IsActive)
-	b, err := scanBranch(row)
+	l, err := scanLocation(row)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Branch{}, ErrBranchNotFound
+		return Location{}, ErrLocationNotFound
 	}
-	return b, err
+	return l, err
 }
 
-func (r *BranchRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	result, err := r.db.Exec(ctx, `DELETE FROM branches WHERE id = $1`, id)
+func (r *LocationRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	result, err := r.db.Exec(ctx, `DELETE FROM locations WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return ErrBranchNotFound
+		return ErrLocationNotFound
 	}
 	return nil
 }
 
 // GetOwnerBusinessID returns the business_id for ownership checks.
-func (r *BranchRepository) GetOwnerBusinessID(ctx context.Context, branchID uuid.UUID) (uuid.UUID, error) {
+func (r *LocationRepository) GetOwnerBusinessID(ctx context.Context, locationID uuid.UUID) (uuid.UUID, error) {
 	var businessID uuid.UUID
-	err := r.db.QueryRow(ctx, `SELECT business_id FROM branches WHERE id = $1`, branchID).Scan(&businessID)
+	err := r.db.QueryRow(ctx, `SELECT business_id FROM locations WHERE id = $1`, locationID).Scan(&businessID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrBranchNotFound
+		return uuid.Nil, ErrLocationNotFound
 	}
 	return businessID, err
 }
 
 // ─── Schedule ─────────────────────────────────────────────────────────────────
 
-// GetOrCreateSchedule returns the schedule for a branch, creating it if missing.
-func (r *BranchRepository) GetOrCreateSchedule(ctx context.Context, branchID uuid.UUID) (uuid.UUID, error) {
+// GetOrCreateSchedule returns the schedule for a location, creating it if missing.
+func (r *LocationRepository) GetOrCreateSchedule(ctx context.Context, locationID uuid.UUID) (uuid.UUID, error) {
 	var schedID uuid.UUID
-	err := r.db.QueryRow(ctx, `SELECT id FROM schedules WHERE branch_id = $1`, branchID).Scan(&schedID)
+	err := r.db.QueryRow(ctx, `SELECT id FROM schedules WHERE location_id = $1`, locationID).Scan(&schedID)
 	if err == nil {
 		return schedID, nil
 	}
@@ -148,7 +148,7 @@ func (r *BranchRepository) GetOrCreateSchedule(ctx context.Context, branchID uui
 	}
 	defer func() { _ = tx.Rollback(ctx) }() //nolint:errcheck
 
-	if err := tx.QueryRow(ctx, `INSERT INTO schedules (branch_id) VALUES ($1) RETURNING id`, branchID).Scan(&schedID); err != nil {
+	if err := tx.QueryRow(ctx, `INSERT INTO schedules (location_id) VALUES ($1) RETURNING id`, locationID).Scan(&schedID); err != nil {
 		return uuid.Nil, err
 	}
 	for day := 0; day <= 6; day++ {
@@ -159,8 +159,8 @@ func (r *BranchRepository) GetOrCreateSchedule(ctx context.Context, branchID uui
 	return schedID, tx.Commit(ctx)
 }
 
-func (r *BranchRepository) GetSchedule(ctx context.Context, branchID uuid.UUID) (Schedule, error) {
-	schedID, err := r.GetOrCreateSchedule(ctx, branchID)
+func (r *LocationRepository) GetSchedule(ctx context.Context, locationID uuid.UUID) (Schedule, error) {
+	schedID, err := r.GetOrCreateSchedule(ctx, locationID)
 	if err != nil {
 		return Schedule{}, err
 	}
@@ -191,11 +191,11 @@ func (r *BranchRepository) GetSchedule(ctx context.Context, branchID uuid.UUID) 
 		return Schedule{}, err
 	}
 
-	return Schedule{ID: schedID, BranchID: branchID, Days: days, Exceptions: exceptions}, nil
+	return Schedule{ID: schedID, LocationID: locationID, Days: days, Exceptions: exceptions}, nil
 }
 
-func (r *BranchRepository) UpsertScheduleDays(ctx context.Context, branchID uuid.UUID, inputs []ScheduleDayInput) (Schedule, error) {
-	schedID, err := r.GetOrCreateSchedule(ctx, branchID)
+func (r *LocationRepository) UpsertScheduleDays(ctx context.Context, locationID uuid.UUID, inputs []ScheduleDayInput) (Schedule, error) {
+	schedID, err := r.GetOrCreateSchedule(ctx, locationID)
 	if err != nil {
 		return Schedule{}, err
 	}
@@ -214,10 +214,10 @@ func (r *BranchRepository) UpsertScheduleDays(ctx context.Context, branchID uuid
 	if _, err := r.db.Exec(ctx, `UPDATE schedules SET updated_at=NOW() WHERE id=$1`, schedID); err != nil {
 		return Schedule{}, err
 	}
-	return r.GetSchedule(ctx, branchID)
+	return r.GetSchedule(ctx, locationID)
 }
 
-func (r *BranchRepository) listExceptions(ctx context.Context, schedID uuid.UUID) ([]ScheduleException, error) {
+func (r *LocationRepository) listExceptions(ctx context.Context, schedID uuid.UUID) ([]ScheduleException, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, schedule_id, date::text, is_closed, open_time::text, close_time::text, reason, created_at
 		FROM schedule_exceptions WHERE schedule_id = $1 AND date >= CURRENT_DATE ORDER BY date
@@ -240,16 +240,16 @@ func (r *BranchRepository) listExceptions(ctx context.Context, schedID uuid.UUID
 	return exceptions, rows.Err()
 }
 
-func (r *BranchRepository) ListExceptions(ctx context.Context, branchID uuid.UUID) ([]ScheduleException, error) {
-	schedID, err := r.GetOrCreateSchedule(ctx, branchID)
+func (r *LocationRepository) ListExceptions(ctx context.Context, locationID uuid.UUID) ([]ScheduleException, error) {
+	schedID, err := r.GetOrCreateSchedule(ctx, locationID)
 	if err != nil {
 		return nil, err
 	}
 	return r.listExceptions(ctx, schedID)
 }
 
-func (r *BranchRepository) CreateException(ctx context.Context, branchID uuid.UUID, req ScheduleExceptionCreate) (ScheduleException, error) {
-	schedID, err := r.GetOrCreateSchedule(ctx, branchID)
+func (r *LocationRepository) CreateException(ctx context.Context, locationID uuid.UUID, req ScheduleExceptionCreate) (ScheduleException, error) {
+	schedID, err := r.GetOrCreateSchedule(ctx, locationID)
 	if err != nil {
 		return ScheduleException{}, err
 	}
@@ -269,73 +269,72 @@ func (r *BranchRepository) CreateException(ctx context.Context, branchID uuid.UU
 	if err != nil {
 		return ScheduleException{}, err
 	}
-	e.BranchID = branchID
+	e.LocationID = locationID
 	return e, nil
 }
 
-func (r *BranchRepository) DeleteException(ctx context.Context, exceptionID uuid.UUID) error {
+func (r *LocationRepository) DeleteException(ctx context.Context, exceptionID uuid.UUID) error {
 	result, err := r.db.Exec(ctx, `DELETE FROM schedule_exceptions WHERE id = $1`, exceptionID)
 	if err != nil {
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return ErrBranchNotFound
+		return ErrLocationNotFound
 	}
 	return nil
 }
 
 // ─── Photos ───────────────────────────────────────────────────────────────────
 
-func (r *BranchRepository) ListPhotos(ctx context.Context, branchID uuid.UUID) ([]BranchPhoto, error) {
+func (r *LocationRepository) ListPhotos(ctx context.Context, locationID uuid.UUID) ([]LocationPhoto, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, branch_id, url, display_order, created_at
-		FROM branch_photos WHERE branch_id = $1 ORDER BY display_order, created_at
-	`, branchID)
+		SELECT id, location_id, url, display_order, created_at
+		FROM location_photos WHERE location_id = $1 ORDER BY display_order, created_at
+	`, locationID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var photos []BranchPhoto
+	var photos []LocationPhoto
 	for rows.Next() {
-		var p BranchPhoto
-		if err := rows.Scan(&p.ID, &p.BranchID, &p.URL, &p.DisplayOrder, &p.CreatedAt); err != nil {
+		var p LocationPhoto
+		if err := rows.Scan(&p.ID, &p.LocationID, &p.URL, &p.DisplayOrder, &p.CreatedAt); err != nil {
 			return nil, err
 		}
 		photos = append(photos, p)
 	}
 	if photos == nil {
-		photos = []BranchPhoto{}
+		photos = []LocationPhoto{}
 	}
 	return photos, rows.Err()
 }
 
-func (r *BranchRepository) CreatePhoto(ctx context.Context, branchID uuid.UUID, url string) (BranchPhoto, error) {
-	var p BranchPhoto
+func (r *LocationRepository) CreatePhoto(ctx context.Context, locationID uuid.UUID, url string) (LocationPhoto, error) {
+	var p LocationPhoto
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO branch_photos (branch_id, url, display_order)
-		VALUES ($1, $2, (SELECT COALESCE(MAX(display_order)+1, 0) FROM branch_photos WHERE branch_id = $1))
-		RETURNING id, branch_id, url, display_order, created_at
-	`, branchID, url).Scan(&p.ID, &p.BranchID, &p.URL, &p.DisplayOrder, &p.CreatedAt)
+		INSERT INTO location_photos (location_id, url, display_order)
+		VALUES ($1, $2, (SELECT COALESCE(MAX(display_order)+1, 0) FROM location_photos WHERE location_id = $1))
+		RETURNING id, location_id, url, display_order, created_at
+	`, locationID, url).Scan(&p.ID, &p.LocationID, &p.URL, &p.DisplayOrder, &p.CreatedAt)
 	return p, err
 }
 
-func (r *BranchRepository) DeletePhoto(ctx context.Context, photoID uuid.UUID) error {
-	result, err := r.db.Exec(ctx, `DELETE FROM branch_photos WHERE id = $1`, photoID)
+func (r *LocationRepository) DeletePhoto(ctx context.Context, photoID uuid.UUID) error {
+	result, err := r.db.Exec(ctx, `DELETE FROM location_photos WHERE id = $1`, photoID)
 	if err != nil {
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return ErrBranchNotFound
+		return ErrLocationNotFound
 	}
 	return nil
-
 }
 
-func (r *BranchRepository) GetPhotoOwnerBranchID(ctx context.Context, photoID uuid.UUID) (uuid.UUID, error) {
-	var branchID uuid.UUID
-	err := r.db.QueryRow(ctx, `SELECT branch_id FROM branch_photos WHERE id = $1`, photoID).Scan(&branchID)
+func (r *LocationRepository) GetPhotoOwnerLocationID(ctx context.Context, photoID uuid.UUID) (uuid.UUID, error) {
+	var locationID uuid.UUID
+	err := r.db.QueryRow(ctx, `SELECT location_id FROM location_photos WHERE id = $1`, photoID).Scan(&locationID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrBranchNotFound
+		return uuid.Nil, ErrLocationNotFound
 	}
-	return branchID, err
+	return locationID, err
 }

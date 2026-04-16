@@ -14,18 +14,18 @@ import (
 
 const maxPhotoSize = 10 << 20 // 10 MB
 
-// BranchHandler exposes Gin handler methods for branches, schedules, and photos.
-type BranchHandler struct {
-	service *BranchService
+// LocationHandler exposes Gin handler methods for locations, schedules, and photos.
+type LocationHandler struct {
+	service *LocationService
 }
 
-func NewBranchHandler(service *BranchService) *BranchHandler {
-	return &BranchHandler{service: service}
+func NewLocationHandler(service *LocationService) *LocationHandler {
+	return &LocationHandler{service: service}
 }
 
 // ─── Request types ─────────────────────────────────────────────────────────────
 
-type CreateBranchRequest struct {
+type CreateLocationRequest struct {
 	BusinessID string   `json:"business_id" binding:"required,uuid"`
 	Name       string   `json:"name"        binding:"required,min=1,max=100"`
 	Address    string   `json:"address"     binding:"required,max=200"`
@@ -38,7 +38,7 @@ type CreateBranchRequest struct {
 	Timezone   string   `json:"timezone"`
 }
 
-type UpdateBranchRequest struct {
+type UpdateLocationRequest struct {
 	Name     *string  `json:"name"`
 	Address  *string  `json:"address"`
 	City     *string  `json:"city"`
@@ -72,7 +72,7 @@ type CreateExceptionRequest struct {
 
 // ─── Response types ────────────────────────────────────────────────────────────
 
-type BranchResponse struct {
+type LocationResponse struct {
 	ID         string   `json:"id"`
 	BusinessID string   `json:"business_id"`
 	Name       string   `json:"name"`
@@ -89,8 +89,8 @@ type BranchResponse struct {
 	UpdatedAt  string   `json:"updated_at"`
 }
 
-type BranchListResponse struct {
-	Data       []BranchResponse   `json:"data"`
+type LocationListResponse struct {
+	Data       []LocationResponse `json:"data"`
 	Pagination PaginationResponse `json:"pagination"`
 }
 
@@ -103,25 +103,25 @@ type ScheduleDayResponse struct {
 }
 
 type ScheduleExceptionResponse struct {
-	ID        string  `json:"id"`
-	BranchID  string  `json:"branch_id"`
-	Date      string  `json:"date"`
-	IsClosed  bool    `json:"is_closed"`
-	OpenTime  *string `json:"open_time"`
-	CloseTime *string `json:"close_time"`
-	Reason    *string `json:"reason"`
-	CreatedAt string  `json:"created_at"`
+	ID         string  `json:"id"`
+	LocationID string  `json:"location_id"`
+	Date       string  `json:"date"`
+	IsClosed   bool    `json:"is_closed"`
+	OpenTime   *string `json:"open_time"`
+	CloseTime  *string `json:"close_time"`
+	Reason     *string `json:"reason"`
+	CreatedAt  string  `json:"created_at"`
 }
 
 type ScheduleResponse struct {
-	BranchID   string                      `json:"branch_id"`
+	LocationID string                      `json:"location_id"`
 	Days       []ScheduleDayResponse       `json:"days"`
 	Exceptions []ScheduleExceptionResponse `json:"exceptions"`
 }
 
-type BranchPhotoResponse struct {
+type LocationPhotoResponse struct {
 	ID           string `json:"id"`
-	BranchID     string `json:"branch_id"`
+	LocationID   string `json:"location_id"`
 	URL          string `json:"url"`
 	DisplayOrder int    `json:"display_order"`
 	CreatedAt    string `json:"created_at"`
@@ -129,22 +129,22 @@ type BranchPhotoResponse struct {
 
 // ─── Converters ───────────────────────────────────────────────────────────────
 
-func toBranchResponse(b Branch) BranchResponse {
-	return BranchResponse{
-		ID:         b.ID.String(),
-		BusinessID: b.BusinessID.String(),
-		Name:       b.Name,
-		Address:    b.Address,
-		City:       b.City,
-		Country:    b.Country,
-		Phone:      b.Phone,
-		Email:      b.Email,
-		Lat:        b.Lat,
-		Lng:        b.Lng,
-		Timezone:   b.Timezone,
-		IsActive:   b.IsActive,
-		CreatedAt:  b.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:  b.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+func toLocationResponse(l Location) LocationResponse {
+	return LocationResponse{
+		ID:         l.ID.String(),
+		BusinessID: l.BusinessID.String(),
+		Name:       l.Name,
+		Address:    l.Address,
+		City:       l.City,
+		Country:    l.Country,
+		Phone:      l.Phone,
+		Email:      l.Email,
+		Lat:        l.Lat,
+		Lng:        l.Lng,
+		Timezone:   l.Timezone,
+		IsActive:   l.IsActive,
+		CreatedAt:  l.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:  l.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
 
@@ -162,23 +162,23 @@ func toScheduleResponse(s Schedule) ScheduleResponse {
 	exceptions := make([]ScheduleExceptionResponse, len(s.Exceptions))
 	for i, e := range s.Exceptions {
 		exceptions[i] = ScheduleExceptionResponse{
-			ID:        e.ID.String(),
-			BranchID:  e.BranchID.String(),
-			Date:      e.Date,
-			IsClosed:  e.IsClosed,
-			OpenTime:  e.OpenTime,
-			CloseTime: e.CloseTime,
-			Reason:    e.Reason,
-			CreatedAt: e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+			ID:         e.ID.String(),
+			LocationID: e.LocationID.String(),
+			Date:       e.Date,
+			IsClosed:   e.IsClosed,
+			OpenTime:   e.OpenTime,
+			CloseTime:  e.CloseTime,
+			Reason:     e.Reason,
+			CreatedAt:  e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		}
 	}
-	return ScheduleResponse{BranchID: s.BranchID.String(), Days: days, Exceptions: exceptions}
+	return ScheduleResponse{LocationID: s.LocationID.String(), Days: days, Exceptions: exceptions}
 }
 
-func toPhotoResponse(p BranchPhoto) BranchPhotoResponse {
-	return BranchPhotoResponse{
+func toPhotoResponse(p LocationPhoto) LocationPhotoResponse {
+	return LocationPhotoResponse{
 		ID:           p.ID.String(),
-		BranchID:     p.BranchID.String(),
+		LocationID:   p.LocationID.String(),
 		URL:          p.URL,
 		DisplayOrder: p.DisplayOrder,
 		CreatedAt:    p.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
@@ -187,7 +187,7 @@ func toPhotoResponse(p BranchPhoto) BranchPhotoResponse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-func (h *BranchHandler) branchUserID(c *gin.Context) (uuid.UUID, bool) {
+func (h *LocationHandler) locationUserID(c *gin.Context) (uuid.UUID, bool) {
 	v, exists := c.Get(contextKeyUserID)
 	if !exists {
 		return uuid.Nil, false
@@ -196,29 +196,29 @@ func (h *BranchHandler) branchUserID(c *gin.Context) (uuid.UUID, bool) {
 	return id, ok
 }
 
-func (h *BranchHandler) parseBranchID(c *gin.Context) (uuid.UUID, bool) {
+func (h *LocationHandler) parseLocationID(c *gin.Context) (uuid.UUID, bool) {
 	id, err := uuid.Parse(c.Param("id"))
 	return id, err == nil
 }
 
-func (h *BranchHandler) branchErrResp(c *gin.Context, err error) {
+func (h *LocationHandler) locationErrResp(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, ErrBranchNotFound):
-		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Branch not found")
-	case errors.Is(err, ErrBranchNotOwner), errors.Is(err, ErrNotProvider), errors.Is(err, ErrNotOwner):
-		errResp(c, http.StatusForbidden, "forbidden", "Forbidden", "You do not own this branch")
+	case errors.Is(err, ErrLocationNotFound):
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Location not found")
+	case errors.Is(err, ErrLocationNotOwner), errors.Is(err, ErrNotProvider), errors.Is(err, ErrNotOwner):
+		errResp(c, http.StatusForbidden, "forbidden", "Forbidden", "You do not own this location")
 	case errors.Is(err, ErrBusinessNotFound):
 		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
 	default:
-		slog.Error("branch operation", "error", err)
+		slog.Error("location operation", "error", err)
 		errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
 	}
 }
 
-// ─── Branch CRUD ──────────────────────────────────────────────────────────────
+// ─── Location CRUD ──────────────────────────────────────────────────────────────
 
-func (h *BranchHandler) ListBranches(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) ListLocations(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
@@ -236,16 +236,16 @@ func (h *BranchHandler) ListBranches(c *gin.Context) {
 	if perPage < 1 || perPage > 100 {
 		perPage = 20
 	}
-	branches, total, err := h.service.ListBranches(c.Request.Context(), userID, businessID, page, perPage)
+	locations, total, err := h.service.ListLocations(c.Request.Context(), userID, businessID, page, perPage)
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
-	items := make([]BranchResponse, len(branches))
-	for i, b := range branches {
-		items[i] = toBranchResponse(b)
+	items := make([]LocationResponse, len(locations))
+	for i, l := range locations {
+		items[i] = toLocationResponse(l)
 	}
-	c.JSON(http.StatusOK, BranchListResponse{
+	c.JSON(http.StatusOK, LocationListResponse{
 		Data: items,
 		Pagination: PaginationResponse{
 			Total: total, Page: page, PerPage: perPage,
@@ -254,13 +254,13 @@ func (h *BranchHandler) ListBranches(c *gin.Context) {
 	})
 }
 
-func (h *BranchHandler) CreateBranch(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) CreateLocation(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	var req CreateBranchRequest
+	var req CreateLocationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
@@ -274,7 +274,7 @@ func (h *BranchHandler) CreateBranch(c *gin.Context) {
 	if tz == "" {
 		tz = "Europe/Vilnius"
 	}
-	b, err := h.service.CreateBranch(c.Request.Context(), userID, BranchCreate{
+	l, err := h.service.CreateLocation(c.Request.Context(), userID, LocationCreate{
 		BusinessID: businessID,
 		Name:       req.Name,
 		Address:    req.Address,
@@ -287,68 +287,68 @@ func (h *BranchHandler) CreateBranch(c *gin.Context) {
 		Timezone:   tz,
 	})
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, toBranchResponse(b))
+	c.JSON(http.StatusCreated, toLocationResponse(l))
 }
 
-func (h *BranchHandler) GetBranch(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) GetLocation(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	b, err := h.service.GetBranch(c.Request.Context(), id, userID)
+	l, err := h.service.GetLocation(c.Request.Context(), id, userID)
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toBranchResponse(b))
+	c.JSON(http.StatusOK, toLocationResponse(l))
 }
 
-func (h *BranchHandler) UpdateBranch(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) UpdateLocation(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	var req UpdateBranchRequest
+	var req UpdateLocationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	b, err := h.service.UpdateBranch(c.Request.Context(), id, userID, BranchUpdate(req))
+	l, err := h.service.UpdateLocation(c.Request.Context(), id, userID, LocationUpdate(req))
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toBranchResponse(b))
+	c.JSON(http.StatusOK, toLocationResponse(l))
 }
 
-func (h *BranchHandler) DeleteBranch(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) DeleteLocation(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	if err := h.service.DeleteBranch(c.Request.Context(), id, userID); err != nil {
-		h.branchErrResp(c, err)
+	if err := h.service.DeleteLocation(c.Request.Context(), id, userID); err != nil {
+		h.locationErrResp(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -356,34 +356,34 @@ func (h *BranchHandler) DeleteBranch(c *gin.Context) {
 
 // ─── Schedule handlers ─────────────────────────────────────────────────────────
 
-func (h *BranchHandler) GetSchedule(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) GetSchedule(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	s, err := h.service.GetSchedule(c.Request.Context(), id, userID)
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, toScheduleResponse(s))
 }
 
-func (h *BranchHandler) UpsertScheduleDays(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) UpsertScheduleDays(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	var req UpsertScheduleDaysRequest
@@ -397,53 +397,53 @@ func (h *BranchHandler) UpsertScheduleDays(c *gin.Context) {
 	}
 	s, err := h.service.UpsertScheduleDays(c.Request.Context(), id, userID, inputs)
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, toScheduleResponse(s))
 }
 
-func (h *BranchHandler) ListExceptions(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) ListExceptions(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	exceptions, err := h.service.ListExceptions(c.Request.Context(), id, userID)
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
 	items := make([]ScheduleExceptionResponse, len(exceptions))
 	for i, e := range exceptions {
 		items[i] = ScheduleExceptionResponse{
-			ID:        e.ID.String(),
-			BranchID:  id.String(),
-			Date:      e.Date,
-			IsClosed:  e.IsClosed,
-			OpenTime:  e.OpenTime,
-			CloseTime: e.CloseTime,
-			Reason:    e.Reason,
-			CreatedAt: e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+			ID:         e.ID.String(),
+			LocationID: id.String(),
+			Date:       e.Date,
+			IsClosed:   e.IsClosed,
+			OpenTime:   e.OpenTime,
+			CloseTime:  e.CloseTime,
+			Reason:     e.Reason,
+			CreatedAt:  e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": items})
 }
 
-func (h *BranchHandler) CreateException(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) CreateException(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	var req CreateExceptionRequest
@@ -453,30 +453,30 @@ func (h *BranchHandler) CreateException(c *gin.Context) {
 	}
 	e, err := h.service.CreateException(c.Request.Context(), id, userID, ScheduleExceptionCreate(req))
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, ScheduleExceptionResponse{
-		ID:        e.ID.String(),
-		BranchID:  id.String(),
-		Date:      e.Date,
-		IsClosed:  e.IsClosed,
-		OpenTime:  e.OpenTime,
-		CloseTime: e.CloseTime,
-		Reason:    e.Reason,
-		CreatedAt: e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		ID:         e.ID.String(),
+		LocationID: id.String(),
+		Date:       e.Date,
+		IsClosed:   e.IsClosed,
+		OpenTime:   e.OpenTime,
+		CloseTime:  e.CloseTime,
+		Reason:     e.Reason,
+		CreatedAt:  e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	})
 }
 
-func (h *BranchHandler) DeleteException(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) DeleteException(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	exceptionID, err := uuid.Parse(c.Param("exception_id"))
@@ -485,7 +485,7 @@ func (h *BranchHandler) DeleteException(c *gin.Context) {
 		return
 	}
 	if err := h.service.DeleteException(c.Request.Context(), id, exceptionID, userID); err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -493,38 +493,38 @@ func (h *BranchHandler) DeleteException(c *gin.Context) {
 
 // ─── Photo handlers ────────────────────────────────────────────────────────────
 
-func (h *BranchHandler) ListPhotos(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) ListPhotos(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	photos, err := h.service.ListPhotos(c.Request.Context(), id, userID)
 	if err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
-	items := make([]BranchPhotoResponse, len(photos))
+	items := make([]LocationPhotoResponse, len(photos))
 	for i, p := range photos {
 		items[i] = toPhotoResponse(p)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": items})
 }
 
-func (h *BranchHandler) UploadPhoto(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) UploadPhoto(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	file, header, err := c.Request.FormFile("file")
@@ -562,22 +562,22 @@ func (h *BranchHandler) UploadPhoto(c *gin.Context) {
 		case errors.Is(err, ErrStorageNotConfigured):
 			errResp(c, http.StatusServiceUnavailable, "storage-unavailable", "Storage Unavailable", "Photo upload is not available in this environment")
 		default:
-			h.branchErrResp(c, err)
+			h.locationErrResp(c, err)
 		}
 		return
 	}
 	c.JSON(http.StatusCreated, toPhotoResponse(p))
 }
 
-func (h *BranchHandler) DeletePhoto(c *gin.Context) {
-	userID, ok := h.branchUserID(c)
+func (h *LocationHandler) DeletePhoto(c *gin.Context) {
+	userID, ok := h.locationUserID(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseBranchID(c)
+	id, ok := h.parseLocationID(c)
 	if !ok {
-		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Branch ID must be a valid UUID")
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
 	photoID, err := uuid.Parse(c.Param("photo_id"))
@@ -586,7 +586,7 @@ func (h *BranchHandler) DeletePhoto(c *gin.Context) {
 		return
 	}
 	if err := h.service.DeletePhoto(c.Request.Context(), id, photoID, userID); err != nil {
-		h.branchErrResp(c, err)
+		h.locationErrResp(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)

@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	ErrEquipmentNotFound  = errors.New("equipment not found")
-	ErrStaffRoleNotFound  = errors.New("staff role not found")
-	ErrServiceNotFound    = errors.New("service not found")
-	ErrBranchItemNotFound = errors.New("branch item not found")
+	ErrEquipmentNotFound    = errors.New("equipment not found")
+	ErrStaffRoleNotFound    = errors.New("staff role not found")
+	ErrServiceNotFound      = errors.New("service not found")
+	ErrLocationItemNotFound = errors.New("location item not found")
 )
 
 // ─── Equipment ────────────────────────────────────────────────────────────────
@@ -87,42 +87,42 @@ type ServiceItemCreate struct {
 	StaffReqs       []ServiceCreateReqItem
 }
 
-// ─── Branch pivots ────────────────────────────────────────────────────────────
+// ─── Location pivots ──────────────────────────────────────────────────────────
 
-type BranchEquipment struct {
+type LocationEquipment struct {
 	ID            uuid.UUID
-	BranchID      uuid.UUID
+	LocationID    uuid.UUID
 	EquipmentID   uuid.UUID
 	EquipmentName string
 	Quantity      int
 }
 
-type BranchEquipmentCreate struct {
+type LocationEquipmentCreate struct {
 	EquipmentID uuid.UUID
 	Quantity    int
 }
 
-type BranchStaffRole struct {
+type LocationStaffRole struct {
 	ID          uuid.UUID
-	BranchID    uuid.UUID
+	LocationID  uuid.UUID
 	StaffRoleID uuid.UUID
 	JobTitle    string
 	Quantity    int
 }
 
-type BranchStaffRoleCreate struct {
+type LocationStaffRoleCreate struct {
 	StaffRoleID uuid.UUID
 	Quantity    int
 }
 
-type BranchServiceItem struct {
+type LocationServiceItem struct {
 	ID          uuid.UUID
-	BranchID    uuid.UUID
+	LocationID  uuid.UUID
 	ServiceID   uuid.UUID
 	IsActive    bool
 	ServiceItem ServiceItem
 }
 
-type BranchServiceItemCreate struct {
+type LocationServiceItemCreate struct {
 	ServiceID uuid.UUID
 }

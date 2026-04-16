@@ -9,16 +9,16 @@ import (
 )
 
 // CatalogService handles ownership and business logic for business-level catalog
-// entities (equipment, staff roles, services) and branch-level pivot tables.
+// entities (equipment, staff roles, services) and location-level pivot tables.
 type CatalogService struct {
 	repo         *CatalogRepository
 	bizRepo      *Repository
 	identityRepo *identity.Repository
-	branchRepo   *BranchRepository
+	locationRepo *LocationRepository
 }
 
-func NewCatalogService(repo *CatalogRepository, bizRepo *Repository, identityRepo *identity.Repository, branchRepo *BranchRepository) *CatalogService {
-	return &CatalogService{repo: repo, bizRepo: bizRepo, identityRepo: identityRepo, branchRepo: branchRepo}
+func NewCatalogService(repo *CatalogRepository, bizRepo *Repository, identityRepo *identity.Repository, locationRepo *LocationRepository) *CatalogService {
+	return &CatalogService{repo: repo, bizRepo: bizRepo, identityRepo: identityRepo, locationRepo: locationRepo}
 }
 
 // ownsBusinessID verifies the user is a provider who owns the given business.
@@ -37,11 +37,11 @@ func (s *CatalogService) ownsBusinessID(ctx context.Context, userID, businessID 
 	return nil
 }
 
-// ownsBranchID verifies the user owns the branch's parent business.
-func (s *CatalogService) ownsBranchID(ctx context.Context, userID, branchID uuid.UUID) error {
-	businessID, err := s.branchRepo.GetOwnerBusinessID(ctx, branchID)
+// ownsLocationID verifies the user owns the location's parent business.
+func (s *CatalogService) ownsLocationID(ctx context.Context, userID, locationID uuid.UUID) error {
+	businessID, err := s.locationRepo.GetOwnerBusinessID(ctx, locationID)
 	if err != nil {
-		return ErrBranchNotFound
+		return ErrLocationNotFound
 	}
 	return s.ownsBusinessID(ctx, userID, businessID)
 }
@@ -128,88 +128,88 @@ func (s *CatalogService) DeleteService(ctx context.Context, userID, id uuid.UUID
 	return s.repo.DeleteService(ctx, id)
 }
 
-// ─── Branch pivots ────────────────────────────────────────────────────────────
+// ─── Location pivots ──────────────────────────────────────────────────────────
 
-func (s *CatalogService) AddBranchEquipment(ctx context.Context, userID, branchID uuid.UUID, req BranchEquipmentCreate) (BranchEquipment, error) {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
-		return BranchEquipment{}, err
+func (s *CatalogService) AddLocationEquipment(ctx context.Context, userID, locationID uuid.UUID, req LocationEquipmentCreate) (LocationEquipment, error) {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+		return LocationEquipment{}, err
 	}
-	return s.repo.AddBranchEquipment(ctx, branchID, req)
+	return s.repo.AddLocationEquipment(ctx, locationID, req)
 }
 
-func (s *CatalogService) ListBranchEquipment(ctx context.Context, userID, branchID uuid.UUID) ([]BranchEquipment, error) {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
+func (s *CatalogService) ListLocationEquipment(ctx context.Context, userID, locationID uuid.UUID) ([]LocationEquipment, error) {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
-	return s.repo.ListBranchEquipment(ctx, branchID)
+	return s.repo.ListLocationEquipment(ctx, locationID)
 }
 
-func (s *CatalogService) RemoveBranchEquipment(ctx context.Context, userID, branchID, itemID uuid.UUID) error {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
+func (s *CatalogService) RemoveLocationEquipment(ctx context.Context, userID, locationID, itemID uuid.UUID) error {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
 		return err
 	}
-	ownerID, err := s.repo.GetBranchEquipmentBranchID(ctx, itemID)
+	ownerID, err := s.repo.GetLocationEquipmentLocationID(ctx, itemID)
 	if err != nil {
 		return err
 	}
-	if ownerID != branchID {
-		return ErrBranchNotOwner
+	if ownerID != locationID {
+		return ErrLocationNotOwner
 	}
-	return s.repo.RemoveBranchEquipment(ctx, itemID)
+	return s.repo.RemoveLocationEquipment(ctx, itemID)
 }
 
-func (s *CatalogService) AddBranchStaffRole(ctx context.Context, userID, branchID uuid.UUID, req BranchStaffRoleCreate) (BranchStaffRole, error) {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
-		return BranchStaffRole{}, err
+func (s *CatalogService) AddLocationStaffRole(ctx context.Context, userID, locationID uuid.UUID, req LocationStaffRoleCreate) (LocationStaffRole, error) {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+		return LocationStaffRole{}, err
 	}
-	return s.repo.AddBranchStaffRole(ctx, branchID, req)
+	return s.repo.AddLocationStaffRole(ctx, locationID, req)
 }
 
-func (s *CatalogService) ListBranchStaffRoles(ctx context.Context, userID, branchID uuid.UUID) ([]BranchStaffRole, error) {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
+func (s *CatalogService) ListLocationStaffRoles(ctx context.Context, userID, locationID uuid.UUID) ([]LocationStaffRole, error) {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
-	return s.repo.ListBranchStaffRoles(ctx, branchID)
+	return s.repo.ListLocationStaffRoles(ctx, locationID)
 }
 
-func (s *CatalogService) RemoveBranchStaffRole(ctx context.Context, userID, branchID, itemID uuid.UUID) error {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
+func (s *CatalogService) RemoveLocationStaffRole(ctx context.Context, userID, locationID, itemID uuid.UUID) error {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
 		return err
 	}
-	ownerID, err := s.repo.GetBranchStaffRoleBranchID(ctx, itemID)
+	ownerID, err := s.repo.GetLocationStaffRoleLocationID(ctx, itemID)
 	if err != nil {
 		return err
 	}
-	if ownerID != branchID {
-		return ErrBranchNotOwner
+	if ownerID != locationID {
+		return ErrLocationNotOwner
 	}
-	return s.repo.RemoveBranchStaffRole(ctx, itemID)
+	return s.repo.RemoveLocationStaffRole(ctx, itemID)
 }
 
-func (s *CatalogService) AddBranchService(ctx context.Context, userID, branchID uuid.UUID, req BranchServiceItemCreate) (BranchServiceItem, error) {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
-		return BranchServiceItem{}, err
+func (s *CatalogService) AddLocationService(ctx context.Context, userID, locationID uuid.UUID, req LocationServiceItemCreate) (LocationServiceItem, error) {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+		return LocationServiceItem{}, err
 	}
-	return s.repo.AddBranchService(ctx, branchID, req)
+	return s.repo.AddLocationService(ctx, locationID, req)
 }
 
-func (s *CatalogService) ListBranchServices(ctx context.Context, userID, branchID uuid.UUID) ([]BranchServiceItem, error) {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
+func (s *CatalogService) ListLocationServices(ctx context.Context, userID, locationID uuid.UUID) ([]LocationServiceItem, error) {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
-	return s.repo.ListBranchServices(ctx, branchID)
+	return s.repo.ListLocationServices(ctx, locationID)
 }
 
-func (s *CatalogService) RemoveBranchService(ctx context.Context, userID, branchID, itemID uuid.UUID) error {
-	if err := s.ownsBranchID(ctx, userID, branchID); err != nil {
+func (s *CatalogService) RemoveLocationService(ctx context.Context, userID, locationID, itemID uuid.UUID) error {
+	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
 		return err
 	}
-	ownerID, err := s.repo.GetBranchServiceBranchID(ctx, itemID)
+	ownerID, err := s.repo.GetLocationServiceLocationID(ctx, itemID)
 	if err != nil {
 		return err
 	}
-	if ownerID != branchID {
-		return ErrBranchNotOwner
+	if ownerID != locationID {
+		return ErrLocationNotOwner
 	}
-	return s.repo.RemoveBranchService(ctx, itemID)
+	return s.repo.RemoveLocationService(ctx, itemID)
 }
