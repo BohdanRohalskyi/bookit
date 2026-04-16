@@ -17,16 +17,16 @@ var (
 // Member represents one entry in the business member list.
 // Covers both active role assignments and pending invites.
 type Member struct {
-	ID         uuid.UUID  `json:"id"`
-	UserID     *uuid.UUID `json:"user_id,omitempty"`
-	Email      string     `json:"email"`
-	Name       *string    `json:"name,omitempty"`
+	ID     uuid.UUID  `json:"id"`
+	UserID *uuid.UUID `json:"user_id,omitempty"`
+	Email  string     `json:"email"`
+	Name   *string    `json:"name,omitempty"`
 	// Role is one of "administrator" or "staff".
 	Role       string     `json:"role"`
 	LocationID *uuid.UUID `json:"location_id,omitempty"`
 	// Status is "active" for confirmed members or "pending" for outstanding invites.
 	Status    string    `json:"status"`
-	CreatedAt  time.Time  `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Invite is the full invite record, returned on preview.
