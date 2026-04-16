@@ -51,11 +51,7 @@ export function SpacePicker() {
     handleSelect(m.business_id, m.business_name, m.role, m.location_ids)
   }
 
-  if (!isAuthenticated) return null
-
-  const total = (data?.owned.length ?? 0) + (data?.memberships.length ?? 0)
-
-  // Auto-select if exactly one space
+  // Auto-select if exactly one space — must be before any early return.
   useEffect(() => {
     if (!data) return
     if (data.owned.length === 1 && data.memberships.length === 0) {
@@ -65,6 +61,10 @@ export function SpacePicker() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
+
+  if (!isAuthenticated) return null
+
+  const total = (data?.owned.length ?? 0) + (data?.memberships.length ?? 0)
 
   return (
     <div className="min-h-screen bg-[#020905] flex flex-col items-center justify-center px-4">

@@ -139,7 +139,7 @@ func (h *Handler) RemoveMember(c *gin.Context) {
 		return
 	}
 
-	// Try to remove an active member first; fall back to cancelling a pending invite.
+	// Try to remove an active member first; fall back to canceling a pending invite.
 	err = h.service.RemoveMember(c.Request.Context(), memberID, businessID)
 	if errors.Is(err, ErrMemberNotFound) {
 		err = h.service.CancelInvite(c.Request.Context(), memberID, businessID)

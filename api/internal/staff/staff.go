@@ -21,9 +21,11 @@ type Member struct {
 	UserID     *uuid.UUID `json:"user_id,omitempty"`
 	Email      string     `json:"email"`
 	Name       *string    `json:"name,omitempty"`
-	Role       string     `json:"role"`        // "administrator" | "staff"
+	// Role is one of "administrator" or "staff".
+	Role       string     `json:"role"`
 	LocationID *uuid.UUID `json:"location_id,omitempty"`
-	Status     string     `json:"status"`      // "active" | "pending"
+	// Status is "active" for confirmed members or "pending" for outstanding invites.
+	Status    string    `json:"status"`
 	CreatedAt  time.Time  `json:"created_at"`
 }
 
