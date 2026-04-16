@@ -111,7 +111,7 @@ func (h *CatalogItemHandler) CreateEquipment(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, _ := uuid.Parse(req.BusinessID)
+	businessID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck // binding:"uuid" already validated
 	e, err := h.service.CreateEquipment(c.Request.Context(), userID, EquipmentCreate{BusinessID: businessID, Name: req.Name})
 	if err != nil {
 		h.catalogErr(c, err)
@@ -199,7 +199,7 @@ func (h *CatalogItemHandler) CreateStaffRole(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, _ := uuid.Parse(req.BusinessID)
+	businessID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck // binding:"uuid" already validated
 	s, err := h.service.CreateStaffRole(c.Request.Context(), userID, StaffRoleCreate{BusinessID: businessID, JobTitle: req.JobTitle})
 	if err != nil {
 		h.catalogErr(c, err)
@@ -323,7 +323,7 @@ func (h *CatalogItemHandler) CreateService(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, _ := uuid.Parse(req.BusinessID)
+	businessID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck // binding:"uuid" already validated
 	cur := req.Currency
 	if cur == "" {
 		cur = "EUR"
@@ -424,7 +424,7 @@ func (h *CatalogItemHandler) AddBranchEquipment(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	eqID, _ := uuid.Parse(req.EquipmentID)
+	eqID, _ := uuid.Parse(req.EquipmentID) //nolint:errcheck // binding:"uuid" already validated
 	be, err := h.service.AddBranchEquipment(c.Request.Context(), userID, branchID, BranchEquipmentCreate{EquipmentID: eqID, Quantity: req.Quantity})
 	if err != nil {
 		h.catalogErr(c, err)
@@ -498,7 +498,7 @@ func (h *CatalogItemHandler) AddBranchStaffRole(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	srID, _ := uuid.Parse(req.StaffRoleID)
+	srID, _ := uuid.Parse(req.StaffRoleID) //nolint:errcheck // binding:"uuid" already validated
 	bs, err := h.service.AddBranchStaffRole(c.Request.Context(), userID, branchID, BranchStaffRoleCreate{StaffRoleID: srID, Quantity: req.Quantity})
 	if err != nil {
 		h.catalogErr(c, err)
@@ -571,7 +571,7 @@ func (h *CatalogItemHandler) AddBranchService(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	svcID, _ := uuid.Parse(req.ServiceID)
+	svcID, _ := uuid.Parse(req.ServiceID) //nolint:errcheck // binding:"uuid" already validated
 	bs, err := h.service.AddBranchService(c.Request.Context(), userID, branchID, BranchServiceItemCreate{ServiceID: svcID})
 	if err != nil {
 		h.catalogErr(c, err)
