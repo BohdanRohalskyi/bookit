@@ -66,6 +66,7 @@ export interface RegisterAndAcceptResult {
     name: string
     email_verified: boolean
     is_provider: boolean
+    created_at: string
   }
   tokens: {
     access_token: string

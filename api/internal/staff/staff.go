@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	ErrInviteNotFound        = errors.New("invite not found")
-	ErrInviteExpired         = errors.New("invite has expired")
-	ErrInviteAlreadyUsed     = errors.New("invite has already been accepted")
-	ErrMemberNotFound        = errors.New("member not found")
+	ErrInviteNotFound         = errors.New("invite not found")
+	ErrInviteExpired          = errors.New("invite has expired")
+	ErrInviteAlreadyUsed      = errors.New("invite has already been accepted")
+	ErrMemberNotFound         = errors.New("member not found")
 	ErrEmailAlreadyRegistered = errors.New("email already registered")
 )
 
@@ -96,12 +96,12 @@ type InviteMemberInput struct {
 
 // MemberProfile is the per-business profile of a staff member.
 type MemberProfile struct {
-	ID         uuid.UUID  `json:"id"`
-	UserID     uuid.UUID  `json:"user_id"`
-	BusinessID uuid.UUID  `json:"business_id"`
-	FullName   string     `json:"full_name"`
-	PhotoURL   *string    `json:"photo_url,omitempty"`
-	UpdatedAt  time.Time  `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	UserID     uuid.UUID `json:"user_id"`
+	BusinessID uuid.UUID `json:"business_id"`
+	FullName   string    `json:"full_name"`
+	PhotoURL   *string   `json:"photo_url,omitempty"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // OwnedBusiness is one business the user owns, used in the memberships response.

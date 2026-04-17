@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -255,6 +256,7 @@ func (h *Handler) RegisterAndAcceptInvite(c *gin.Context) {
 			"name":           result.Name,
 			"email_verified": true,
 			"is_provider":    false,
+			"created_at":     time.Now().UTC(),
 		},
 		"tokens": gin.H{
 			"access_token":  result.Tokens.AccessToken,
