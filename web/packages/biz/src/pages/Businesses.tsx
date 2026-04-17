@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Building2, PlusCircle, Pencil, Trash2, AlertTriangle, MapPin } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import type { components } from '@bookit/shared/api'
-import { useBusinessStore } from '@bookit/shared/stores'
+import { useSpaceStore } from '../stores/spaceStore'
 import { EditBusinessModal } from '../components/EditBusinessModal'
 
 type Business = components['schemas']['Business']
@@ -147,12 +147,12 @@ function Skeleton() {
 export function Businesses() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { setActiveBusiness } = useBusinessStore()
+  const { setSpace } = useSpaceStore()
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const handleViewLocations = (businessId: string) => {
-    setActiveBusiness(businessId)
+  const handleViewLocations = (business: Business) => {
+    setSpace({ businessId: business.id, businessName: business.name, role: 'owner', locationIds: [] })
     navigate('/dashboard/locations')
   }
 
@@ -233,7 +233,7 @@ export function Businesses() {
                 onEdit={() => setEditingBusiness(biz)}
                 onDelete={() => deleteBusiness(biz.id)}
                 isDeleting={deletingId === biz.id}
-                onViewLocations={() => handleViewLocations(biz.id)}
+                onViewLocations={() => handleViewLocations(biz)}
               />
             ))}
           </div>

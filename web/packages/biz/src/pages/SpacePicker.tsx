@@ -51,7 +51,7 @@ export function SpacePicker() {
     handleSelect(m.business_id, m.business_name, m.role, m.location_ids)
   }
 
-  // Auto-select if exactly one space — must be before any early return.
+  // Auto-select if exactly one space (e.g. user navigated here directly)
   useEffect(() => {
     if (!data) return
     if (data.owned.length === 1 && data.memberships.length === 0) {

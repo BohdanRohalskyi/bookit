@@ -373,13 +373,18 @@ func InviteExpiresAt() time.Time {
 	return time.Now().UTC().Add(7 * 24 * time.Hour)
 }
 
-// IsMemberOfBusiness returns true if the user has a role assignment in the business.
+// IsMemberOfBusiness returns true if the user has a role assignment in the business
+// OR is the business owner (via providers table).
 func (r *Repository) IsMemberOfBusiness(ctx context.Context, userID, businessID uuid.UUID) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM user_role_assignments
 			WHERE user_id = $1 AND business_id = $2
+			UNION ALL
+			SELECT 1 FROM businesses b
+			JOIN providers p ON p.id = b.provider_id
+			WHERE p.user_id = $1 AND b.id = $2
 		)
 	`, userID, businessID).Scan(&exists)
 	return exists, err
