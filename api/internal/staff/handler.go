@@ -250,8 +250,11 @@ func (h *Handler) RegisterAndAcceptInvite(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
-			"id":    result.UserID,
-			"email": result.Email,
+			"id":             result.UserID,
+			"email":          result.Email,
+			"name":           result.Name,
+			"email_verified": true,
+			"is_provider":    false,
 		},
 		"tokens": gin.H{
 			"access_token":  result.Tokens.AccessToken,

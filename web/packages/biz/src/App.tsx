@@ -10,6 +10,7 @@ import { LocationList } from './pages/LocationList'
 import { LocationWizard } from './pages/LocationWizard'
 import { LocationDetail } from './pages/LocationDetail'
 import { StaffList } from './pages/StaffList'
+import { MyProfile } from './pages/MyProfile'
 import { SpacePicker } from './pages/SpacePicker'
 import { InviteAccept } from './pages/InviteAccept'
 import { NotFound } from './pages/NotFound'
@@ -42,6 +43,9 @@ export default function App() {
 
           {/* Staff management */}
           <Route path="/dashboard/staff" element={<StaffList />} />
+
+          {/* Business-scoped profile */}
+          <Route path="/dashboard/profile" element={<MyProfile />} />
 
           <Route path="/account" element={<Account />} />
         </Route>

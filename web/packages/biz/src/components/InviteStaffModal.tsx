@@ -11,11 +11,12 @@ interface Props {
 export function InviteStaffModal({ businessId, onClose }: Props) {
   const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
+  const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<'administrator' | 'staff'>('staff')
   const [error, setError] = useState<string | null>(null)
 
   const invite = useMutation({
-    mutationFn: () => inviteMember(businessId, { email, role }),
+    mutationFn: () => inviteMember(businessId, { email, full_name: fullName, role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members', businessId] })
       onClose()
@@ -54,6 +55,20 @@ export function InviteStaffModal({ businessId, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs font-medium text-[rgba(2,9,5,0.6)] block mb-1.5">
+              Full name
+            </label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Jane Smith"
+              className="w-full h-9 px-3 text-sm border border-[rgba(2,9,5,0.15)] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-[#1069d1]/30 focus:border-[#1069d1]"
+            />
+          </div>
+
           <div>
             <label className="text-xs font-medium text-[rgba(2,9,5,0.6)] block mb-1.5">
               Email address

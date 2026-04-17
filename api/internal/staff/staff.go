@@ -34,6 +34,7 @@ type AuthResult struct {
 type RegisterResult struct {
 	UserID uuid.UUID
 	Email  string
+	Name   string
 	Tokens AuthResult
 }
 
