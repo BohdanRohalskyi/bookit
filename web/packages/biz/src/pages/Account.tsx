@@ -142,13 +142,12 @@ function AccountDetailsCard() {
         ))}
       </div>
       <div className="flex items-center gap-3">
-        <button
-          disabled
-          className="px-4 py-2 text-sm font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] opacity-50 cursor-not-allowed"
+        <Link
+          to="/dashboard/profile"
+          className="px-4 py-2 text-sm font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors"
         >
           Edit profile
-        </button>
-        <p className="text-xs text-[rgba(2,9,5,0.4)]">Coming soon</p>
+        </Link>
       </div>
     </div>
   )
