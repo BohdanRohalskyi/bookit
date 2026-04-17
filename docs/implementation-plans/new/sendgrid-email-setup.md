@@ -25,7 +25,7 @@ Configure SendGrid as the email provider for staging and production environments
 
 ## Phases
 
-### Phase 1: SendGrid Account Setup `[PENDING]`
+### Phase 1: SendGrid Account Setup `[DONE]`
 
 1. **Create SendGrid account** at https://sendgrid.com/free
    - Sign up with company email
@@ -82,7 +82,7 @@ gcloud secrets list --filter="name:sendgrid"
 
 ---
 
-### Phase 3: Update CI/CD Workflow `[PENDING]`
+### Phase 3: Update CI/CD Workflow `[DONE]`
 
 Update `.github/workflows/ci.yml` deploy step to include mail configuration.
 
