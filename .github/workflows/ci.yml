@@ -149,7 +149,7 @@ jobs:
             --allow-unauthenticated \
             --add-cloudsql-instances=${{ secrets.GCP_PROJECT_ID }}:europe-west3:bookit-db \
             --set-secrets="DATABASE_URL=bookit-database-url-${{ env.ENVIRONMENT }}:latest,JWT_SECRET=bookit-jwt-secret-${{ env.ENVIRONMENT }}:latest,CORS_ALLOWED_ORIGINS=bookit-cors-origins-${{ env.ENVIRONMENT }}:latest,GCS_BUCKET=${{ env.GCS_BUCKET_SECRET }}:latest,RESEND_API_KEY=resend-api-key-${{ env.ENVIRONMENT }}:latest" \
-            --set-env-vars="ENVIRONMENT=${{ env.ENVIRONMENT }},LOG_LEVEL=info,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }},MAIL_PROVIDER=resend,MAIL_FROM=bohdan.rohalskyi@paysera.net,APP_URL=${{ env.ENVIRONMENT == 'prod' && 'https://pt-duo-bookit.web.app' || 'https://bookit-staging.web.app' }},BIZ_URL=${{ env.ENVIRONMENT == 'prod' && 'https://biz.bookit.app' || 'https://bookit-biz-staging.web.app' }}" \
+            --set-env-vars="ENVIRONMENT=${{ env.ENVIRONMENT }},LOG_LEVEL=info,GCP_PROJECT=${{ secrets.GCP_PROJECT_ID }},MAIL_PROVIDER=resend,MAIL_FROM=onboarding@resend.dev,APP_URL=${{ env.ENVIRONMENT == 'prod' && 'https://pt-duo-bookit.web.app' || 'https://bookit-staging.web.app' }},BIZ_URL=${{ env.ENVIRONMENT == 'prod' && 'https://biz.bookit.app' || 'https://bookit-biz-staging.web.app' }}" \
             --min-instances=0 \
             --max-instances=10 \
             --memory=256Mi \
