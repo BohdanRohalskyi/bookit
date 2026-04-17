@@ -91,7 +91,7 @@ function InviteCard({ token, invite }: { token: string; invite: InvitePreview })
   const setAuth = useAuthStore((s) => s.setAuth)
   const [done, setDone] = useState(false)
 
-  function onSuccess(result: { user: { id: string; email: string; name: string; email_verified: boolean; is_provider: boolean }; tokens: { access_token: string; refresh_token: string; expires_in: number } }) {
+  function onSuccess(result: RegisterAndAcceptResult) {
     setAuth(result.user, result.tokens)
     setDone(true)
     setTimeout(() => navigate('/spaces'), 1500)
@@ -153,7 +153,7 @@ function RegisterForm({
   token: string
   email: string
   prefillName: string
-  onSuccess: (result: { user: { id: string; email: string; name: string; email_verified: boolean; is_provider: boolean }; tokens: { access_token: string; refresh_token: string; expires_in: number } }) => void
+  onSuccess: (result: RegisterAndAcceptResult) => void
 }) {
   const [apiError, setApiError] = useState<string | null>(null)
 
@@ -252,7 +252,7 @@ function LoginForm({
 }: {
   token: string
   email: string
-  onSuccess: (result: { user: { id: string; email: string; name: string; email_verified: boolean; is_provider: boolean }; tokens: { access_token: string; refresh_token: string; expires_in: number } }) => void
+  onSuccess: (result: RegisterAndAcceptResult) => void
 }) {
   const [apiError, setApiError] = useState<string | null>(null)
 
