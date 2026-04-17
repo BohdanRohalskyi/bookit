@@ -11,6 +11,7 @@ import {
   registerAndAcceptInvite,
   loginAndAcceptInvite,
   type InvitePreview,
+  type RegisterAndAcceptResult,
 } from '../api/staffApi'
 
 const ROLE_LABELS: Record<string, string> = {
