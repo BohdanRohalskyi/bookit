@@ -213,6 +213,7 @@ func (s *Service) RegisterAndAcceptInvite(ctx context.Context, token, password, 
 	return &RegisterResult{
 		UserID: userID,
 		Email:  inv.Email,
+		Name:   fullName,
 		Tokens: *tokens,
 	}, nil
 }
