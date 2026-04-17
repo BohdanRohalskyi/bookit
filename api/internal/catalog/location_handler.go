@@ -205,7 +205,9 @@ func (h *LocationHandler) locationErrResp(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrLocationNotFound):
 		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Location not found")
-	case errors.Is(err, ErrLocationNotOwner), errors.Is(err, ErrNotProvider), errors.Is(err, ErrNotOwner):
+	case errors.Is(err, ErrNotProvider), errors.Is(err, ErrNotOwner):
+		errResp(c, http.StatusForbidden, "forbidden", "Forbidden", "You do not own this business")
+	case errors.Is(err, ErrLocationNotOwner):
 		errResp(c, http.StatusForbidden, "forbidden", "Forbidden", "You do not own this location")
 	case errors.Is(err, ErrBusinessNotFound):
 		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")

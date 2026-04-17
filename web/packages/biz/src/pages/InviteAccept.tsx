@@ -13,6 +13,7 @@ import {
   type InvitePreview,
   type RegisterAndAcceptResult,
 } from '../api/staffApi'
+import { useSpaceStore } from '../stores/spaceStore'
 
 const ROLE_LABELS: Record<string, string> = {
   administrator: 'Administrator',
@@ -90,12 +91,20 @@ export function InviteAccept() {
 function InviteCard({ token, invite }: { token: string; invite: InvitePreview }) {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
+  const setSpace = useSpaceStore((s) => s.setSpace)
   const [done, setDone] = useState(false)
 
   function onSuccess(result: RegisterAndAcceptResult) {
     setAuth(result.user, result.tokens)
+    // Set the workspace directly — we already know which business the user joined
+    setSpace({
+      businessId: invite.business_id,
+      businessName: invite.business_name,
+      role: (invite.role as 'administrator' | 'staff') ?? 'staff',
+      locationIds: invite.location_id ? [invite.location_id] : [],
+    })
     setDone(true)
-    setTimeout(() => navigate('/spaces'), 1500)
+    setTimeout(() => navigate('/dashboard'), 1500)
   }
 
   if (done) {

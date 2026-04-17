@@ -119,6 +119,23 @@ func (r *LocationRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// IsMemberOrOwner returns true if userID is either the provider-owner of businessID
+// or has a role assignment in that business.
+func (r *LocationRepository) IsMemberOrOwner(ctx context.Context, userID, businessID uuid.UUID) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM user_role_assignments
+			WHERE user_id = $1 AND business_id = $2
+			UNION ALL
+			SELECT 1 FROM businesses b
+			JOIN providers p ON p.id = b.provider_id
+			WHERE p.user_id = $1 AND b.id = $2
+		)
+	`, userID, businessID).Scan(&exists)
+	return exists, err
+}
+
 // GetOwnerBusinessID returns the business_id for ownership checks.
 func (r *LocationRepository) GetOwnerBusinessID(ctx context.Context, locationID uuid.UUID) (uuid.UUID, error) {
 	var businessID uuid.UUID

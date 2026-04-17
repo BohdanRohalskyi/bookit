@@ -39,6 +39,18 @@ func (s *LocationService) ownsBusinessID(ctx context.Context, userID, businessID
 	return nil
 }
 
+// canAccessBusinessID passes for providers and role-assigned members (admin/staff).
+func (s *LocationService) canAccessBusinessID(ctx context.Context, userID, businessID uuid.UUID) error {
+	ok, err := s.repo.IsMemberOrOwner(ctx, userID, businessID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrNotOwner
+	}
+	return nil
+}
+
 // ownsLocationID checks that the user owns the location's parent business.
 func (s *LocationService) ownsLocationID(ctx context.Context, userID, locationID uuid.UUID) error {
 	businessID, err := s.repo.GetOwnerBusinessID(ctx, locationID)
@@ -56,7 +68,7 @@ func (s *LocationService) CreateLocation(ctx context.Context, userID uuid.UUID, 
 }
 
 func (s *LocationService) ListLocations(ctx context.Context, userID, businessID uuid.UUID, page, perPage int) ([]Location, int, error) {
-	if err := s.ownsBusinessID(ctx, userID, businessID); err != nil {
+	if err := s.canAccessBusinessID(ctx, userID, businessID); err != nil {
 		return nil, 0, err
 	}
 	return s.repo.ListByBusinessID(ctx, businessID, page, perPage)
@@ -67,7 +79,7 @@ func (s *LocationService) GetLocation(ctx context.Context, id, userID uuid.UUID)
 	if err != nil {
 		return Location{}, err
 	}
-	if err := s.ownsBusinessID(ctx, userID, l.BusinessID); err != nil {
+	if err := s.canAccessBusinessID(ctx, userID, l.BusinessID); err != nil {
 		return Location{}, err
 	}
 	return l, nil

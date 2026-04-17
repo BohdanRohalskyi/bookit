@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { MapPin, PlusCircle, Pencil, Trash2, AlertTriangle, Building2 } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import type { components } from '@bookit/shared/api'
-import { useBusinessStore } from '@bookit/shared/stores'
+import { useSpaceStore } from '../stores/spaceStore'
 
 type Location = components['schemas']['Location']
 
@@ -110,19 +110,19 @@ function Skeleton() {
 export function LocationList() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { activeBusinessId } = useBusinessStore()
+  const { businessId } = useSpaceStore()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['locations', activeBusinessId],
+    queryKey: ['locations', businessId],
     queryFn: async () => {
-      if (!activeBusinessId) return null
+      if (!businessId) return null
       const { data } = await api.GET('/api/v1/locations', {
-        params: { query: { business_id: activeBusinessId } },
+        params: { query: { business_id: businessId } },
       })
       return data ?? null
     },
-    enabled: Boolean(activeBusinessId),
+    enabled: Boolean(businessId),
   })
 
   const { mutate: deleteLocation } = useMutation({
@@ -134,25 +134,24 @@ export function LocationList() {
       if (error) throw error
     },
     onSettled: () => setDeletingId(null),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['locations', activeBusinessId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['locations', businessId] }),
   })
 
-  // No active business selected
-  if (!activeBusinessId) {
+  if (!businessId) {
     return (
       <div className="bg-white border border-[rgba(2,9,5,0.08)] rounded-lg flex flex-col items-center gap-5 py-24 text-center">
         <Building2 className="size-12 text-[rgba(2,9,5,0.15)]" strokeWidth={1.5} />
         <div>
           <p className="font-heading font-semibold text-lg text-[#020905]">No business selected</p>
           <p className="text-sm text-[rgba(2,9,5,0.45)] mt-1 max-w-xs mx-auto">
-            Select a business from the selector at the top to manage its locations
+            Select a workspace to manage its locations
           </p>
         </div>
         <button
-          onClick={() => navigate('/dashboard/businesses')}
+          onClick={() => navigate('/spaces')}
           className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#e7f0fa] transition-colors"
         >
-          Go to Businesses
+          Choose workspace
         </button>
       </div>
     )

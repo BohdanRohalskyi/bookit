@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Check, ArrowLeft } from 'lucide-react'
-import { useBusinessStore } from '@bookit/shared/stores'
+import { useSpaceStore } from '../stores/spaceStore'
 import { StepBasicInfo } from '../components/wizard/StepBasicInfo'
 import { StepSchedule } from '../components/wizard/StepSchedule'
 import { StepTeamEquipment } from '../components/wizard/StepTeamEquipment'
@@ -63,7 +63,7 @@ function Tab({ num, label, active, done, enabled, onClick }: TabProps) {
 export function LocationWizard() {
   const { locationId: paramLocationId } = useParams<{ locationId?: string }>()
   const navigate = useNavigate()
-  const { activeBusinessId } = useBusinessStore()
+  const { businessId } = useSpaceStore()
 
   const isEdit = Boolean(paramLocationId)
   const [locationId, setLocationId] = useState<string | null>(paramLocationId ?? null)
@@ -91,7 +91,7 @@ export function LocationWizard() {
     navigate(`/dashboard/locations/${locationId}`)
   }
 
-  if (!activeBusinessId) {
+  if (!businessId) {
     return (
       <div className="flex flex-col items-center gap-4 py-24 text-center">
         <p className="font-heading font-semibold text-lg text-[#020905]">No business selected</p>
@@ -144,7 +144,7 @@ export function LocationWizard() {
       {/* Step content */}
       {step === 1 && (
         <StepBasicInfo
-          businessId={activeBusinessId}
+          businessId={businessId}
           locationId={locationId}
           onSaved={handleLocationSaved}
         />
@@ -158,7 +158,7 @@ export function LocationWizard() {
       )}
       {step === 3 && locationId && (
         <StepTeamEquipment
-          businessId={activeBusinessId}
+          businessId={businessId}
           locationId={locationId}
           onNext={() => { markComplete(3); setStep(4) }}
           onBack={() => setStep(2)}
@@ -166,7 +166,7 @@ export function LocationWizard() {
       )}
       {step === 4 && locationId && (
         <StepServices
-          businessId={activeBusinessId}
+          businessId={businessId}
           locationId={locationId}
           onFinish={handleFinish}
           onBack={() => setStep(3)}

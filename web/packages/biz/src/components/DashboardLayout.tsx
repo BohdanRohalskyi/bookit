@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { getMemberships } from '../api/staffApi'
 import {
   LayoutDashboard,
   PlusCircle,
@@ -19,7 +21,6 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
-import { BusinessSelector } from './BusinessSelector'
 import { useSpaceStore } from '../stores/spaceStore'
 import { useMyRole } from '../hooks/useMyRole'
 
@@ -51,7 +52,7 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',          path: '/dashboard',             end: true,  showTo: 'all' },
   { icon: Building2,       label: 'Manage Businesses',  path: '/dashboard/businesses',  end: true,  showTo: 'owner' },
   { icon: PlusCircle,      label: 'Add Business',       path: '/dashboard/businesses/new', end: false, showTo: 'owner' },
-  { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'all' },
+  { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'admin' },
   { icon: Users,           label: 'Team',               path: '/dashboard/staff',       end: true,  showTo: 'admin' },
   { icon: UserCircle,      label: 'My Profile',         path: '/dashboard/profile',     end: true,  showTo: 'all' },
   { icon: CalendarCheck,   label: 'Bookings',                                                        showTo: 'all' },
@@ -127,22 +128,46 @@ export function DashboardLayout() {
   const { switchTo } = useAppSwitch()
   const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
 
-  const { businessId, businessName, role, clearSpace } = useSpaceStore()
+  const { businessId, businessName, role, clearSpace, setSpace } = useSpaceStore()
   // isOwner/isAdmin: if no space selected yet, default to owner (existing provider flow)
   const { isOwner, isAdmin } = useMyRole()
   const effectiveIsOwner = role === null ? true : isOwner
   const effectiveIsAdmin = role === null ? true : isAdmin
 
+  // Only query memberships when we don't already have a space selected
+  const { data: memberships } = useQuery({
+    queryKey: ['memberships'],
+    queryFn: getMemberships,
+    enabled: isAuthenticated && !businessId,
+    staleTime: 30_000,
+  })
+
   useEffect(() => {
     if (!isAuthenticated) navigate('/login')
   }, [isAuthenticated, navigate])
 
-  // Redirect to space picker if on a dashboard route without a selected space
+  // Smart workspace routing — only runs when no space is selected yet
   useEffect(() => {
-    if (isAuthenticated && location.pathname.startsWith('/dashboard') && !businessId) {
+    if (!isAuthenticated || businessId || !memberships) return
+
+    const owned = memberships.owned
+    const member = memberships.memberships
+    const total = owned.length + member.length
+
+    if (total === 0) {
+      // New provider with no businesses — go create one
+      if (!location.pathname.startsWith('/dashboard/businesses')) {
+        navigate('/dashboard/businesses/new')
+      }
+    } else if (owned.length === 1 && member.length === 0) {
+      setSpace({ businessId: owned[0].business_id, businessName: owned[0].business_name, role: 'owner', locationIds: [] })
+    } else if (owned.length === 0 && member.length === 1) {
+      setSpace({ businessId: member[0].business_id, businessName: member[0].business_name, role: member[0].role, locationIds: member[0].location_ids })
+    } else {
+      // Multiple workspaces — let the user pick
       navigate('/spaces')
     }
-  }, [isAuthenticated, location.pathname, businessId, navigate])
+  }, [isAuthenticated, businessId, memberships, location.pathname, navigate, setSpace])
 
   if (!isAuthenticated) return null
 
@@ -260,7 +285,9 @@ export function DashboardLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
         <header className="h-16 shrink-0 bg-white border-b border-[rgba(2,9,5,0.08)] flex items-center justify-between px-8 gap-6">
-          <BusinessSelector />
+          {businessName && (
+            <p className="text-sm font-medium text-[#020905]">{businessName}</p>
+          )}
           <button
             onClick={() => switchTo(consumerUrl)}
             className="flex items-center gap-1.5 text-sm text-[rgba(2,9,5,0.5)] hover:text-[#020905] transition-colors"
