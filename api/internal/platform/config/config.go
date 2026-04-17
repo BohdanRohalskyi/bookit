@@ -25,10 +25,11 @@ type Config struct {
 	AutoMigrate bool // Run migrations on startup (local dev only)
 
 	// Mail settings
-	MailProvider   string // "smtp" or "sendgrid"
+	MailProvider   string // "smtp" | "resend" | "sendgrid"
 	SMTPHost       string
 	SMTPPort       int
 	MailFrom       string
+	ResendAPIKey   string
 	SendGridAPIKey string
 }
 
@@ -56,6 +57,7 @@ func Load() (*Config, error) {
 		SMTPHost:       getEnv("SMTP_HOST", "localhost"),
 		SMTPPort:       getEnvAsInt("SMTP_PORT", 1025),
 		MailFrom:       getEnv("MAIL_FROM", "noreply@bookit.app"),
+		ResendAPIKey:   os.Getenv("RESEND_API_KEY"),
 		SendGridAPIKey: os.Getenv("SENDGRID_API_KEY"),
 	}
 
