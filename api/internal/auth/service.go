@@ -11,6 +11,7 @@ import (
 
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
 	"github.com/BohdanRohalskyi/bookit/api/internal/mail"
+	"github.com/BohdanRohalskyi/bookit/api/internal/staff"
 )
 
 var (
@@ -356,4 +357,53 @@ func (s *Service) ExchangeAppSwitchToken(ctx context.Context, token, ipAddress s
 	}
 
 	return s.generateAuthResponse(ctx, user, isProvider)
+}
+
+// CreateVerifiedUser creates a user with email already verified and no
+// verification email sent. Used when accepting an invite proves email ownership.
+func (s *Service) CreateVerifiedUser(ctx context.Context, email, password, name string) (uuid.UUID, error) {
+	_, err := s.repo.GetByEmail(ctx, email)
+	if err == nil {
+		return uuid.Nil, identity.ErrEmailExists
+	}
+	if !errors.Is(err, identity.ErrUserNotFound) {
+		return uuid.Nil, err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	user, err := s.repo.Create(ctx, email, string(hash), name, "")
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	if err := s.repo.SetEmailVerified(ctx, user.ID); err != nil {
+		return uuid.Nil, err
+	}
+
+	return user.ID, nil
+}
+
+// IssueTokens generates access and refresh tokens for an existing user.
+// Satisfies the staff.AuthProvider interface so staff.Service can log the user
+// in immediately after RegisterAndAcceptInvite without importing this package.
+func (s *Service) IssueTokens(ctx context.Context, userID uuid.UUID) (*staff.AuthResult, error) {
+	user, err := s.repo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.generateAuthResponse(ctx, user, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return &staff.AuthResult{
+		AccessToken:  resp.Tokens.AccessToken,
+		RefreshToken: resp.Tokens.RefreshToken,
+		ExpiresIn:    resp.Tokens.ExpiresIn,
+	}, nil
 }

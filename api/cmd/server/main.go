@@ -245,7 +245,7 @@ func run() error {
 
 	// ── Staff management ──────────────────────────────────────────────────────
 	staffRepo := staff.NewRepository(db.Pool)
-	staffSvc := staff.NewService(staffRepo, rbacRepo, mailProvider, mailTemplates, cfg.BizURL)
+	staffSvc := staff.NewService(staffRepo, rbacRepo, mailProvider, mailTemplates, cfg.BizURL, authService)
 	staffHandler := staff.NewHandler(staffSvc)
 
 	// Current user memberships (space picker)
@@ -253,6 +253,14 @@ func run() error {
 	meGroup.Use(authHandler.AuthMiddleware())
 	{
 		meGroup.GET("/memberships", staffHandler.GetMemberships)
+	}
+
+	// Business-scoped staff profile (self-service)
+	profileGroup := router.Group("/api/v1/businesses/:id/me")
+	profileGroup.Use(authHandler.AuthMiddleware())
+	{
+		profileGroup.GET("/profile", staffHandler.GetMyProfile)
+		profileGroup.PUT("/profile", staffHandler.UpdateMyProfile)
 	}
 
 	// Staff management — owner OR administrator with staff:read / staff:write
@@ -283,6 +291,9 @@ func run() error {
 	{
 		invitesProtected.POST("/:token/accept", staffHandler.AcceptInvite)
 	}
+
+	// Register and accept invite in one step (no auth — token is the proof)
+	invitesGroup.POST("/:token/register-and-accept", staffHandler.RegisterAndAcceptInvite)
 
 	// Create HTTP server
 	srv := &http.Server{

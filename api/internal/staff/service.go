@@ -19,6 +19,7 @@ type Service struct {
 	mailer    mail.Provider
 	templates *mail.Templates
 	bizURL    string
+	auth      AuthProvider
 }
 
 func NewService(
@@ -27,6 +28,7 @@ func NewService(
 	mailer mail.Provider,
 	templates *mail.Templates,
 	bizURL string,
+	auth AuthProvider,
 ) *Service {
 	return &Service{
 		repo:      repo,
@@ -34,6 +36,7 @@ func NewService(
 		mailer:    mailer,
 		templates: templates,
 		bizURL:    bizURL,
+		auth:      auth,
 	}
 }
 
@@ -73,13 +76,14 @@ func (s *Service) ListMembers(ctx context.Context, businessID uuid.UUID) ([]Memb
 	return s.repo.ListMembers(ctx, businessID)
 }
 
-// InviteMemberInput is the service-layer input for InviteMember.
-type InviteMemberInput struct {
-	Email      string
-	RoleSlug   string // "administrator" | "staff"
-	BusinessID uuid.UUID
-	LocationID *uuid.UUID
-	InvitedBy  uuid.UUID // userID of the inviter
+// RemoveMember deletes an active role assignment scoped to a business.
+func (s *Service) RemoveMember(ctx context.Context, memberID, businessID uuid.UUID) error {
+	return s.repo.RemoveMember(ctx, memberID, businessID)
+}
+
+// CancelInvite cancels a pending invite.
+func (s *Service) CancelInvite(ctx context.Context, inviteID, businessID uuid.UUID) error {
+	return s.repo.CancelInvite(ctx, inviteID, businessID)
 }
 
 // InviteMember sends an invite email. If the email already belongs to a
@@ -96,9 +100,6 @@ func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error
 		return fmt.Errorf("get business name: %w", err)
 	}
 
-	// Check if the user already exists by querying invites repository.
-	// We look up the user directly via the DB — staff.Repository can run a
-	// lightweight SELECT to check existence.
 	existingUserID, err := s.repo.FindUserIDByEmail(ctx, req.Email)
 	if err == nil {
 		// User already registered — assign role immediately
@@ -112,7 +113,6 @@ func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error
 		if assignErr != nil && assignErr != rbac.ErrAssignmentExists {
 			return fmt.Errorf("assign role: %w", assignErr)
 		}
-		// Send notification (best-effort)
 		msg := s.templates.MemberAdded(req.Email, businessName, req.RoleSlug, s.bizURL)
 		_ = s.mailer.Send(ctx, msg) //nolint:errcheck
 		return nil
@@ -127,6 +127,7 @@ func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error
 	tokenHash := hashToken(token)
 	_, err = s.repo.CreateInvite(ctx, InviteCreate{
 		Email:      req.Email,
+		FullName:   req.FullName,
 		RoleID:     roleID,
 		BusinessID: req.BusinessID,
 		LocationID: req.LocationID,
@@ -143,7 +144,8 @@ func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error
 	return nil
 }
 
-// PreviewInvite returns invite details for the acceptance landing page.
+// PreviewInvite returns invite details for the acceptance landing page,
+// including whether the invitee's email is already registered.
 func (s *Service) PreviewInvite(ctx context.Context, token string) (Invite, error) {
 	inv, err := s.repo.GetInviteByToken(ctx, token)
 	if err != nil {
@@ -152,11 +154,16 @@ func (s *Service) PreviewInvite(ctx context.Context, token string) (Invite, erro
 	if inv.AcceptedAt != nil {
 		return Invite{}, ErrInviteAlreadyUsed
 	}
+
+	_, err = s.repo.FindUserIDByEmail(ctx, inv.Email)
+	inv.UserExists = (err == nil)
+
 	return inv, nil
 }
 
 // AcceptInvite accepts an invite for the authenticated user. It atomically
-// marks the invite accepted and creates the role assignment.
+// marks the invite accepted, creates the role assignment, verifies the user's
+// email, and upserts a business_member_profiles row.
 func (s *Service) AcceptInvite(ctx context.Context, token string, userID uuid.UUID) error {
 	inv, err := s.repo.GetInviteByToken(ctx, token)
 	if err != nil {
@@ -168,14 +175,63 @@ func (s *Service) AcceptInvite(ctx context.Context, token string, userID uuid.UU
 	return s.repo.txAcceptInvite(ctx, inv, userID)
 }
 
-// RemoveMember removes an active role assignment from a business.
-func (s *Service) RemoveMember(ctx context.Context, membershipID, businessID uuid.UUID) error {
-	return s.repo.RemoveMember(ctx, membershipID, businessID)
+// RegisterAndAcceptInvite registers a new user and accepts their invite in one
+// step. Returns tokens so the frontend can log the user in immediately.
+// fullNameOverride, if non-empty, replaces the name stored on the invite.
+func (s *Service) RegisterAndAcceptInvite(ctx context.Context, token, password, fullNameOverride string) (*RegisterResult, error) {
+	inv, err := s.repo.GetInviteByToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	if inv.AcceptedAt != nil {
+		return nil, ErrInviteAlreadyUsed
+	}
+
+	// Resolve the name to use for the new profile
+	fullName := fullNameOverride
+	if fullName == "" && inv.FullName != nil {
+		fullName = *inv.FullName
+	}
+
+	// Create a verified user account (no verification email sent)
+	userID, err := s.auth.CreateVerifiedUser(ctx, inv.Email, password, fullName)
+	if err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+
+	// Accept invite + create role assignment + create member profile
+	if err := s.repo.txRegisterAndAcceptInvite(ctx, inv, userID, fullName); err != nil {
+		return nil, fmt.Errorf("accept invite: %w", err)
+	}
+
+	// Issue tokens
+	tokens, err := s.auth.IssueTokens(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("issue tokens: %w", err)
+	}
+
+	return &RegisterResult{
+		UserID: userID,
+		Email:  inv.Email,
+		Tokens: *tokens,
+	}, nil
 }
 
-// CancelInvite cancels a pending invite.
-func (s *Service) CancelInvite(ctx context.Context, inviteID, businessID uuid.UUID) error {
-	return s.repo.CancelInvite(ctx, inviteID, businessID)
+// GetMyProfile returns the authenticated user's business-scoped profile.
+func (s *Service) GetMyProfile(ctx context.Context, userID, businessID uuid.UUID) (MemberProfile, error) {
+	return s.repo.GetMemberProfile(ctx, userID, businessID)
+}
+
+// UpdateMyProfile upserts the authenticated user's name in a business profile.
+func (s *Service) UpdateMyProfile(ctx context.Context, userID, businessID uuid.UUID, fullName string) (MemberProfile, error) {
+	isMember, err := s.repo.IsMemberOfBusiness(ctx, userID, businessID)
+	if err != nil {
+		return MemberProfile{}, err
+	}
+	if !isMember {
+		return MemberProfile{}, ErrMemberNotFound
+	}
+	return s.repo.UpsertMemberProfile(ctx, userID, businessID, fullName)
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
