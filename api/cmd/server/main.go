@@ -101,10 +101,14 @@ func run() error {
 
 	// Initialize mail provider
 	var mailProvider mail.Provider
-	if cfg.MailProvider == "sendgrid" {
+	switch cfg.MailProvider {
+	case "resend":
+		mailProvider = mail.NewResendProvider(cfg.ResendAPIKey, cfg.MailFrom)
+		log.Info("using Resend mail provider")
+	case "sendgrid":
 		mailProvider = mail.NewSendGridProvider(cfg.SendGridAPIKey, cfg.MailFrom)
 		log.Info("using SendGrid mail provider")
-	} else {
+	default:
 		mailProvider = mail.NewSMTPProvider(mail.SMTPConfig{
 			Host: cfg.SMTPHost,
 			Port: cfg.SMTPPort,
