@@ -5,6 +5,7 @@ import { MapPin, PlusCircle, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import type { components } from '@bookit/shared/api'
 import { useSpaceStore } from '../stores/spaceStore'
+import { useMyRole } from '../hooks/useMyRole'
 
 type Location = components['schemas']['Location']
 
@@ -12,11 +13,12 @@ type Location = components['schemas']['Location']
 
 interface LocationCardProps {
   location: Location
+  canDelete: boolean
   onDelete: () => void
   isDeleting: boolean
 }
 
-function LocationCard({ location, onDelete, isDeleting }: LocationCardProps) {
+function LocationCard({ location, canDelete, onDelete, isDeleting }: LocationCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
@@ -41,7 +43,7 @@ function LocationCard({ location, onDelete, isDeleting }: LocationCardProps) {
         </span>
       </div>
 
-      {confirmDelete && (
+      {canDelete && confirmDelete && (
         <div className="flex flex-col gap-3 p-3 bg-red-50 border border-red-200 rounded-[6px]">
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-red-600 shrink-0" />
@@ -80,14 +82,16 @@ function LocationCard({ location, onDelete, isDeleting }: LocationCardProps) {
             <Pencil className="size-3.5" />
             Edit
           </Link>
-          <button
-            onClick={() => setConfirmDelete(true)}
-            disabled={isDeleting}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[rgba(2,9,5,0.4)] rounded-[4px] hover:bg-red-50 hover:text-red-600 transition-colors"
-          >
-            <Trash2 className="size-3.5" />
-            Delete
-          </button>
+          {canDelete && (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={isDeleting}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[rgba(2,9,5,0.4)] rounded-[4px] hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <Trash2 className="size-3.5" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -110,6 +114,7 @@ function Skeleton() {
 export function LocationList() {
   const queryClient = useQueryClient()
   const { businessId } = useSpaceStore()
+  const { isOwner } = useMyRole()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -151,13 +156,15 @@ export function LocationList() {
             </p>
           )}
         </div>
-        <Link
-          to="/dashboard/locations/new"
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors shrink-0"
-        >
-          <PlusCircle className="size-4" />
-          Add Location
-        </Link>
+        {isOwner && (
+          <Link
+            to="/dashboard/locations/new"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors shrink-0"
+          >
+            <PlusCircle className="size-4" />
+            Add Location
+          </Link>
+        )}
       </div>
 
       {/* Content */}
@@ -174,13 +181,15 @@ export function LocationList() {
               Add your first location to define where clients can book appointments
             </p>
           </div>
-          <Link
-            to="/dashboard/locations/new"
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors"
-          >
-            <PlusCircle className="size-4" />
-            Add your first location
-          </Link>
+          {isOwner && (
+            <Link
+              to="/dashboard/locations/new"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors"
+            >
+              <PlusCircle className="size-4" />
+              Add your first location
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -188,6 +197,7 @@ export function LocationList() {
             <LocationCard
               key={location.id}
               location={location}
+              canDelete={isOwner}
               onDelete={() => deleteLocation(location.id)}
               isDeleting={deletingId === location.id}
             />

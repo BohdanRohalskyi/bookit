@@ -39,14 +39,62 @@ func (s *LocationService) ownsBusinessID(ctx context.Context, userID, businessID
 	return nil
 }
 
-// canAccessBusinessID passes for providers and role-assigned members (admin/staff).
-func (s *LocationService) canAccessBusinessID(ctx context.Context, userID, businessID uuid.UUID) error {
-	ok, err := s.repo.IsMemberOrOwner(ctx, userID, businessID)
+// memberAccess returns nil if the user is the business owner (full access),
+// or a *MemberAccess describing their role and location restrictions.
+// Returns ErrNotOwner if the user has neither ownership nor a role assignment.
+func (s *LocationService) memberAccess(ctx context.Context, userID, businessID uuid.UUID) (*MemberAccess, error) {
+	if err := s.ownsBusinessID(ctx, userID, businessID); err == nil {
+		return nil, nil
+	}
+	access, err := s.repo.GetMemberAccess(ctx, userID, businessID)
+	if err != nil {
+		return nil, ErrNotOwner
+	}
+	return &access, nil
+}
+
+func containsUUID(ids []uuid.UUID, id uuid.UUID) bool {
+	for _, v := range ids {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
+// canReadLocation passes for owners and any role-assigned member with access to locationID.
+func (s *LocationService) canReadLocation(ctx context.Context, userID, locationID uuid.UUID) error {
+	businessID, err := s.repo.GetOwnerBusinessID(ctx, locationID)
 	if err != nil {
 		return err
 	}
-	if !ok {
-		return ErrNotOwner
+	access, err := s.memberAccess(ctx, userID, businessID)
+	if err != nil {
+		return err
+	}
+	if access != nil && access.Restricted && !containsUUID(access.LocationIDs, locationID) {
+		return ErrLocationNotOwner
+	}
+	return nil
+}
+
+// canEditLocation passes for owners and administrators with access to locationID.
+func (s *LocationService) canEditLocation(ctx context.Context, userID, locationID uuid.UUID) error {
+	businessID, err := s.repo.GetOwnerBusinessID(ctx, locationID)
+	if err != nil {
+		return err
+	}
+	access, err := s.memberAccess(ctx, userID, businessID)
+	if err != nil {
+		return err
+	}
+	if access != nil {
+		if access.Role != "administrator" {
+			return ErrLocationNotOwner
+		}
+		if access.Restricted && !containsUUID(access.LocationIDs, locationID) {
+			return ErrLocationNotOwner
+		}
 	}
 	return nil
 }
@@ -68,10 +116,14 @@ func (s *LocationService) CreateLocation(ctx context.Context, userID uuid.UUID, 
 }
 
 func (s *LocationService) ListLocations(ctx context.Context, userID, businessID uuid.UUID, page, perPage int) ([]Location, int, error) {
-	if err := s.canAccessBusinessID(ctx, userID, businessID); err != nil {
+	access, err := s.memberAccess(ctx, userID, businessID)
+	if err != nil {
 		return nil, 0, err
 	}
-	return s.repo.ListByBusinessID(ctx, businessID, page, perPage)
+	if access == nil || !access.Restricted {
+		return s.repo.ListByBusinessID(ctx, businessID, page, perPage)
+	}
+	return s.repo.ListByIDs(ctx, access.LocationIDs, page, perPage)
 }
 
 func (s *LocationService) GetLocation(ctx context.Context, id, userID uuid.UUID) (Location, error) {
@@ -79,15 +131,32 @@ func (s *LocationService) GetLocation(ctx context.Context, id, userID uuid.UUID)
 	if err != nil {
 		return Location{}, err
 	}
-	if err := s.canAccessBusinessID(ctx, userID, l.BusinessID); err != nil {
+	access, err := s.memberAccess(ctx, userID, l.BusinessID)
+	if err != nil {
 		return Location{}, err
+	}
+	if access != nil && access.Restricted && !containsUUID(access.LocationIDs, id) {
+		return Location{}, ErrLocationNotOwner
 	}
 	return l, nil
 }
 
 func (s *LocationService) UpdateLocation(ctx context.Context, id, userID uuid.UUID, req LocationUpdate) (Location, error) {
-	if err := s.ownsLocationID(ctx, userID, id); err != nil {
+	businessID, err := s.repo.GetOwnerBusinessID(ctx, id)
+	if err != nil {
 		return Location{}, err
+	}
+	access, err := s.memberAccess(ctx, userID, businessID)
+	if err != nil {
+		return Location{}, err
+	}
+	if access != nil {
+		if access.Role != "administrator" {
+			return Location{}, ErrLocationNotOwner
+		}
+		if access.Restricted && !containsUUID(access.LocationIDs, id) {
+			return Location{}, ErrLocationNotOwner
+		}
 	}
 	return s.repo.Update(ctx, id, req)
 }
@@ -102,35 +171,35 @@ func (s *LocationService) DeleteLocation(ctx context.Context, id, userID uuid.UU
 // ─── Schedule ─────────────────────────────────────────────────────────────────
 
 func (s *LocationService) GetSchedule(ctx context.Context, locationID, userID uuid.UUID) (Schedule, error) {
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canReadLocation(ctx, userID, locationID); err != nil {
 		return Schedule{}, err
 	}
 	return s.repo.GetSchedule(ctx, locationID)
 }
 
 func (s *LocationService) UpsertScheduleDays(ctx context.Context, locationID, userID uuid.UUID, days []ScheduleDayInput) (Schedule, error) {
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return Schedule{}, err
 	}
 	return s.repo.UpsertScheduleDays(ctx, locationID, days)
 }
 
 func (s *LocationService) ListExceptions(ctx context.Context, locationID, userID uuid.UUID) ([]ScheduleException, error) {
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canReadLocation(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListExceptions(ctx, locationID)
 }
 
 func (s *LocationService) CreateException(ctx context.Context, locationID, userID uuid.UUID, req ScheduleExceptionCreate) (ScheduleException, error) {
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return ScheduleException{}, err
 	}
 	return s.repo.CreateException(ctx, locationID, req)
 }
 
 func (s *LocationService) DeleteException(ctx context.Context, locationID, exceptionID, userID uuid.UUID) error {
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return err
 	}
 	return s.repo.DeleteException(ctx, exceptionID)
@@ -139,7 +208,7 @@ func (s *LocationService) DeleteException(ctx context.Context, locationID, excep
 // ─── Photos ───────────────────────────────────────────────────────────────────
 
 func (s *LocationService) ListPhotos(ctx context.Context, locationID, userID uuid.UUID) ([]LocationPhoto, error) {
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canReadLocation(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListPhotos(ctx, locationID)
@@ -149,7 +218,7 @@ func (s *LocationService) UploadPhoto(ctx context.Context, locationID, userID uu
 	if s.storage == nil {
 		return LocationPhoto{}, ErrStorageNotConfigured
 	}
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return LocationPhoto{}, err
 	}
 	photoID := uuid.New()
@@ -162,7 +231,7 @@ func (s *LocationService) UploadPhoto(ctx context.Context, locationID, userID uu
 }
 
 func (s *LocationService) DeletePhoto(ctx context.Context, locationID, photoID, userID uuid.UUID) error {
-	if err := s.ownsLocationID(ctx, userID, locationID); err != nil {
+	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return err
 	}
 	// Verify the photo belongs to this location

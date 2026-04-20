@@ -119,6 +119,86 @@ func (r *LocationRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// GetMemberAccess returns the role and location restrictions for a user in a business.
+// If any assignment has location_id IS NULL the member has unrestricted access (Restricted=false).
+// Returns ErrLocationNotOwner if the user has no assignment.
+func (r *LocationRepository) GetMemberAccess(ctx context.Context, userID, businessID uuid.UUID) (MemberAccess, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT ro.slug, ura.location_id
+		FROM user_role_assignments ura
+		JOIN roles ro ON ro.id = ura.role_id
+		WHERE ura.user_id = $1 AND ura.business_id = $2
+	`, userID, businessID)
+	if err != nil {
+		return MemberAccess{}, err
+	}
+	defer rows.Close()
+
+	var role string
+	var locIDs []uuid.UUID
+	unrestricted := false
+	found := false
+
+	for rows.Next() {
+		found = true
+		var r string
+		var locID *uuid.UUID
+		if err := rows.Scan(&r, &locID); err != nil {
+			return MemberAccess{}, err
+		}
+		role = r
+		if locID == nil {
+			unrestricted = true
+		} else {
+			locIDs = append(locIDs, *locID)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return MemberAccess{}, err
+	}
+	if !found {
+		return MemberAccess{}, ErrLocationNotOwner
+	}
+	if unrestricted {
+		return MemberAccess{Role: role, Restricted: false}, nil
+	}
+	return MemberAccess{Role: role, LocationIDs: locIDs, Restricted: true}, nil
+}
+
+// ListByIDs returns locations matching the given IDs, with pagination.
+func (r *LocationRepository) ListByIDs(ctx context.Context, ids []uuid.UUID, page, perPage int) ([]Location, int, error) {
+	if len(ids) == 0 {
+		return []Location{}, 0, nil
+	}
+	offset := (page - 1) * perPage
+	var total int
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM locations WHERE id = ANY($1)`, ids).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT id, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
+		FROM locations WHERE id = ANY($1)
+		ORDER BY created_at ASC
+		LIMIT $2 OFFSET $3
+	`, ids, perPage, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	var locations []Location
+	for rows.Next() {
+		l, err := scanLocation(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		locations = append(locations, l)
+	}
+	if locations == nil {
+		locations = []Location{}
+	}
+	return locations, total, rows.Err()
+}
+
 // IsMemberOrOwner returns true if userID is either the provider-owner of businessID
 // or has a role assignment in that business.
 func (r *LocationRepository) IsMemberOrOwner(ctx context.Context, userID, businessID uuid.UUID) (bool, error) {

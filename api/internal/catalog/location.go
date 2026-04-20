@@ -12,6 +12,15 @@ var (
 	ErrLocationNotOwner = errors.New("not the location owner")
 )
 
+// MemberAccess holds a member's role and location restrictions for a business.
+// Restricted=false means the member has business-wide access (location_id IS NULL in their assignment).
+// Restricted=true means they may only access the listed LocationIDs.
+type MemberAccess struct {
+	Role        string
+	LocationIDs []uuid.UUID
+	Restricted  bool
+}
+
 // Location is the full location entity returned from the DB.
 type Location struct {
 	ID         uuid.UUID
