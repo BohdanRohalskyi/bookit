@@ -11,7 +11,7 @@ import { LocationWizard } from './pages/LocationWizard'
 import { LocationDetail } from './pages/LocationDetail'
 import { StaffList } from './pages/StaffList'
 import { MyProfile } from './pages/MyProfile'
-import { SpacePicker } from './pages/SpacePicker'
+import { SpaceGuard } from './components/SpaceGuard'
 import { InviteAccept } from './pages/InviteAccept'
 import { NotFound } from './pages/NotFound'
 import { DashboardLayout } from './components/DashboardLayout'
@@ -27,7 +27,7 @@ export default function App() {
         <Route path="/invites" element={<InviteAccept />} />
 
         {/* Space picker — requires auth, no space needed */}
-        <Route path="/spaces" element={<SpacePicker />} />
+        <Route path="/spaces" element={<SpaceGuard />} />
 
         {/* Dashboard — auth + space guarded inside DashboardLayout */}
         <Route element={<DashboardLayout />}>

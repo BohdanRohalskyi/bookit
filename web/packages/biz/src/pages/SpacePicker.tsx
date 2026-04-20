@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@bookit/shared/stores'
@@ -23,10 +22,6 @@ export function SpacePicker() {
   const { isAuthenticated, logout } = useAuthStore()
   const setSpace = useSpaceStore((s) => s.setSpace)
 
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/login')
-  }, [isAuthenticated, navigate])
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ['memberships'],
     queryFn: getMemberships,
@@ -50,17 +45,6 @@ export function SpacePicker() {
   function handleMembership(m: RbacMembership) {
     handleSelect(m.business_id, m.business_name, m.role, m.location_ids)
   }
-
-  // Auto-select if exactly one space (e.g. user navigated here directly)
-  useEffect(() => {
-    if (!data) return
-    if (data.owned.length === 1 && data.memberships.length === 0) {
-      handleOwned(data.owned[0])
-    } else if (data.owned.length === 0 && data.memberships.length === 1) {
-      handleMembership(data.memberships[0])
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data])
 
   if (!isAuthenticated) return null
 
