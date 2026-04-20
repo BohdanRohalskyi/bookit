@@ -91,23 +91,6 @@ export function LocationWizard() {
     navigate(`/dashboard/locations/${locationId}`)
   }
 
-  if (!businessId) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-24 text-center">
-        <p className="font-heading font-semibold text-lg text-[#020905]">No business selected</p>
-        <p className="text-sm text-[rgba(2,9,5,0.45)]">
-          Select a business from the top bar to add a location
-        </p>
-        <Link
-          to="/dashboard/locations"
-          className="text-sm text-[#1069d1] hover:underline"
-        >
-          ← Back to Locations
-        </Link>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-0 max-w-3xl">
       {/* Back link */}
@@ -144,7 +127,7 @@ export function LocationWizard() {
       {/* Step content */}
       {step === 1 && (
         <StepBasicInfo
-          businessId={businessId}
+          businessId={businessId!}
           locationId={locationId}
           onSaved={handleLocationSaved}
         />
@@ -158,7 +141,7 @@ export function LocationWizard() {
       )}
       {step === 3 && locationId && (
         <StepTeamEquipment
-          businessId={businessId}
+          businessId={businessId!}
           locationId={locationId}
           onNext={() => { markComplete(3); setStep(4) }}
           onBack={() => setStep(2)}
@@ -166,7 +149,7 @@ export function LocationWizard() {
       )}
       {step === 4 && locationId && (
         <StepServices
-          businessId={businessId}
+          businessId={businessId!}
           locationId={locationId}
           onFinish={handleFinish}
           onBack={() => setStep(3)}

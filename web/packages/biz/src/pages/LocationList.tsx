@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { MapPin, PlusCircle, Pencil, Trash2, AlertTriangle, Building2 } from 'lucide-react'
+import { MapPin, PlusCircle, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import type { components } from '@bookit/shared/api'
 import { useSpaceStore } from '../stores/spaceStore'
@@ -108,7 +108,6 @@ function Skeleton() {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export function LocationList() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { businessId } = useSpaceStore()
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -116,9 +115,8 @@ export function LocationList() {
   const { data, isLoading } = useQuery({
     queryKey: ['locations', businessId],
     queryFn: async () => {
-      if (!businessId) return null
       const { data } = await api.GET('/api/v1/locations', {
-        params: { query: { business_id: businessId } },
+        params: { query: { business_id: businessId! } },
       })
       return data ?? null
     },
@@ -136,26 +134,6 @@ export function LocationList() {
     onSettled: () => setDeletingId(null),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['locations', businessId] }),
   })
-
-  if (!businessId) {
-    return (
-      <div className="bg-white border border-[rgba(2,9,5,0.08)] rounded-lg flex flex-col items-center gap-5 py-24 text-center">
-        <Building2 className="size-12 text-[rgba(2,9,5,0.15)]" strokeWidth={1.5} />
-        <div>
-          <p className="font-heading font-semibold text-lg text-[#020905]">No business selected</p>
-          <p className="text-sm text-[rgba(2,9,5,0.45)] mt-1 max-w-xs mx-auto">
-            Select a workspace to manage its locations
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/spaces')}
-          className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#e7f0fa] transition-colors"
-        >
-          Choose workspace
-        </button>
-      </div>
-    )
-  }
 
   const locations = data?.data ?? []
 

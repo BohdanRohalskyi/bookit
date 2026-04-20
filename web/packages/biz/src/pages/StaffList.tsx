@@ -37,14 +37,6 @@ export function StaffList() {
   const active = members.filter((m) => m.status === 'active')
   const pending = members.filter((m) => m.status === 'pending')
 
-  if (!businessId) {
-    return (
-      <div className="text-center py-16 text-[rgba(2,9,5,0.4)] text-sm">
-        No business selected.
-      </div>
-    )
-  }
-
   return (
     <div>
       {/* Header */}
@@ -137,7 +129,7 @@ export function StaffList() {
       )}
 
       {showInvite && (
-        <InviteStaffModal businessId={businessId} onClose={() => setShowInvite(false)} />
+        <InviteStaffModal businessId={businessId!} onClose={() => setShowInvite(false)} />
       )}
     </div>
   )

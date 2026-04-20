@@ -23,14 +23,6 @@ export function MyProfile() {
     )
   }
 
-  if (!businessId) {
-    return (
-      <div className="text-center py-16 text-[rgba(2,9,5,0.4)] text-sm">
-        No business selected.
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-lg">
       <div className="mb-6">
@@ -66,7 +58,7 @@ export function MyProfile() {
 
       {/* Profile loaded — show avatar + editable form */}
       {profile && (
-        <ProfileCard key={profile.id} businessId={businessId} profile={profile} />
+        <ProfileCard key={profile.id} businessId={businessId!} profile={profile} />
       )}
     </div>
   )
