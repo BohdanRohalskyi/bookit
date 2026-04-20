@@ -1,30 +1,19 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useAuthStore } from '@bookit/shared/stores'
 import { useFeatureFlag } from '@bookit/shared'
 import { Loader2, User, Check } from 'lucide-react'
 import { useSpaceStore } from '../stores/spaceStore'
 import { getMyProfile, updateMyProfile, type MemberProfile } from '../api/staffApi'
 
 export function MyProfile() {
-  const navigate = useNavigate()
-  const { isAuthenticated } = useAuthStore()
   const businessId = useSpaceStore((s) => s.businessId)
-  // Pass the key name (FlagName = keyof typeof FLAGS), not the value string
   const isEnabled = useFeatureFlag('STAFF_PROFILES')
-
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/login')
-  }, [isAuthenticated, navigate])
 
   const { data: profile, isLoading, isError } = useQuery({
     queryKey: ['my-profile', businessId],
     queryFn: () => getMyProfile(businessId!),
     enabled: !!businessId && isEnabled,
   })
-
-  if (!isAuthenticated) return null
 
   if (!isEnabled) {
     return (

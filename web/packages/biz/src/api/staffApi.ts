@@ -25,6 +25,14 @@ export interface MembershipsResponse {
   memberships: RbacMembership[]
 }
 
+export function spaceFromOwned(biz: OwnedBusiness) {
+  return { businessId: biz.business_id, businessName: biz.business_name, role: 'owner' as const, locationIds: [] as string[] }
+}
+
+export function spaceFromMembership(m: RbacMembership) {
+  return { businessId: m.business_id, businessName: m.business_name, role: m.role, locationIds: m.location_ids }
+}
+
 export interface Member {
   id: string
   user_id: string | null

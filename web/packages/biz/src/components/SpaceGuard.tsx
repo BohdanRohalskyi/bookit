@@ -1,22 +1,16 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@bookit/shared/stores'
-import { getMemberships } from '../api/staffApi'
+import { spaceFromOwned, spaceFromMembership } from '../api/staffApi'
 import { useSpaceStore } from '../stores/spaceStore'
+import { useMemberships } from '../hooks/useMemberships'
 import { SpacePicker } from '../pages/SpacePicker'
 
 export function SpaceGuard() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthStore()
   const setSpace = useSpaceStore((s) => s.setSpace)
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['memberships'],
-    queryFn: getMemberships,
-    enabled: isAuthenticated,
-    staleTime: 30_000,
-  })
+  const { data, isLoading } = useMemberships()
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -34,12 +28,7 @@ export function SpaceGuard() {
     }
 
     if (total === 1) {
-      if (owned.length === 1) {
-        setSpace({ businessId: owned[0].business_id, businessName: owned[0].business_name, role: 'owner', locationIds: [] })
-      } else {
-        const m = memberships[0]
-        setSpace({ businessId: m.business_id, businessName: m.business_name, role: m.role, locationIds: m.location_ids })
-      }
+      setSpace(owned.length === 1 ? spaceFromOwned(owned[0]) : spaceFromMembership(memberships[0]))
       navigate('/dashboard', { replace: true })
     }
   }, [isAuthenticated, data, navigate, setSpace])

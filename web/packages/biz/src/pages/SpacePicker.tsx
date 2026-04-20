@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@bookit/shared/stores'
 import { Building2, LogOut } from 'lucide-react'
-import { getMemberships, type OwnedBusiness, type RbacMembership } from '../api/staffApi'
-import { useSpaceStore, type SpaceRole } from '../stores/spaceStore'
+import { spaceFromOwned, spaceFromMembership, type OwnedBusiness, type RbacMembership } from '../api/staffApi'
+import { useSpaceStore } from '../stores/spaceStore'
+import { useMemberships } from '../hooks/useMemberships'
 
 const CATEGORY_LABELS: Record<string, string> = {
   beauty: 'Beauty',
@@ -19,34 +19,19 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function SpacePicker() {
   const navigate = useNavigate()
-  const { isAuthenticated, logout } = useAuthStore()
+  const { logout } = useAuthStore()
   const setSpace = useSpaceStore((s) => s.setSpace)
+  const { data, isLoading, isError } = useMemberships()
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['memberships'],
-    queryFn: getMemberships,
-    enabled: isAuthenticated,
-  })
-
-  function handleSelect(
-    businessId: string,
-    businessName: string,
-    role: SpaceRole,
-    locationIds: string[],
-  ) {
-    setSpace({ businessId, businessName, role, locationIds })
+  function handleOwned(biz: OwnedBusiness) {
+    setSpace(spaceFromOwned(biz))
     navigate('/dashboard')
   }
 
-  function handleOwned(biz: OwnedBusiness) {
-    handleSelect(biz.business_id, biz.business_name, 'owner', [])
-  }
-
   function handleMembership(m: RbacMembership) {
-    handleSelect(m.business_id, m.business_name, m.role, m.location_ids)
+    setSpace(spaceFromMembership(m))
+    navigate('/dashboard')
   }
-
-  if (!isAuthenticated) return null
 
   const total = (data?.owned.length ?? 0) + (data?.memberships.length ?? 0)
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { getMemberships } from '../api/staffApi'
+import { spaceFromOwned, spaceFromMembership } from '../api/staffApi'
+import { useMemberships } from '../hooks/useMemberships'
 import {
   LayoutDashboard,
   PlusCircle,
@@ -134,13 +134,7 @@ export function DashboardLayout() {
   const effectiveIsOwner = role === null ? true : isOwner
   const effectiveIsAdmin = role === null ? true : isAdmin
 
-  // Only query memberships when we don't already have a space selected
-  const { data: memberships } = useQuery({
-    queryKey: ['memberships'],
-    queryFn: getMemberships,
-    enabled: isAuthenticated && !businessId,
-    staleTime: 30_000,
-  })
+  const { data: memberships } = useMemberships({ enabled: !businessId })
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/login')
@@ -150,21 +144,18 @@ export function DashboardLayout() {
   useEffect(() => {
     if (!isAuthenticated || businessId || !memberships) return
 
-    const owned = memberships.owned
-    const member = memberships.memberships
+    const { owned, memberships: member } = memberships
     const total = owned.length + member.length
 
     if (total === 0) {
-      // New provider with no businesses — go create one
       if (!location.pathname.startsWith('/dashboard/businesses')) {
         navigate('/dashboard/businesses/new')
       }
     } else if (owned.length === 1 && member.length === 0) {
-      setSpace({ businessId: owned[0].business_id, businessName: owned[0].business_name, role: 'owner', locationIds: [] })
+      setSpace(spaceFromOwned(owned[0]))
     } else if (owned.length === 0 && member.length === 1) {
-      setSpace({ businessId: member[0].business_id, businessName: member[0].business_name, role: member[0].role, locationIds: member[0].location_ids })
+      setSpace(spaceFromMembership(member[0]))
     } else {
-      // Multiple workspaces — let the user pick
       navigate('/spaces')
     }
   }, [isAuthenticated, businessId, memberships, location.pathname, navigate, setSpace])
