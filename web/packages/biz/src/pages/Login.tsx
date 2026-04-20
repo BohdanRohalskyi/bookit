@@ -41,7 +41,7 @@ export function Login() {
 
     if (result) {
       setAuth(result.user, result.tokens)
-      navigate('/spaces')
+      navigate('/dashboard')
     }
   }
 

@@ -54,7 +54,7 @@ describe('Biz Login validation', () => {
 })
 
 describe('Biz Login API', () => {
-  test('redirects to /spaces and populates auth store on success', async () => {
+  test('redirects to /dashboard and populates auth store on success', async () => {
     const user = userEvent.setup({ delay: null })
     post().mockResolvedValue({ data: buildAuthResponse(), error: undefined })
     renderWithProviders(<Login />)
@@ -64,7 +64,7 @@ describe('Biz Login API', () => {
     await user.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/spaces')
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
     })
     expect(useAuthStore.getState().isAuthenticated).toBe(true)
   })
