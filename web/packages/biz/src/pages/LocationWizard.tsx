@@ -68,16 +68,15 @@ export function LocationWizard() {
 
   const isEdit = Boolean(paramLocationId)
   const { isOwner, isAdmin } = useMyRole()
-
-  // Create: owner only. Edit: admin or owner.
-  if (!isEdit && !isOwner) return <Navigate to="/dashboard/locations" replace />
-  if (isEdit && !isAdmin) return <Navigate to="/dashboard/locations" replace />
-
   const [locationId, setLocationId] = useState<string | null>(paramLocationId ?? null)
   const [step, setStep] = useState(1)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
     isEdit ? new Set([1]) : new Set()
   )
+
+  // Create: owner only. Edit: admin or owner.
+  if (!isEdit && !isOwner) return <Navigate to="/dashboard/locations" replace />
+  if (isEdit && !isAdmin) return <Navigate to="/dashboard/locations" replace />
 
   const markComplete = (s: number) =>
     setCompletedSteps((prev) => new Set([...prev, s]))
