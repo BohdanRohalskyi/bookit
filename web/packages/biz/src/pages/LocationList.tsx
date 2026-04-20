@@ -13,12 +13,13 @@ type Location = components['schemas']['Location']
 
 interface LocationCardProps {
   location: Location
+  canEdit: boolean
   canDelete: boolean
   onDelete: () => void
   isDeleting: boolean
 }
 
-function LocationCard({ location, canDelete, onDelete, isDeleting }: LocationCardProps) {
+function LocationCard({ location, canEdit, canDelete, onDelete, isDeleting }: LocationCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
@@ -75,13 +76,15 @@ function LocationCard({ location, canDelete, onDelete, isDeleting }: LocationCar
           Manage →
         </Link>
         <div className="flex items-center gap-1">
-          <Link
-            to={`/dashboard/locations/${location.id}/edit`}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[rgba(2,9,5,0.6)] rounded-[4px] hover:bg-black/5 hover:text-[#020905] transition-colors"
-          >
-            <Pencil className="size-3.5" />
-            Edit
-          </Link>
+          {canEdit && (
+            <Link
+              to={`/dashboard/locations/${location.id}/edit`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[rgba(2,9,5,0.6)] rounded-[4px] hover:bg-black/5 hover:text-[#020905] transition-colors"
+            >
+              <Pencil className="size-3.5" />
+              Edit
+            </Link>
+          )}
           {canDelete && (
             <button
               onClick={() => setConfirmDelete(true)}
@@ -114,7 +117,7 @@ function Skeleton() {
 export function LocationList() {
   const queryClient = useQueryClient()
   const { businessId } = useSpaceStore()
-  const { isOwner } = useMyRole()
+  const { isOwner, isAdmin } = useMyRole()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -197,6 +200,7 @@ export function LocationList() {
             <LocationCard
               key={location.id}
               location={location}
+              canEdit={isAdmin}
               canDelete={isOwner}
               onDelete={() => deleteLocation(location.id)}
               isDeleting={deletingId === location.id}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Building2, CalendarCheck, TrendingUp, Users, PlusCircle, ChevronRight } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
+import { useMyRole } from '../hooks/useMyRole'
 import type { components } from '@bookit/shared/api'
 
 type Business = components['schemas']['Business']
@@ -69,6 +70,7 @@ function BusinessRow({ business }: { business: Business }) {
 
 export function Dashboard() {
   const { user } = useAuthStore()
+  const { isOwner } = useMyRole()
 
   const { data: businessList, isLoading } = useQuery({
     queryKey: ['businesses'],
@@ -109,13 +111,15 @@ export function Dashboard() {
       <div className="bg-white border border-[rgba(2,9,5,0.08)] rounded-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(2,9,5,0.06)]">
           <p className="font-heading font-semibold text-base text-[#020905]">Your Businesses</p>
-          <Link
-            to="/dashboard/businesses/new"
-            className="flex items-center gap-1.5 text-sm font-medium text-[#1069d1] hover:underline"
-          >
-            <PlusCircle className="size-4" />
-            Add Business
-          </Link>
+          {isOwner && (
+            <Link
+              to="/dashboard/businesses/new"
+              className="flex items-center gap-1.5 text-sm font-medium text-[#1069d1] hover:underline"
+            >
+              <PlusCircle className="size-4" />
+              Add Business
+            </Link>
+          )}
         </div>
 
         {isLoading ? (
@@ -131,12 +135,14 @@ export function Dashboard() {
                 Add your first business to start accepting bookings
               </p>
             </div>
-            <Link
-              to="/dashboard/businesses/new"
-              className="px-4 py-2 text-sm font-medium text-white bg-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors"
-            >
-              Add Business
-            </Link>
+            {isOwner && (
+              <Link
+                to="/dashboard/businesses/new"
+                className="px-4 py-2 text-sm font-medium text-white bg-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors"
+              >
+                Add Business
+              </Link>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-[rgba(2,9,5,0.05)]">

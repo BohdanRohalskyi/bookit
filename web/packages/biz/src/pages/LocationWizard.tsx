@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, Navigate } from 'react-router-dom'
 import { Check, ArrowLeft } from 'lucide-react'
 import { useSpaceStore } from '../stores/spaceStore'
+import { useMyRole } from '../hooks/useMyRole'
 import { StepBasicInfo } from '../components/wizard/StepBasicInfo'
 import { StepSchedule } from '../components/wizard/StepSchedule'
 import { StepTeamEquipment } from '../components/wizard/StepTeamEquipment'
@@ -66,6 +67,12 @@ export function LocationWizard() {
   const { businessId } = useSpaceStore()
 
   const isEdit = Boolean(paramLocationId)
+  const { isOwner, isAdmin } = useMyRole()
+
+  // Create: owner only. Edit: admin or owner.
+  if (!isEdit && !isOwner) return <Navigate to="/dashboard/locations" replace />
+  if (isEdit && !isAdmin) return <Navigate to="/dashboard/locations" replace />
+
   const [locationId, setLocationId] = useState<string | null>(paramLocationId ?? null)
   const [step, setStep] = useState(1)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(

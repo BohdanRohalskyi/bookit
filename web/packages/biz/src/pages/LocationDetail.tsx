@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import type { components } from '@bookit/shared/api'
+import { useMyRole } from '../hooks/useMyRole'
 
 type Location = components['schemas']['Location']
 type LocationPhoto = components['schemas']['LocationPhoto']
@@ -27,6 +28,7 @@ interface LocationServiceItem {
 
 export function LocationDetail() {
   const { locationId } = useParams<{ locationId: string }>()
+  const { isAdmin } = useMyRole()
 
   const { data: location, isLoading } = useQuery({
     queryKey: ['location', locationId],
@@ -128,13 +130,15 @@ export function LocationDetail() {
             {location.address}, {location.city}
           </div>
         </div>
-        <Link
-          to={`/dashboard/locations/${locationId}/edit`}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors shrink-0"
-        >
-          <Pencil className="size-4" />
-          Edit
-        </Link>
+        {isAdmin && (
+          <Link
+            to={`/dashboard/locations/${locationId}/edit`}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors shrink-0"
+          >
+            <Pencil className="size-4" />
+            Edit
+          </Link>
+        )}
       </div>
 
       {/* Photos */}
