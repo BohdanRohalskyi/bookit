@@ -117,7 +117,7 @@ function Skeleton() {
 export function LocationList() {
   const queryClient = useQueryClient()
   const { businessId } = useSpaceStore()
-  const { isOwner, isAdmin } = useMyRole()
+  const { isOwner } = useMyRole()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -200,7 +200,7 @@ export function LocationList() {
             <LocationCard
               key={location.id}
               location={location}
-              canEdit={isAdmin}
+              canEdit={isOwner}
               canDelete={isOwner}
               onDelete={() => deleteLocation(location.id)}
               isDeleting={deletingId === location.id}
