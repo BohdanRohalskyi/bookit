@@ -49,23 +49,6 @@ func (h *Handler) userID(c *gin.Context) (int64, bool) {
 	return id, ok
 }
 
-// businessIntID parses :id path param as UUID, falls back to parse as int for
-// internal use. Currently business IDs in paths are UUIDs (public identifiers).
-// This helper uses the service's repo to resolve UUID → int64.
-func (h *Handler) businessIntIDFromPath(c *gin.Context) (int64, bool) {
-	paramStr := c.Param("id")
-	// Try as UUID first
-	if _, err := uuid.Parse(paramStr); err == nil {
-		// Return the UUID string — caller resolves to int64 via repo
-		return 0, false // signal to use UUID resolution
-	}
-	// Fallback: try as int
-	if id, err := strconv.ParseInt(paramStr, 10, 64); err == nil {
-		return id, true
-	}
-	return 0, false
-}
-
 func errResp(c *gin.Context, status int, slug, title, detail string) {
 	c.JSON(status, gin.H{
 		"type":   "https://bookit.app/errors/" + slug,

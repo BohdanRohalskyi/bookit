@@ -12,10 +12,10 @@ import (
 // CatalogHandler exposes endpoints for equipment, staff roles, services
 // and location pivot management.
 type CatalogItemHandler struct {
-	service     *CatalogService
+	service      *CatalogService
 	locationRepo *LocationRepository // needed to resolve location UUID → int64
-	bizRepo     *Repository         // needed to resolve business UUID → int64
-	catalogRepo *CatalogRepository  // needed to resolve item UUIDs → int64
+	bizRepo      *Repository         // needed to resolve business UUID → int64
+	catalogRepo  *CatalogRepository  // needed to resolve item UUIDs → int64
 }
 
 func NewCatalogItemHandler(service *CatalogService, locationRepo *LocationRepository, bizRepo *Repository, catalogRepo *CatalogRepository) *CatalogItemHandler {

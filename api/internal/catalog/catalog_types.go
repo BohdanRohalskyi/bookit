@@ -47,15 +47,15 @@ type StaffRoleCreate struct {
 // ─── Services ─────────────────────────────────────────────────────────────────
 
 type ServiceEquipmentReq struct {
-	EquipmentID   int64
-	EquipmentUUID uuid.UUID
-	EquipmentName string
+	EquipmentID    int64
+	EquipmentUUID  uuid.UUID
+	EquipmentName  string
 	QuantityNeeded int
 }
 
 type ServiceStaffReq struct {
-	StaffRoleID   int64
-	StaffRoleUUID uuid.UUID
+	StaffRoleID    int64
+	StaffRoleUUID  uuid.UUID
 	JobTitle       string
 	QuantityNeeded int
 }
@@ -110,13 +110,13 @@ type LocationEquipmentCreate struct {
 }
 
 type LocationStaffRole struct {
-	ID          int64
-	UUID        uuid.UUID
-	LocationID  int64
-	StaffRoleID int64
+	ID            int64
+	UUID          uuid.UUID
+	LocationID    int64
+	StaffRoleID   int64
 	StaffRoleUUID uuid.UUID
-	JobTitle    string
-	Quantity    int
+	JobTitle      string
+	Quantity      int
 }
 
 type LocationStaffRoleCreate struct {

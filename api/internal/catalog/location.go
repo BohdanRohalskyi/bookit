@@ -69,12 +69,12 @@ type LocationUpdate struct {
 // Schedule types
 
 type Schedule struct {
-	ID         int64
-	UUID       uuid.UUID
-	LocationID int64
+	ID           int64
+	UUID         uuid.UUID
+	LocationID   int64
 	LocationUUID uuid.UUID
-	Days       []ScheduleDay
-	Exceptions []ScheduleException
+	Days         []ScheduleDay
+	Exceptions   []ScheduleException
 }
 
 type ScheduleDay struct {
@@ -95,17 +95,17 @@ type ScheduleDayInput struct {
 }
 
 type ScheduleException struct {
-	ID         int64
-	UUID       uuid.UUID
-	LocationID int64
+	ID           int64
+	UUID         uuid.UUID
+	LocationID   int64
 	LocationUUID uuid.UUID
-	ScheduleID int64
-	Date       string // "YYYY-MM-DD"
-	IsClosed   bool
-	OpenTime   *string
-	CloseTime  *string
-	Reason     *string
-	CreatedAt  time.Time
+	ScheduleID   int64
+	Date         string // "YYYY-MM-DD"
+	IsClosed     bool
+	OpenTime     *string
+	CloseTime    *string
+	Reason       *string
+	CreatedAt    time.Time
 }
 
 type ScheduleExceptionCreate struct {
