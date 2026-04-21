@@ -142,8 +142,21 @@ func (s *LocationService) GetLocation(ctx context.Context, id, userID uuid.UUID)
 }
 
 func (s *LocationService) UpdateLocation(ctx context.Context, id, userID uuid.UUID, req LocationUpdate) (Location, error) {
-	if err := s.ownsLocationID(ctx, userID, id); err != nil {
+	businessID, err := s.repo.GetOwnerBusinessID(ctx, id)
+	if err != nil {
 		return Location{}, err
+	}
+	access, err := s.memberAccess(ctx, userID, businessID)
+	if err != nil {
+		return Location{}, err
+	}
+	if access != nil {
+		if access.Role != "administrator" {
+			return Location{}, ErrLocationNotOwner
+		}
+		if access.Restricted && !containsUUID(access.LocationIDs, id) {
+			return Location{}, ErrLocationNotOwner
+		}
 	}
 	return s.repo.Update(ctx, id, req)
 }

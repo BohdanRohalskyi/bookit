@@ -28,7 +28,7 @@ interface LocationServiceItem {
 
 export function LocationDetail() {
   const { locationId } = useParams<{ locationId: string }>()
-  const { isOwner } = useMyRole()
+  const { isAdmin } = useMyRole()
 
   const { data: location, isLoading } = useQuery({
     queryKey: ['location', locationId],
@@ -130,7 +130,7 @@ export function LocationDetail() {
             {location.address}, {location.city}
           </div>
         </div>
-        {isOwner && (
+        {isAdmin && (
           <Link
             to={`/dashboard/locations/${locationId}/edit`}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors shrink-0"
