@@ -7,7 +7,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -29,7 +28,7 @@ func hashToken(token string) string {
 
 // ListMembers returns active role assignments and non-expired pending invites
 // for a business. Active members include name/photo from business_member_profiles.
-func (r *Repository) ListMembers(ctx context.Context, businessID uuid.UUID) ([]Member, error) {
+func (r *Repository) ListMembers(ctx context.Context, businessID int64) ([]Member, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT 'active'::text AS status,
 		       ura.id,
@@ -51,7 +50,7 @@ func (r *Repository) ListMembers(ctx context.Context, businessID uuid.UUID) ([]M
 
 		SELECT 'pending'::text AS status,
 		       inv.id,
-		       NULL::uuid AS user_id,
+		       NULL::bigint AS user_id,
 		       inv.email,
 		       inv.full_name AS name,
 		       NULL::text AS photo_url,
@@ -129,7 +128,7 @@ func (r *Repository) GetInviteByToken(ctx context.Context, token string) (Invite
 }
 
 // CancelInvite deletes a pending invite scoped to a business.
-func (r *Repository) CancelInvite(ctx context.Context, inviteID, businessID uuid.UUID) error {
+func (r *Repository) CancelInvite(ctx context.Context, inviteID, businessID int64) error {
 	result, err := r.db.Exec(ctx, `
 		DELETE FROM invites WHERE id = $1 AND business_id = $2 AND accepted_at IS NULL
 	`, inviteID, businessID)
@@ -172,7 +171,7 @@ func (r *Repository) GetPendingInvitesByEmail(ctx context.Context, email string)
 }
 
 // GetBusinessName returns the name of a business.
-func (r *Repository) GetBusinessName(ctx context.Context, businessID uuid.UUID) (string, error) {
+func (r *Repository) GetBusinessName(ctx context.Context, businessID int64) (string, error) {
 	var name string
 	err := r.db.QueryRow(ctx, `SELECT name FROM businesses WHERE id = $1`, businessID).Scan(&name)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -182,7 +181,7 @@ func (r *Repository) GetBusinessName(ctx context.Context, businessID uuid.UUID) 
 }
 
 // GetOwnedBusinesses returns all businesses owned by a user via the providers table.
-func (r *Repository) GetOwnedBusinesses(ctx context.Context, userID uuid.UUID) ([]OwnedBusiness, error) {
+func (r *Repository) GetOwnedBusinesses(ctx context.Context, userID int64) ([]OwnedBusiness, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT b.id, b.name, b.category, b.is_active
 		FROM businesses b
@@ -209,18 +208,18 @@ func (r *Repository) GetOwnedBusinesses(ctx context.Context, userID uuid.UUID) (
 	return owned, rows.Err()
 }
 
-// FindUserIDByEmail returns the user ID for an email address, or ErrMemberNotFound.
-func (r *Repository) FindUserIDByEmail(ctx context.Context, email string) (uuid.UUID, error) {
-	var id uuid.UUID
+// FindUserIDByEmail returns the internal user ID for an email address, or ErrMemberNotFound.
+func (r *Repository) FindUserIDByEmail(ctx context.Context, email string) (int64, error) {
+	var id int64
 	err := r.db.QueryRow(ctx, `SELECT id FROM users WHERE LOWER(email) = LOWER($1)`, email).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrMemberNotFound
+		return 0, ErrMemberNotFound
 	}
 	return id, err
 }
 
 // RemoveMember deletes an active role assignment scoped to a business.
-func (r *Repository) RemoveMember(ctx context.Context, assignmentID, businessID uuid.UUID) error {
+func (r *Repository) RemoveMember(ctx context.Context, assignmentID, businessID int64) error {
 	result, err := r.db.Exec(ctx, `
 		DELETE FROM user_role_assignments WHERE id = $1 AND business_id = $2
 	`, assignmentID, businessID)
@@ -235,7 +234,7 @@ func (r *Repository) RemoveMember(ctx context.Context, assignmentID, businessID 
 
 // txAcceptInvite atomically accepts an invite, creates the role assignment,
 // verifies the user's email, and upserts a business_member_profiles row.
-func (r *Repository) txAcceptInvite(ctx context.Context, inv Invite, userID uuid.UUID) error {
+func (r *Repository) txAcceptInvite(ctx context.Context, inv Invite, userID int64) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -286,7 +285,7 @@ func (r *Repository) txAcceptInvite(ctx context.Context, inv Invite, userID uuid
 // txRegisterAndAcceptInvite atomically accepts an invite for a brand-new user:
 // accepts the invite, creates the role assignment, and creates the member profile.
 // The user row itself is created before this call (by auth.CreateVerifiedUser).
-func (r *Repository) txRegisterAndAcceptInvite(ctx context.Context, inv Invite, userID uuid.UUID, fullName string) error {
+func (r *Repository) txRegisterAndAcceptInvite(ctx context.Context, inv Invite, userID int64, fullName string) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -327,7 +326,7 @@ func (r *Repository) txRegisterAndAcceptInvite(ctx context.Context, inv Invite, 
 
 // ── Profile CRUD ──────────────────────────────────────────────────────────────
 
-func (r *Repository) GetMemberProfile(ctx context.Context, userID, businessID uuid.UUID) (MemberProfile, error) {
+func (r *Repository) GetMemberProfile(ctx context.Context, userID, businessID int64) (MemberProfile, error) {
 	var p MemberProfile
 	err := r.db.QueryRow(ctx, `
 		SELECT id, user_id, business_id, full_name, photo_url, updated_at
@@ -340,7 +339,7 @@ func (r *Repository) GetMemberProfile(ctx context.Context, userID, businessID uu
 	return p, err
 }
 
-func (r *Repository) UpsertMemberProfile(ctx context.Context, userID, businessID uuid.UUID, fullName string) (MemberProfile, error) {
+func (r *Repository) UpsertMemberProfile(ctx context.Context, userID, businessID int64, fullName string) (MemberProfile, error) {
 	var p MemberProfile
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO business_member_profiles (user_id, business_id, full_name)
@@ -352,7 +351,7 @@ func (r *Repository) UpsertMemberProfile(ctx context.Context, userID, businessID
 	return p, err
 }
 
-func (r *Repository) UpdateProfilePhoto(ctx context.Context, userID, businessID uuid.UUID, photoURL string) error {
+func (r *Repository) UpdateProfilePhoto(ctx context.Context, userID, businessID int64, photoURL string) error {
 	result, err := r.db.Exec(ctx, `
 		UPDATE business_member_profiles SET photo_url = $1, updated_at = NOW()
 		WHERE user_id = $2 AND business_id = $3
@@ -375,7 +374,7 @@ func InviteExpiresAt() time.Time {
 
 // IsMemberOfBusiness returns true if the user has a role assignment in the business
 // OR is the business owner (via providers table).
-func (r *Repository) IsMemberOfBusiness(ctx context.Context, userID, businessID uuid.UUID) (bool, error) {
+func (r *Repository) IsMemberOfBusiness(ctx context.Context, userID, businessID int64) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(ctx, `
 		SELECT EXISTS (

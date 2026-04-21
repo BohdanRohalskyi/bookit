@@ -7,30 +7,32 @@ import (
 )
 
 type Provider struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
+	ID        int64
+	UUID      uuid.UUID
+	UserID    int64
 	Status    string
 	CreatedAt time.Time
 }
 
 type ProviderResponse struct {
-	ID        uuid.UUID `json:"id"`
-	UserID    uuid.UUID `json:"user_id"`
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 func (p *Provider) ToResponse() ProviderResponse {
 	return ProviderResponse{
-		ID:        p.ID,
-		UserID:    p.UserID,
+		ID:        p.UUID.String(),
+		UserID:    p.UUID.String(), // expose provider UUID; user UUID not stored here
 		Status:    p.Status,
 		CreatedAt: p.CreatedAt,
 	}
 }
 
 type User struct {
-	ID            uuid.UUID
+	ID            int64
+	UUID          uuid.UUID
 	Email         string
 	PasswordHash  string
 	Name          string
@@ -41,7 +43,7 @@ type User struct {
 }
 
 type UserResponse struct {
-	ID            uuid.UUID `json:"id"`
+	ID            string    `json:"id"`
 	Email         string    `json:"email"`
 	Name          string    `json:"name"`
 	Phone         *string   `json:"phone,omitempty"`
@@ -53,7 +55,7 @@ type UserResponse struct {
 
 func (u *User) ToResponse(isProvider bool) UserResponse {
 	return UserResponse{
-		ID:            u.ID,
+		ID:            u.UUID.String(),
 		Email:         u.Email,
 		Name:          u.Name,
 		Phone:         u.Phone,

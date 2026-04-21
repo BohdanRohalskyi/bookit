@@ -2,14 +2,12 @@ package rbac
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 // ownerChecker abstracts the providers-table ownership check so the service
 // can be tested without a real DB and without importing concrete packages.
 type ownerChecker interface {
-	IsBusinessOwner(ctx context.Context, userID, businessID uuid.UUID) (bool, error)
+	IsBusinessOwner(ctx context.Context, userID, businessID int64) (bool, error)
 }
 
 // Service holds the central authorization logic.

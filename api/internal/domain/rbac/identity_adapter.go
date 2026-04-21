@@ -3,8 +3,6 @@ package rbac
 import (
 	"context"
 
-	"github.com/google/uuid"
-
 	"github.com/BohdanRohalskyi/bookit/api/internal/catalog"
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
 )
@@ -26,7 +24,7 @@ func NewIdentityOwnerAdapter(identityRepo *identity.Repository, catalogRepo *cat
 }
 
 // IsBusinessOwner returns true if userID belongs to the provider who owns businessID.
-func (a *IdentityOwnerAdapter) IsBusinessOwner(ctx context.Context, userID, businessID uuid.UUID) (bool, error) {
+func (a *IdentityOwnerAdapter) IsBusinessOwner(ctx context.Context, userID, businessID int64) (bool, error) {
 	providerID, err := a.identityRepo.GetProviderIDByUserID(ctx, userID)
 	if err != nil {
 		// Not a provider → not an owner. Not a DB error — just return false.

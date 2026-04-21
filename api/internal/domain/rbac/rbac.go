@@ -3,8 +3,6 @@ package rbac
 import (
 	"errors"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // ─── Sentinel errors ──────────────────────────────────────────────────────────
@@ -47,8 +45,8 @@ const (
 
 // Permission is a single resource+action pair belonging to a role.
 type Permission struct {
-	ID       uuid.UUID
-	RoleID   uuid.UUID
+	ID       int64
+	RoleID   int64
 	Resource string
 	Action   string
 }
@@ -56,20 +54,20 @@ type Permission struct {
 // UserRoleAssignment links a user to a role within a business scope.
 // LocationID nil means the assignment covers all locations of that business.
 type UserRoleAssignment struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	RoleID     uuid.UUID
-	BusinessID uuid.UUID
-	LocationID *uuid.UUID
-	AssignedBy *uuid.UUID
+	ID         int64
+	UserID     int64
+	RoleID     int64
+	BusinessID int64
+	LocationID *int64
+	AssignedBy *int64
 	CreatedAt  time.Time
 }
 
 // AccessRequest carries the parameters for a single permission check.
 type AccessRequest struct {
-	UserID     uuid.UUID
-	BusinessID uuid.UUID
-	LocationID *uuid.UUID // nil when the request is not location-scoped
+	UserID     int64
+	BusinessID int64
+	LocationID *int64 // nil when the request is not location-scoped
 	Resource   string
 	Action     string
 }
@@ -77,10 +75,10 @@ type AccessRequest struct {
 // Membership represents one business space a user belongs to,
 // returned by GetUserMemberships for the space picker.
 type Membership struct {
-	BusinessID   uuid.UUID
+	BusinessID   int64
 	BusinessName string
 	Category     string
 	IsActive     bool
-	Role         string      // "administrator" | "staff"
-	LocationIDs  []uuid.UUID // non-empty only for location-scoped assignments
+	Role         string   // "administrator" | "staff"
+	LocationIDs  []int64  // non-empty only for location-scoped assignments
 }

@@ -31,7 +31,8 @@ func newTestService(repo userRepository, mailProvider mail.Provider) *Service {
 func testUser() *identity.User {
 	hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.MinCost)
 	return &identity.User{
-		ID:            uuid.New(),
+		ID:            int64(1),
+		UUID:          uuid.New(),
 		Email:         "test@example.com",
 		PasswordHash:  string(hash),
 		Name:          "Test User",
@@ -138,7 +139,7 @@ func TestService_Login(t *testing.T) {
 		user := testUser()
 		repo := &mockRepository{
 			getByEmail: func(_ context.Context, _ string) (*identity.User, error) { return user, nil },
-			isProvider: func(_ context.Context, _ uuid.UUID) (bool, error) { return true, nil },
+			isProvider: func(_ context.Context, _ int64) (bool, error) { return true, nil },
 		}
 		resp, err := newTestService(repo, &mockMailProvider{}).Login(
 			context.Background(), user.Email, "password123",
@@ -157,10 +158,10 @@ func TestService_Refresh(t *testing.T) {
 		t.Parallel()
 		user := testUser()
 		repo := &mockRepository{
-			validateRefreshToken: func(_ context.Context, _ string) (uuid.UUID, error) {
+			validateRefreshToken: func(_ context.Context, _ string) (int64, error) {
 				return user.ID, nil
 			},
-			getByID: func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
+			getByID: func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
 		}
 		resp, err := newTestService(repo, &mockMailProvider{}).Refresh(
 			context.Background(), "valid-refresh-token",
@@ -207,13 +208,13 @@ func TestService_VerifyEmail(t *testing.T) {
 
 	t.Run("marks email as verified for a valid token", func(t *testing.T) {
 		t.Parallel()
-		userID := uuid.New()
+		userID := int64(42)
 		verified := false
 		repo := &mockRepository{
-			validateAuthToken: func(_ context.Context, _, _ string) (uuid.UUID, error) {
+			validateAuthToken: func(_ context.Context, _, _ string) (int64, error) {
 				return userID, nil
 			},
-			setEmailVerified: func(_ context.Context, _ uuid.UUID) error {
+			setEmailVerified: func(_ context.Context, _ int64) error {
 				verified = true
 				return nil
 			},
@@ -243,7 +244,7 @@ func TestService_ResendVerificationEmail(t *testing.T) {
 		user := testUser() // EmailVerified = false
 		emailSent := false
 		repo := &mockRepository{
-			getByID: func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
+			getByID: func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
 		}
 		mailProvider := &mockMailProvider{
 			send: func(_ context.Context, _ mail.Message) error {
@@ -261,7 +262,7 @@ func TestService_ResendVerificationEmail(t *testing.T) {
 		user := testUser()
 		user.EmailVerified = true
 		repo := &mockRepository{
-			getByID: func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
+			getByID: func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
 		}
 		err := newTestService(repo, &mockMailProvider{}).ResendVerificationEmail(
 			context.Background(), user.ID,
@@ -312,18 +313,18 @@ func TestService_ResetPassword(t *testing.T) {
 
 	t.Run("updates password and revokes all refresh tokens", func(t *testing.T) {
 		t.Parallel()
-		userID := uuid.New()
+		userID := int64(42)
 		passwordUpdated := false
 		tokensRevoked := false
 		repo := &mockRepository{
-			validateAuthToken: func(_ context.Context, _, _ string) (uuid.UUID, error) {
+			validateAuthToken: func(_ context.Context, _, _ string) (int64, error) {
 				return userID, nil
 			},
-			updatePassword: func(_ context.Context, _ uuid.UUID, _ string) error {
+			updatePassword: func(_ context.Context, _ int64, _ string) error {
 				passwordUpdated = true
 				return nil
 			},
-			revokeAllUserTokens: func(_ context.Context, _ uuid.UUID) error {
+			revokeAllUserTokens: func(_ context.Context, _ int64) error {
 				tokensRevoked = true
 				return nil
 			},
@@ -355,7 +356,7 @@ func TestService_CreateAppSwitchToken(t *testing.T) {
 		t.Parallel()
 		// createAuthTokenWithIP defaults to nil (success)
 		token, err := newTestService(&mockRepository{}, &mockMailProvider{}).CreateAppSwitchToken(
-			context.Background(), uuid.New(), "127.0.0.1",
+			context.Background(), int64(1), "127.0.0.1",
 		)
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
@@ -371,10 +372,10 @@ func TestService_ExchangeAppSwitchToken(t *testing.T) {
 		t.Parallel()
 		user := testUser()
 		repo := &mockRepository{
-			validateAuthTokenWithIP: func(_ context.Context, _, _, _ string) (uuid.UUID, error) {
+			validateAuthTokenWithIP: func(_ context.Context, _, _, _ string) (int64, error) {
 				return user.ID, nil
 			},
-			getByID: func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
+			getByID: func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
 		}
 		resp, err := newTestService(repo, &mockMailProvider{}).ExchangeAppSwitchToken(
 			context.Background(), "valid-token", "127.0.0.1",

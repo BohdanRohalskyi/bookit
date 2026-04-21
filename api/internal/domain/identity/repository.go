@@ -34,11 +34,12 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 	var phone *string
 
 	err := r.db.QueryRow(ctx, `
-		SELECT id, email, password_hash, name, phone, email_verified, created_at, updated_at
+		SELECT id, uuid, email, password_hash, name, phone, email_verified, created_at, updated_at
 		FROM users
 		WHERE LOWER(email) = LOWER($1)
 	`, email).Scan(
 		&user.ID,
+		&user.UUID,
 		&user.Email,
 		&user.PasswordHash,
 		&user.Name,
@@ -59,16 +60,51 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 	return &user, nil
 }
 
-func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
+// GetByUUID looks up a user by their public UUID identifier.
+// Used by AuthMiddleware to resolve JWT claims → internal int64 ID.
+func (r *Repository) GetByUUID(ctx context.Context, id uuid.UUID) (*User, error) {
 	var user User
 	var phone *string
 
 	err := r.db.QueryRow(ctx, `
-		SELECT id, email, password_hash, name, phone, email_verified, created_at, updated_at
+		SELECT id, uuid, email, password_hash, name, phone, email_verified, created_at, updated_at
+		FROM users
+		WHERE uuid = $1
+	`, id).Scan(
+		&user.ID,
+		&user.UUID,
+		&user.Email,
+		&user.PasswordHash,
+		&user.Name,
+		&phone,
+		&user.EmailVerified,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	user.Phone = phone
+	return &user, nil
+}
+
+// GetByID looks up a user by their internal integer primary key.
+func (r *Repository) GetByID(ctx context.Context, id int64) (*User, error) {
+	var user User
+	var phone *string
+
+	err := r.db.QueryRow(ctx, `
+		SELECT id, uuid, email, password_hash, name, phone, email_verified, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`, id).Scan(
 		&user.ID,
+		&user.UUID,
 		&user.Email,
 		&user.PasswordHash,
 		&user.Name,
@@ -99,9 +135,10 @@ func (r *Repository) Create(ctx context.Context, email, passwordHash, name, phon
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO users (email, password_hash, name, phone, email_verified)
 		VALUES ($1, $2, $3, $4, false)
-		RETURNING id, email, password_hash, name, phone, email_verified, created_at, updated_at
+		RETURNING id, uuid, email, password_hash, name, phone, email_verified, created_at, updated_at
 	`, strings.ToLower(email), passwordHash, name, phonePtr).Scan(
 		&user.ID,
+		&user.UUID,
 		&user.Email,
 		&user.PasswordHash,
 		&user.Name,
@@ -122,18 +159,18 @@ func (r *Repository) Create(ctx context.Context, email, passwordHash, name, phon
 	return &user, nil
 }
 
-func (r *Repository) GetProviderIDByUserID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
-	var providerID uuid.UUID
+func (r *Repository) GetProviderIDByUserID(ctx context.Context, userID int64) (int64, error) {
+	var providerID int64
 	err := r.db.QueryRow(ctx, `
 		SELECT id FROM providers WHERE user_id = $1
 	`, userID).Scan(&providerID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrUserNotFound
+		return 0, ErrUserNotFound
 	}
 	return providerID, err
 }
 
-func (r *Repository) IsProvider(ctx context.Context, userID uuid.UUID) (bool, error) {
+func (r *Repository) IsProvider(ctx context.Context, userID int64) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(ctx, `
 		SELECT EXISTS(SELECT 1 FROM providers WHERE user_id = $1)
@@ -149,13 +186,13 @@ func (r *Repository) IsProvider(ctx context.Context, userID uuid.UUID) (bool, er
 	return exists, nil
 }
 
-func (r *Repository) CreateProvider(ctx context.Context, userID uuid.UUID) (*Provider, error) {
+func (r *Repository) CreateProvider(ctx context.Context, userID int64) (*Provider, error) {
 	var p Provider
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO providers (user_id)
 		VALUES ($1)
-		RETURNING id, user_id, status, created_at
-	`, userID).Scan(&p.ID, &p.UserID, &p.Status, &p.CreatedAt)
+		RETURNING id, uuid, user_id, status, created_at
+	`, userID).Scan(&p.ID, &p.UUID, &p.UserID, &p.Status, &p.CreatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // unique_violation
@@ -173,7 +210,7 @@ func hashToken(token string) string {
 	return hex.EncodeToString(h[:])
 }
 
-func (r *Repository) CreateRefreshToken(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) error {
+func (r *Repository) CreateRefreshToken(ctx context.Context, userID int64, token string, expiresAt time.Time) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
 		VALUES ($1, $2, $3)
@@ -181,8 +218,8 @@ func (r *Repository) CreateRefreshToken(ctx context.Context, userID uuid.UUID, t
 	return err
 }
 
-func (r *Repository) ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error) {
-	var userID uuid.UUID
+func (r *Repository) ValidateRefreshToken(ctx context.Context, token string) (int64, error) {
+	var userID int64
 	var expiresAt time.Time
 
 	err := r.db.QueryRow(ctx, `
@@ -192,14 +229,14 @@ func (r *Repository) ValidateRefreshToken(ctx context.Context, token string) (uu
 	`, hashToken(token)).Scan(&userID, &expiresAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrInvalidToken
+		return 0, ErrInvalidToken
 	}
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 
 	if time.Now().After(expiresAt) {
-		return uuid.Nil, ErrInvalidToken
+		return 0, ErrInvalidToken
 	}
 
 	return userID, nil
@@ -214,7 +251,7 @@ func (r *Repository) RevokeRefreshToken(ctx context.Context, token string) error
 	return err
 }
 
-func (r *Repository) RevokeAllUserTokens(ctx context.Context, userID uuid.UUID) error {
+func (r *Repository) RevokeAllUserTokens(ctx context.Context, userID int64) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE refresh_tokens
 		SET revoked_at = NOW()
@@ -231,7 +268,7 @@ const (
 	TokenTypeAppSwitch         = "app_switch"
 )
 
-func (r *Repository) CreateAuthToken(ctx context.Context, userID uuid.UUID, token, tokenType string, expiresAt time.Time) error {
+func (r *Repository) CreateAuthToken(ctx context.Context, userID int64, token, tokenType string, expiresAt time.Time) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO auth_tokens (user_id, token_hash, token_type, expires_at)
 		VALUES ($1, $2, $3, $4)
@@ -239,7 +276,7 @@ func (r *Repository) CreateAuthToken(ctx context.Context, userID uuid.UUID, toke
 	return err
 }
 
-func (r *Repository) CreateAuthTokenWithIP(ctx context.Context, userID uuid.UUID, token, tokenType, ipAddress string, expiresAt time.Time) error {
+func (r *Repository) CreateAuthTokenWithIP(ctx context.Context, userID int64, token, tokenType, ipAddress string, expiresAt time.Time) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO auth_tokens (user_id, token_hash, token_type, ip_address, expires_at)
 		VALUES ($1, $2, $3, $4, $5)
@@ -247,8 +284,8 @@ func (r *Repository) CreateAuthTokenWithIP(ctx context.Context, userID uuid.UUID
 	return err
 }
 
-func (r *Repository) ValidateAuthToken(ctx context.Context, token, tokenType string) (uuid.UUID, error) {
-	var userID uuid.UUID
+func (r *Repository) ValidateAuthToken(ctx context.Context, token, tokenType string) (int64, error) {
+	var userID int64
 	var expiresAt time.Time
 
 	err := r.db.QueryRow(ctx, `
@@ -258,21 +295,21 @@ func (r *Repository) ValidateAuthToken(ctx context.Context, token, tokenType str
 	`, hashToken(token), tokenType).Scan(&userID, &expiresAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrInvalidToken
+		return 0, ErrInvalidToken
 	}
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 
 	if time.Now().After(expiresAt) {
-		return uuid.Nil, ErrInvalidToken
+		return 0, ErrInvalidToken
 	}
 
 	return userID, nil
 }
 
-func (r *Repository) ValidateAuthTokenWithIP(ctx context.Context, token, tokenType, ipAddress string) (uuid.UUID, error) {
-	var userID uuid.UUID
+func (r *Repository) ValidateAuthTokenWithIP(ctx context.Context, token, tokenType, ipAddress string) (int64, error) {
+	var userID int64
 	var expiresAt time.Time
 	var storedIP *string
 
@@ -283,19 +320,19 @@ func (r *Repository) ValidateAuthTokenWithIP(ctx context.Context, token, tokenTy
 	`, hashToken(token), tokenType).Scan(&userID, &expiresAt, &storedIP)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrInvalidToken
+		return 0, ErrInvalidToken
 	}
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 
 	if time.Now().After(expiresAt) {
-		return uuid.Nil, ErrInvalidToken
+		return 0, ErrInvalidToken
 	}
 
 	// Check IP if stored
 	if storedIP != nil && *storedIP != ipAddress {
-		return uuid.Nil, ErrInvalidToken
+		return 0, ErrInvalidToken
 	}
 
 	return userID, nil
@@ -310,7 +347,7 @@ func (r *Repository) UseAuthToken(ctx context.Context, token, tokenType string) 
 	return err
 }
 
-func (r *Repository) SetEmailVerified(ctx context.Context, userID uuid.UUID) error {
+func (r *Repository) SetEmailVerified(ctx context.Context, userID int64) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE users
 		SET email_verified = true
@@ -319,7 +356,7 @@ func (r *Repository) SetEmailVerified(ctx context.Context, userID uuid.UUID) err
 	return err
 }
 
-func (r *Repository) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error {
+func (r *Repository) UpdatePassword(ctx context.Context, userID int64, passwordHash string) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE users
 		SET password_hash = $1

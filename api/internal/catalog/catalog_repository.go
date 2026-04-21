@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -25,14 +24,14 @@ func (r *CatalogRepository) CreateEquipment(ctx context.Context, req EquipmentCr
 	var e Equipment
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO equipment (business_id, name) VALUES ($1, $2)
-		RETURNING id, business_id, name, created_at
-	`, req.BusinessID, req.Name).Scan(&e.ID, &e.BusinessID, &e.Name, &e.CreatedAt)
+		RETURNING id, uuid, business_id, name, created_at
+	`, req.BusinessID, req.Name).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt)
 	return e, err
 }
 
-func (r *CatalogRepository) ListEquipmentByBusiness(ctx context.Context, businessID uuid.UUID) ([]Equipment, error) {
+func (r *CatalogRepository) ListEquipmentByBusiness(ctx context.Context, businessID int64) ([]Equipment, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, business_id, name, created_at FROM equipment
+		SELECT id, uuid, business_id, name, created_at FROM equipment
 		WHERE business_id = $1 ORDER BY name
 	`, businessID)
 	if err != nil {
@@ -42,7 +41,7 @@ func (r *CatalogRepository) ListEquipmentByBusiness(ctx context.Context, busines
 	var items []Equipment
 	for rows.Next() {
 		var e Equipment
-		if err := rows.Scan(&e.ID, &e.BusinessID, &e.Name, &e.CreatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, e)
@@ -53,7 +52,7 @@ func (r *CatalogRepository) ListEquipmentByBusiness(ctx context.Context, busines
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) DeleteEquipment(ctx context.Context, id uuid.UUID) error {
+func (r *CatalogRepository) DeleteEquipment(ctx context.Context, id int64) error {
 	res, err := r.db.Exec(ctx, `DELETE FROM equipment WHERE id = $1`, id)
 	if err != nil {
 		return err
@@ -64,11 +63,11 @@ func (r *CatalogRepository) DeleteEquipment(ctx context.Context, id uuid.UUID) e
 	return nil
 }
 
-func (r *CatalogRepository) GetEquipmentBusinessID(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	var bID uuid.UUID
+func (r *CatalogRepository) GetEquipmentBusinessID(ctx context.Context, id int64) (int64, error) {
+	var bID int64
 	err := r.db.QueryRow(ctx, `SELECT business_id FROM equipment WHERE id = $1`, id).Scan(&bID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrEquipmentNotFound
+		return 0, ErrEquipmentNotFound
 	}
 	return bID, err
 }
@@ -79,14 +78,14 @@ func (r *CatalogRepository) CreateStaffRole(ctx context.Context, req StaffRoleCr
 	var s StaffRole
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO staff_roles (business_id, job_title) VALUES ($1, $2)
-		RETURNING id, business_id, job_title, created_at
-	`, req.BusinessID, req.JobTitle).Scan(&s.ID, &s.BusinessID, &s.JobTitle, &s.CreatedAt)
+		RETURNING id, uuid, business_id, job_title, created_at
+	`, req.BusinessID, req.JobTitle).Scan(&s.ID, &s.UUID, &s.BusinessID, &s.JobTitle, &s.CreatedAt)
 	return s, err
 }
 
-func (r *CatalogRepository) ListStaffRolesByBusiness(ctx context.Context, businessID uuid.UUID) ([]StaffRole, error) {
+func (r *CatalogRepository) ListStaffRolesByBusiness(ctx context.Context, businessID int64) ([]StaffRole, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, business_id, job_title, created_at FROM staff_roles
+		SELECT id, uuid, business_id, job_title, created_at FROM staff_roles
 		WHERE business_id = $1 ORDER BY job_title
 	`, businessID)
 	if err != nil {
@@ -96,7 +95,7 @@ func (r *CatalogRepository) ListStaffRolesByBusiness(ctx context.Context, busine
 	var items []StaffRole
 	for rows.Next() {
 		var s StaffRole
-		if err := rows.Scan(&s.ID, &s.BusinessID, &s.JobTitle, &s.CreatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.UUID, &s.BusinessID, &s.JobTitle, &s.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, s)
@@ -107,7 +106,7 @@ func (r *CatalogRepository) ListStaffRolesByBusiness(ctx context.Context, busine
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) DeleteStaffRole(ctx context.Context, id uuid.UUID) error {
+func (r *CatalogRepository) DeleteStaffRole(ctx context.Context, id int64) error {
 	res, err := r.db.Exec(ctx, `DELETE FROM staff_roles WHERE id = $1`, id)
 	if err != nil {
 		return err
@@ -118,11 +117,11 @@ func (r *CatalogRepository) DeleteStaffRole(ctx context.Context, id uuid.UUID) e
 	return nil
 }
 
-func (r *CatalogRepository) GetStaffRoleBusinessID(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	var bID uuid.UUID
+func (r *CatalogRepository) GetStaffRoleBusinessID(ctx context.Context, id int64) (int64, error) {
+	var bID int64
 	err := r.db.QueryRow(ctx, `SELECT business_id FROM staff_roles WHERE id = $1`, id).Scan(&bID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrStaffRoleNotFound
+		return 0, ErrStaffRoleNotFound
 	}
 	return bID, err
 }
@@ -140,9 +139,9 @@ func (r *CatalogRepository) CreateService(ctx context.Context, req ServiceItemCr
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO services (business_id, name, description, duration_minutes, price, currency)
 		VALUES ($1,$2,$3,$4,$5,$6)
-		RETURNING id, business_id, name, description, duration_minutes, price, currency, created_at, updated_at
+		RETURNING id, uuid, business_id, name, description, duration_minutes, price, currency, created_at, updated_at
 	`, req.BusinessID, req.Name, req.Description, req.DurationMinutes, req.Price, req.Currency).Scan(
-		&svc.ID, &svc.BusinessID, &svc.Name, &svc.Description,
+		&svc.ID, &svc.UUID, &svc.BusinessID, &svc.Name, &svc.Description,
 		&svc.DurationMinutes, &svc.Price, &svc.Currency, &svc.CreatedAt, &svc.UpdatedAt,
 	); err != nil {
 		return ServiceItem{}, err
@@ -172,12 +171,12 @@ func (r *CatalogRepository) CreateService(ctx context.Context, req ServiceItemCr
 	return r.getServiceWithRequirements(ctx, svc.ID)
 }
 
-func (r *CatalogRepository) getServiceWithRequirements(ctx context.Context, id uuid.UUID) (ServiceItem, error) {
+func (r *CatalogRepository) getServiceWithRequirements(ctx context.Context, id int64) (ServiceItem, error) {
 	var svc ServiceItem
 	err := r.db.QueryRow(ctx, `
-		SELECT id, business_id, name, description, duration_minutes, price, currency, created_at, updated_at
+		SELECT id, uuid, business_id, name, description, duration_minutes, price, currency, created_at, updated_at
 		FROM services WHERE id = $1
-	`, id).Scan(&svc.ID, &svc.BusinessID, &svc.Name, &svc.Description,
+	`, id).Scan(&svc.ID, &svc.UUID, &svc.BusinessID, &svc.Name, &svc.Description,
 		&svc.DurationMinutes, &svc.Price, &svc.Currency, &svc.CreatedAt, &svc.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ServiceItem{}, ErrServiceNotFound
@@ -188,7 +187,7 @@ func (r *CatalogRepository) getServiceWithRequirements(ctx context.Context, id u
 
 	// Equipment requirements
 	eRows, err := r.db.Query(ctx, `
-		SELECT ser.equipment_id, e.name, ser.quantity_needed
+		SELECT ser.equipment_id, e.uuid, e.name, ser.quantity_needed
 		FROM service_equipment_requirements ser
 		JOIN equipment e ON e.id = ser.equipment_id
 		WHERE ser.service_id = $1
@@ -199,7 +198,7 @@ func (r *CatalogRepository) getServiceWithRequirements(ctx context.Context, id u
 	defer eRows.Close()
 	for eRows.Next() {
 		var req ServiceEquipmentReq
-		if err := eRows.Scan(&req.EquipmentID, &req.EquipmentName, &req.QuantityNeeded); err != nil {
+		if err := eRows.Scan(&req.EquipmentID, &req.EquipmentUUID, &req.EquipmentName, &req.QuantityNeeded); err != nil {
 			return ServiceItem{}, err
 		}
 		svc.Equipment = append(svc.Equipment, req)
@@ -210,7 +209,7 @@ func (r *CatalogRepository) getServiceWithRequirements(ctx context.Context, id u
 
 	// Staff requirements
 	sRows, err := r.db.Query(ctx, `
-		SELECT ssr.staff_role_id, sr.job_title, ssr.quantity_needed
+		SELECT ssr.staff_role_id, sr.uuid, sr.job_title, ssr.quantity_needed
 		FROM service_staff_requirements ssr
 		JOIN staff_roles sr ON sr.id = ssr.staff_role_id
 		WHERE ssr.service_id = $1
@@ -221,7 +220,7 @@ func (r *CatalogRepository) getServiceWithRequirements(ctx context.Context, id u
 	defer sRows.Close()
 	for sRows.Next() {
 		var req ServiceStaffReq
-		if err := sRows.Scan(&req.StaffRoleID, &req.JobTitle, &req.QuantityNeeded); err != nil {
+		if err := sRows.Scan(&req.StaffRoleID, &req.StaffRoleUUID, &req.JobTitle, &req.QuantityNeeded); err != nil {
 			return ServiceItem{}, err
 		}
 		svc.Staff = append(svc.Staff, req)
@@ -233,7 +232,7 @@ func (r *CatalogRepository) getServiceWithRequirements(ctx context.Context, id u
 	return svc, nil
 }
 
-func (r *CatalogRepository) ListServicesByBusiness(ctx context.Context, businessID uuid.UUID) ([]ServiceItem, error) {
+func (r *CatalogRepository) ListServicesByBusiness(ctx context.Context, businessID int64) ([]ServiceItem, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id FROM services WHERE business_id = $1 ORDER BY name
 	`, businessID)
@@ -241,9 +240,9 @@ func (r *CatalogRepository) ListServicesByBusiness(ctx context.Context, business
 		return nil, err
 	}
 	defer rows.Close()
-	var ids []uuid.UUID
+	var ids []int64
 	for rows.Next() {
-		var id uuid.UUID
+		var id int64
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -266,7 +265,7 @@ func (r *CatalogRepository) ListServicesByBusiness(ctx context.Context, business
 	return services, nil
 }
 
-func (r *CatalogRepository) DeleteService(ctx context.Context, id uuid.UUID) error {
+func (r *CatalogRepository) DeleteService(ctx context.Context, id int64) error {
 	res, err := r.db.Exec(ctx, `DELETE FROM services WHERE id = $1`, id)
 	if err != nil {
 		return err
@@ -277,35 +276,35 @@ func (r *CatalogRepository) DeleteService(ctx context.Context, id uuid.UUID) err
 	return nil
 }
 
-func (r *CatalogRepository) GetServiceBusinessID(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	var bID uuid.UUID
+func (r *CatalogRepository) GetServiceBusinessID(ctx context.Context, id int64) (int64, error) {
+	var bID int64
 	err := r.db.QueryRow(ctx, `SELECT business_id FROM services WHERE id = $1`, id).Scan(&bID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrServiceNotFound
+		return 0, ErrServiceNotFound
 	}
 	return bID, err
 }
 
 // ─── Location equipment pivot ─────────────────────────────────────────────────
 
-func (r *CatalogRepository) AddLocationEquipment(ctx context.Context, locationID uuid.UUID, req LocationEquipmentCreate) (LocationEquipment, error) {
+func (r *CatalogRepository) AddLocationEquipment(ctx context.Context, locationID int64, req LocationEquipmentCreate) (LocationEquipment, error) {
 	var le LocationEquipment
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO location_equipment (location_id, equipment_id, quantity)
 		VALUES ($1,$2,$3)
 		ON CONFLICT (location_id, equipment_id) DO UPDATE SET quantity = EXCLUDED.quantity
-		RETURNING id, location_id, equipment_id, quantity
-	`, locationID, req.EquipmentID, req.Quantity).Scan(&le.ID, &le.LocationID, &le.EquipmentID, &le.Quantity)
+		RETURNING id, uuid, location_id, equipment_id, quantity
+	`, locationID, req.EquipmentID, req.Quantity).Scan(&le.ID, &le.UUID, &le.LocationID, &le.EquipmentID, &le.Quantity)
 	if err != nil {
 		return LocationEquipment{}, err
 	}
-	_ = r.db.QueryRow(ctx, `SELECT name FROM equipment WHERE id = $1`, req.EquipmentID).Scan(&le.EquipmentName) //nolint:errcheck // best-effort name denorm
+	_ = r.db.QueryRow(ctx, `SELECT uuid, name FROM equipment WHERE id = $1`, req.EquipmentID).Scan(&le.EquipmentUUID, &le.EquipmentName) //nolint:errcheck // best-effort name denorm
 	return le, nil
 }
 
-func (r *CatalogRepository) ListLocationEquipment(ctx context.Context, locationID uuid.UUID) ([]LocationEquipment, error) {
+func (r *CatalogRepository) ListLocationEquipment(ctx context.Context, locationID int64) ([]LocationEquipment, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT le.id, le.location_id, le.equipment_id, e.name, le.quantity
+		SELECT le.id, le.uuid, le.location_id, le.equipment_id, e.uuid, e.name, le.quantity
 		FROM location_equipment le
 		JOIN equipment e ON e.id = le.equipment_id
 		WHERE le.location_id = $1 ORDER BY e.name
@@ -317,7 +316,7 @@ func (r *CatalogRepository) ListLocationEquipment(ctx context.Context, locationI
 	var items []LocationEquipment
 	for rows.Next() {
 		var le LocationEquipment
-		if err := rows.Scan(&le.ID, &le.LocationID, &le.EquipmentID, &le.EquipmentName, &le.Quantity); err != nil {
+		if err := rows.Scan(&le.ID, &le.UUID, &le.LocationID, &le.EquipmentID, &le.EquipmentUUID, &le.EquipmentName, &le.Quantity); err != nil {
 			return nil, err
 		}
 		items = append(items, le)
@@ -328,7 +327,7 @@ func (r *CatalogRepository) ListLocationEquipment(ctx context.Context, locationI
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) RemoveLocationEquipment(ctx context.Context, itemID uuid.UUID) error {
+func (r *CatalogRepository) RemoveLocationEquipment(ctx context.Context, itemID int64) error {
 	res, err := r.db.Exec(ctx, `DELETE FROM location_equipment WHERE id = $1`, itemID)
 	if err != nil {
 		return err
@@ -339,35 +338,35 @@ func (r *CatalogRepository) RemoveLocationEquipment(ctx context.Context, itemID 
 	return nil
 }
 
-func (r *CatalogRepository) GetLocationEquipmentLocationID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
-	var lID uuid.UUID
+func (r *CatalogRepository) GetLocationEquipmentLocationID(ctx context.Context, itemID int64) (int64, error) {
+	var lID int64
 	err := r.db.QueryRow(ctx, `SELECT location_id FROM location_equipment WHERE id = $1`, itemID).Scan(&lID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrLocationItemNotFound
+		return 0, ErrLocationItemNotFound
 	}
 	return lID, err
 }
 
 // ─── Location staff roles pivot ───────────────────────────────────────────────
 
-func (r *CatalogRepository) AddLocationStaffRole(ctx context.Context, locationID uuid.UUID, req LocationStaffRoleCreate) (LocationStaffRole, error) {
+func (r *CatalogRepository) AddLocationStaffRole(ctx context.Context, locationID int64, req LocationStaffRoleCreate) (LocationStaffRole, error) {
 	var ls LocationStaffRole
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO location_staff_roles (location_id, staff_role_id, quantity)
 		VALUES ($1,$2,$3)
 		ON CONFLICT (location_id, staff_role_id) DO UPDATE SET quantity = EXCLUDED.quantity
-		RETURNING id, location_id, staff_role_id, quantity
-	`, locationID, req.StaffRoleID, req.Quantity).Scan(&ls.ID, &ls.LocationID, &ls.StaffRoleID, &ls.Quantity)
+		RETURNING id, uuid, location_id, staff_role_id, quantity
+	`, locationID, req.StaffRoleID, req.Quantity).Scan(&ls.ID, &ls.UUID, &ls.LocationID, &ls.StaffRoleID, &ls.Quantity)
 	if err != nil {
 		return LocationStaffRole{}, err
 	}
-	_ = r.db.QueryRow(ctx, `SELECT job_title FROM staff_roles WHERE id = $1`, req.StaffRoleID).Scan(&ls.JobTitle) //nolint:errcheck // best-effort name denorm
+	_ = r.db.QueryRow(ctx, `SELECT uuid, job_title FROM staff_roles WHERE id = $1`, req.StaffRoleID).Scan(&ls.StaffRoleUUID, &ls.JobTitle) //nolint:errcheck // best-effort name denorm
 	return ls, nil
 }
 
-func (r *CatalogRepository) ListLocationStaffRoles(ctx context.Context, locationID uuid.UUID) ([]LocationStaffRole, error) {
+func (r *CatalogRepository) ListLocationStaffRoles(ctx context.Context, locationID int64) ([]LocationStaffRole, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT ls.id, ls.location_id, ls.staff_role_id, sr.job_title, ls.quantity
+		SELECT ls.id, ls.uuid, ls.location_id, ls.staff_role_id, sr.uuid, sr.job_title, ls.quantity
 		FROM location_staff_roles ls
 		JOIN staff_roles sr ON sr.id = ls.staff_role_id
 		WHERE ls.location_id = $1 ORDER BY sr.job_title
@@ -379,7 +378,7 @@ func (r *CatalogRepository) ListLocationStaffRoles(ctx context.Context, location
 	var items []LocationStaffRole
 	for rows.Next() {
 		var ls LocationStaffRole
-		if err := rows.Scan(&ls.ID, &ls.LocationID, &ls.StaffRoleID, &ls.JobTitle, &ls.Quantity); err != nil {
+		if err := rows.Scan(&ls.ID, &ls.UUID, &ls.LocationID, &ls.StaffRoleID, &ls.StaffRoleUUID, &ls.JobTitle, &ls.Quantity); err != nil {
 			return nil, err
 		}
 		items = append(items, ls)
@@ -390,7 +389,7 @@ func (r *CatalogRepository) ListLocationStaffRoles(ctx context.Context, location
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) RemoveLocationStaffRole(ctx context.Context, itemID uuid.UUID) error {
+func (r *CatalogRepository) RemoveLocationStaffRole(ctx context.Context, itemID int64) error {
 	res, err := r.db.Exec(ctx, `DELETE FROM location_staff_roles WHERE id = $1`, itemID)
 	if err != nil {
 		return err
@@ -401,25 +400,25 @@ func (r *CatalogRepository) RemoveLocationStaffRole(ctx context.Context, itemID 
 	return nil
 }
 
-func (r *CatalogRepository) GetLocationStaffRoleLocationID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
-	var lID uuid.UUID
+func (r *CatalogRepository) GetLocationStaffRoleLocationID(ctx context.Context, itemID int64) (int64, error) {
+	var lID int64
 	err := r.db.QueryRow(ctx, `SELECT location_id FROM location_staff_roles WHERE id = $1`, itemID).Scan(&lID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrLocationItemNotFound
+		return 0, ErrLocationItemNotFound
 	}
 	return lID, err
 }
 
 // ─── Location services pivot ──────────────────────────────────────────────────
 
-func (r *CatalogRepository) AddLocationService(ctx context.Context, locationID uuid.UUID, req LocationServiceItemCreate) (LocationServiceItem, error) {
+func (r *CatalogRepository) AddLocationService(ctx context.Context, locationID int64, req LocationServiceItemCreate) (LocationServiceItem, error) {
 	var ls LocationServiceItem
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO location_services (location_id, service_id)
 		VALUES ($1,$2)
 		ON CONFLICT (location_id, service_id) DO UPDATE SET is_active = true
-		RETURNING id, location_id, service_id, is_active
-	`, locationID, req.ServiceID).Scan(&ls.ID, &ls.LocationID, &ls.ServiceID, &ls.IsActive)
+		RETURNING id, uuid, location_id, service_id, is_active
+	`, locationID, req.ServiceID).Scan(&ls.ID, &ls.UUID, &ls.LocationID, &ls.ServiceID, &ls.IsActive)
 	if err != nil {
 		return LocationServiceItem{}, err
 	}
@@ -430,9 +429,9 @@ func (r *CatalogRepository) AddLocationService(ctx context.Context, locationID u
 	return ls, nil
 }
 
-func (r *CatalogRepository) ListLocationServices(ctx context.Context, locationID uuid.UUID) ([]LocationServiceItem, error) {
+func (r *CatalogRepository) ListLocationServices(ctx context.Context, locationID int64) ([]LocationServiceItem, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, location_id, service_id, is_active FROM location_services
+		SELECT id, uuid, location_id, service_id, is_active FROM location_services
 		WHERE location_id = $1
 	`, locationID)
 	if err != nil {
@@ -442,7 +441,7 @@ func (r *CatalogRepository) ListLocationServices(ctx context.Context, locationID
 	var items []LocationServiceItem
 	for rows.Next() {
 		var ls LocationServiceItem
-		if err := rows.Scan(&ls.ID, &ls.LocationID, &ls.ServiceID, &ls.IsActive); err != nil {
+		if err := rows.Scan(&ls.ID, &ls.UUID, &ls.LocationID, &ls.ServiceID, &ls.IsActive); err != nil {
 			return nil, err
 		}
 		svc, err := r.getServiceWithRequirements(ctx, ls.ServiceID)
@@ -457,7 +456,7 @@ func (r *CatalogRepository) ListLocationServices(ctx context.Context, locationID
 	return items, rows.Err()
 }
 
-func (r *CatalogRepository) RemoveLocationService(ctx context.Context, itemID uuid.UUID) error {
+func (r *CatalogRepository) RemoveLocationService(ctx context.Context, itemID int64) error {
 	res, err := r.db.Exec(ctx, `DELETE FROM location_services WHERE id = $1`, itemID)
 	if err != nil {
 		return err
@@ -468,11 +467,11 @@ func (r *CatalogRepository) RemoveLocationService(ctx context.Context, itemID uu
 	return nil
 }
 
-func (r *CatalogRepository) GetLocationServiceLocationID(ctx context.Context, itemID uuid.UUID) (uuid.UUID, error) {
-	var lID uuid.UUID
+func (r *CatalogRepository) GetLocationServiceLocationID(ctx context.Context, itemID int64) (int64, error) {
+	var lID int64
 	err := r.db.QueryRow(ctx, `SELECT location_id FROM location_services WHERE id = $1`, itemID).Scan(&lID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrLocationItemNotFound
+		return 0, ErrLocationItemNotFound
 	}
 	return lID, err
 }

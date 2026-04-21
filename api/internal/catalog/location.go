@@ -17,14 +17,15 @@ var (
 // Restricted=true means they may only access the listed LocationIDs.
 type MemberAccess struct {
 	Role        string
-	LocationIDs []uuid.UUID
+	LocationIDs []int64
 	Restricted  bool
 }
 
 // Location is the full location entity returned from the DB.
 type Location struct {
-	ID         uuid.UUID
-	BusinessID uuid.UUID
+	ID         int64
+	UUID       uuid.UUID
+	BusinessID int64
 	Name       string
 	Address    string
 	City       string
@@ -40,7 +41,7 @@ type Location struct {
 }
 
 type LocationCreate struct {
-	BusinessID uuid.UUID
+	BusinessID int64
 	Name       string
 	Address    string
 	City       string
@@ -68,15 +69,18 @@ type LocationUpdate struct {
 // Schedule types
 
 type Schedule struct {
-	ID         uuid.UUID
-	LocationID uuid.UUID
+	ID         int64
+	UUID       uuid.UUID
+	LocationID int64
+	LocationUUID uuid.UUID
 	Days       []ScheduleDay
 	Exceptions []ScheduleException
 }
 
 type ScheduleDay struct {
-	ID         uuid.UUID
-	ScheduleID uuid.UUID
+	ID         int64
+	UUID       uuid.UUID
+	ScheduleID int64
 	DayOfWeek  int // 0=Monday, 6=Sunday
 	IsOpen     bool
 	OpenTime   *string // "HH:MM"
@@ -91,9 +95,11 @@ type ScheduleDayInput struct {
 }
 
 type ScheduleException struct {
-	ID         uuid.UUID
-	LocationID uuid.UUID
-	ScheduleID uuid.UUID
+	ID         int64
+	UUID       uuid.UUID
+	LocationID int64
+	LocationUUID uuid.UUID
+	ScheduleID int64
 	Date       string // "YYYY-MM-DD"
 	IsClosed   bool
 	OpenTime   *string
@@ -113,8 +119,10 @@ type ScheduleExceptionCreate struct {
 // LocationPhoto types
 
 type LocationPhoto struct {
-	ID           uuid.UUID
-	LocationID   uuid.UUID
+	ID           int64
+	UUID         uuid.UUID
+	LocationID   int64
+	LocationUUID uuid.UUID
 	URL          string
 	DisplayOrder int
 	CreatedAt    time.Time

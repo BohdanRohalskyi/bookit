@@ -6,8 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/google/uuid"
-
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/rbac"
 	"github.com/BohdanRohalskyi/bookit/api/internal/mail"
 )
@@ -42,7 +40,7 @@ func NewService(
 
 // GetMemberships returns all businesses the user owns and all businesses where
 // they have a role assignment. Used by the frontend space picker.
-func (s *Service) GetMemberships(ctx context.Context, userID uuid.UUID) (MembershipsResponse, error) {
+func (s *Service) GetMemberships(ctx context.Context, userID int64) (MembershipsResponse, error) {
 	owned, err := s.repo.GetOwnedBusinesses(ctx, userID)
 	if err != nil {
 		return MembershipsResponse{}, fmt.Errorf("get owned businesses: %w", err)
@@ -72,17 +70,17 @@ func (s *Service) GetMemberships(ctx context.Context, userID uuid.UUID) (Members
 }
 
 // ListMembers returns all active members and pending invites for a business.
-func (s *Service) ListMembers(ctx context.Context, businessID uuid.UUID) ([]Member, error) {
+func (s *Service) ListMembers(ctx context.Context, businessID int64) ([]Member, error) {
 	return s.repo.ListMembers(ctx, businessID)
 }
 
 // RemoveMember deletes an active role assignment scoped to a business.
-func (s *Service) RemoveMember(ctx context.Context, memberID, businessID uuid.UUID) error {
+func (s *Service) RemoveMember(ctx context.Context, memberID, businessID int64) error {
 	return s.repo.RemoveMember(ctx, memberID, businessID)
 }
 
 // CancelInvite cancels a pending invite.
-func (s *Service) CancelInvite(ctx context.Context, inviteID, businessID uuid.UUID) error {
+func (s *Service) CancelInvite(ctx context.Context, inviteID, businessID int64) error {
 	return s.repo.CancelInvite(ctx, inviteID, businessID)
 }
 
@@ -164,7 +162,7 @@ func (s *Service) PreviewInvite(ctx context.Context, token string) (Invite, erro
 // AcceptInvite accepts an invite for the authenticated user. It atomically
 // marks the invite accepted, creates the role assignment, verifies the user's
 // email, and upserts a business_member_profiles row.
-func (s *Service) AcceptInvite(ctx context.Context, token string, userID uuid.UUID) error {
+func (s *Service) AcceptInvite(ctx context.Context, token string, userID int64) error {
 	inv, err := s.repo.GetInviteByToken(ctx, token)
 	if err != nil {
 		return err
@@ -219,12 +217,12 @@ func (s *Service) RegisterAndAcceptInvite(ctx context.Context, token, password, 
 }
 
 // GetMyProfile returns the authenticated user's business-scoped profile.
-func (s *Service) GetMyProfile(ctx context.Context, userID, businessID uuid.UUID) (MemberProfile, error) {
+func (s *Service) GetMyProfile(ctx context.Context, userID, businessID int64) (MemberProfile, error) {
 	return s.repo.GetMemberProfile(ctx, userID, businessID)
 }
 
 // UpdateMyProfile upserts the authenticated user's name in a business profile.
-func (s *Service) UpdateMyProfile(ctx context.Context, userID, businessID uuid.UUID, fullName string) (MemberProfile, error) {
+func (s *Service) UpdateMyProfile(ctx context.Context, userID, businessID int64, fullName string) (MemberProfile, error) {
 	isMember, err := s.repo.IsMemberOfBusiness(ctx, userID, businessID)
 	if err != nil {
 		return MemberProfile{}, err

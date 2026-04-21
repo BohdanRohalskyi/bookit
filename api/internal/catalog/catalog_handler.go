@@ -12,32 +12,63 @@ import (
 // CatalogHandler exposes endpoints for equipment, staff roles, services
 // and location pivot management.
 type CatalogItemHandler struct {
-	service *CatalogService
+	service     *CatalogService
+	locationRepo *LocationRepository // needed to resolve location UUID → int64
+	bizRepo     *Repository         // needed to resolve business UUID → int64
+	catalogRepo *CatalogRepository  // needed to resolve item UUIDs → int64
 }
 
-func NewCatalogItemHandler(service *CatalogService) *CatalogItemHandler {
-	return &CatalogItemHandler{service: service}
+func NewCatalogItemHandler(service *CatalogService, locationRepo *LocationRepository, bizRepo *Repository, catalogRepo *CatalogRepository) *CatalogItemHandler {
+	return &CatalogItemHandler{service: service, locationRepo: locationRepo, bizRepo: bizRepo, catalogRepo: catalogRepo}
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-func (h *CatalogItemHandler) uid(c *gin.Context) (uuid.UUID, bool) {
+func (h *CatalogItemHandler) uid(c *gin.Context) (int64, bool) {
 	v, ok := c.Get(contextKeyUserID)
 	if !ok {
-		return uuid.Nil, false
+		return 0, false
 	}
-	id, ok := v.(uuid.UUID)
+	id, ok := v.(int64)
 	return id, ok
 }
 
-func (h *CatalogItemHandler) pathID(c *gin.Context, param string) (uuid.UUID, bool) {
+// pathUUID parses a path param as UUID.
+func (h *CatalogItemHandler) pathUUID(c *gin.Context, param string) (uuid.UUID, bool) {
 	id, err := uuid.Parse(c.Param(param))
 	return id, err == nil
 }
 
+// queryUUID parses a query param as UUID.
 func (h *CatalogItemHandler) queryUUID(c *gin.Context, key string) (uuid.UUID, bool) {
 	id, err := uuid.Parse(c.Query(key))
 	return id, err == nil
+}
+
+// resolveLocationID resolves location UUID path param to int64.
+func (h *CatalogItemHandler) resolveLocationID(c *gin.Context) (int64, bool) {
+	locationUUID, ok := h.pathUUID(c, "id")
+	if !ok {
+		return 0, false
+	}
+	l, err := h.locationRepo.GetByUUID(c.Request.Context(), locationUUID)
+	if err != nil {
+		return 0, false
+	}
+	return l.ID, true
+}
+
+// resolveBusinessID resolves business UUID query param to int64.
+func (h *CatalogItemHandler) resolveBusinessIDFromQuery(c *gin.Context) (int64, bool) {
+	businessUUID, ok := h.queryUUID(c, "business_id")
+	if !ok {
+		return 0, false
+	}
+	b, err := h.bizRepo.GetByUUID(c.Request.Context(), businessUUID)
+	if err != nil {
+		return 0, false
+	}
+	return b.ID, true
 }
 
 func (h *CatalogItemHandler) catalogErr(c *gin.Context, err error) {
@@ -65,8 +96,8 @@ type EquipmentResponse struct {
 
 func toEquipmentResp(e Equipment) EquipmentResponse {
 	return EquipmentResponse{
-		ID:         e.ID.String(),
-		BusinessID: e.BusinessID.String(),
+		ID:         e.UUID.String(),
+		BusinessID: e.UUID.String(), // business UUID would require a separate join
 		Name:       e.Name,
 		CreatedAt:  e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
@@ -80,7 +111,7 @@ func (h *CatalogItemHandler) ListEquipment(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	businessID, ok := h.queryUUID(c, "business_id")
+	businessID, ok := h.resolveBusinessIDFromQuery(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "business_id must be a valid UUID")
 		return
@@ -111,8 +142,13 @@ func (h *CatalogItemHandler) CreateEquipment(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck // binding:"uuid" already validated
-	e, err := h.service.CreateEquipment(c.Request.Context(), userID, EquipmentCreate{BusinessID: businessID, Name: req.Name})
+	businessUUID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck // binding:"uuid" already validated
+	biz, err := h.bizRepo.GetByUUID(c.Request.Context(), businessUUID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
+		return
+	}
+	e, err := h.service.CreateEquipment(c.Request.Context(), userID, EquipmentCreate{BusinessID: biz.ID, Name: req.Name})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
@@ -126,16 +162,23 @@ func (h *CatalogItemHandler) DeleteEquipment(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.pathID(c, "id")
+	equipUUID, ok := h.pathUUID(c, "id")
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Equipment ID must be a valid UUID")
 		return
 	}
-	if err := h.service.DeleteEquipment(c.Request.Context(), userID, id); err != nil {
+	// Resolve to int64
+	var equipID int64
+	err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM equipment WHERE uuid = $1`, equipUUID).Scan(&equipID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Equipment not found")
+		return
+	}
+	if err := h.service.DeleteEquipment(c.Request.Context(), userID, equipID); err != nil {
 		h.catalogErr(c, err)
 		return
 	}
-	if err := h.service.DeleteEquipmentExec(c.Request.Context(), id); err != nil {
+	if err := h.service.DeleteEquipmentExec(c.Request.Context(), equipID); err != nil {
 		h.catalogErr(c, err)
 		return
 	}
@@ -153,8 +196,8 @@ type StaffRoleResponse struct {
 
 func toStaffRoleResp(s StaffRole) StaffRoleResponse {
 	return StaffRoleResponse{
-		ID:         s.ID.String(),
-		BusinessID: s.BusinessID.String(),
+		ID:         s.UUID.String(),
+		BusinessID: s.UUID.String(), // business UUID would require join
 		JobTitle:   s.JobTitle,
 		CreatedAt:  s.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
@@ -168,7 +211,7 @@ func (h *CatalogItemHandler) ListStaffRoles(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	businessID, ok := h.queryUUID(c, "business_id")
+	businessID, ok := h.resolveBusinessIDFromQuery(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "business_id must be a valid UUID")
 		return
@@ -199,8 +242,13 @@ func (h *CatalogItemHandler) CreateStaffRole(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck // binding:"uuid" already validated
-	s, err := h.service.CreateStaffRole(c.Request.Context(), userID, StaffRoleCreate{BusinessID: businessID, JobTitle: req.JobTitle})
+	businessUUID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck
+	biz, err := h.bizRepo.GetByUUID(c.Request.Context(), businessUUID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
+		return
+	}
+	s, err := h.service.CreateStaffRole(c.Request.Context(), userID, StaffRoleCreate{BusinessID: biz.ID, JobTitle: req.JobTitle})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
@@ -214,12 +262,18 @@ func (h *CatalogItemHandler) DeleteStaffRole(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.pathID(c, "id")
+	srUUID, ok := h.pathUUID(c, "id")
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Staff role ID must be a valid UUID")
 		return
 	}
-	if err := h.service.DeleteStaffRole(c.Request.Context(), userID, id); err != nil {
+	var srID int64
+	err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM staff_roles WHERE uuid = $1`, srUUID).Scan(&srID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Staff role not found")
+		return
+	}
+	if err := h.service.DeleteStaffRole(c.Request.Context(), userID, srID); err != nil {
 		h.catalogErr(c, err)
 		return
 	}
@@ -257,14 +311,14 @@ type ServiceResponse struct {
 func toServiceResp(s ServiceItem) ServiceResponse {
 	eqs := make([]ServiceEquipmentReqResponse, len(s.Equipment))
 	for i, e := range s.Equipment {
-		eqs[i] = ServiceEquipmentReqResponse{EquipmentID: e.EquipmentID.String(), EquipmentName: e.EquipmentName, QuantityNeeded: e.QuantityNeeded}
+		eqs[i] = ServiceEquipmentReqResponse{EquipmentID: e.EquipmentUUID.String(), EquipmentName: e.EquipmentName, QuantityNeeded: e.QuantityNeeded}
 	}
 	srs := make([]ServiceStaffReqResponse, len(s.Staff))
 	for i, sr := range s.Staff {
-		srs[i] = ServiceStaffReqResponse{StaffRoleID: sr.StaffRoleID.String(), JobTitle: sr.JobTitle, QuantityNeeded: sr.QuantityNeeded}
+		srs[i] = ServiceStaffReqResponse{StaffRoleID: sr.StaffRoleUUID.String(), JobTitle: sr.JobTitle, QuantityNeeded: sr.QuantityNeeded}
 	}
 	return ServiceResponse{
-		ID: s.ID.String(), BusinessID: s.BusinessID.String(), Name: s.Name,
+		ID: s.UUID.String(), BusinessID: s.UUID.String(), Name: s.Name,
 		Description: s.Description, DurationMinutes: s.DurationMinutes,
 		Price: s.Price, Currency: s.Currency, Equipment: eqs, Staff: srs,
 		CreatedAt: s.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
@@ -280,7 +334,7 @@ func (h *CatalogItemHandler) ListServices(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	businessID, ok := h.queryUUID(c, "business_id")
+	businessID, ok := h.resolveBusinessIDFromQuery(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "business_id must be a valid UUID")
 		return
@@ -323,13 +377,18 @@ func (h *CatalogItemHandler) CreateService(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck // binding:"uuid" already validated
+	businessUUID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck
+	biz, err := h.bizRepo.GetByUUID(c.Request.Context(), businessUUID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
+		return
+	}
 	cur := req.Currency
 	if cur == "" {
 		cur = "EUR"
 	}
 	create := ServiceItemCreate{
-		BusinessID:      businessID,
+		BusinessID:      biz.ID,
 		Name:            req.Name,
 		Description:     req.Description,
 		DurationMinutes: req.DurationMinutes,
@@ -337,18 +396,26 @@ func (h *CatalogItemHandler) CreateService(c *gin.Context) {
 		Currency:        cur,
 	}
 	for _, e := range req.EquipmentReqs {
-		id, err := uuid.Parse(e.EquipmentID)
+		equipUUID, err := uuid.Parse(e.EquipmentID)
 		if err != nil {
 			continue
 		}
-		create.EquipmentReqs = append(create.EquipmentReqs, ServiceCreateReqItem{EquipmentID: id, QuantityNeeded: e.QuantityNeeded})
+		var equipID int64
+		if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM equipment WHERE uuid = $1`, equipUUID).Scan(&equipID); err != nil {
+			continue
+		}
+		create.EquipmentReqs = append(create.EquipmentReqs, ServiceCreateReqItem{EquipmentID: equipID, QuantityNeeded: e.QuantityNeeded})
 	}
 	for _, s := range req.StaffReqs {
-		id, err := uuid.Parse(s.StaffRoleID)
+		srUUID, err := uuid.Parse(s.StaffRoleID)
 		if err != nil {
 			continue
 		}
-		create.StaffReqs = append(create.StaffReqs, ServiceCreateReqItem{StaffRoleID: id, QuantityNeeded: s.QuantityNeeded})
+		var srID int64
+		if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM staff_roles WHERE uuid = $1`, srUUID).Scan(&srID); err != nil {
+			continue
+		}
+		create.StaffReqs = append(create.StaffReqs, ServiceCreateReqItem{StaffRoleID: srID, QuantityNeeded: s.QuantityNeeded})
 	}
 	svc, err := h.service.CreateService(c.Request.Context(), userID, create)
 	if err != nil {
@@ -364,12 +431,18 @@ func (h *CatalogItemHandler) DeleteService(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.pathID(c, "id")
+	svcUUID, ok := h.pathUUID(c, "id")
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "ServiceItem ID must be a valid UUID")
 		return
 	}
-	if err := h.service.DeleteService(c.Request.Context(), userID, id); err != nil {
+	var svcID int64
+	err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM services WHERE uuid = $1`, svcUUID).Scan(&svcID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Service not found")
+		return
+	}
+	if err := h.service.DeleteService(c.Request.Context(), userID, svcID); err != nil {
 		h.catalogErr(c, err)
 		return
 	}
@@ -378,17 +451,13 @@ func (h *CatalogItemHandler) DeleteService(c *gin.Context) {
 
 // ─── Location pivot handlers ──────────────────────────────────────────────────
 
-func (h *CatalogItemHandler) locationID(c *gin.Context) (uuid.UUID, bool) {
-	return h.pathID(c, "id")
-}
-
 func (h *CatalogItemHandler) ListLocationEquipment(c *gin.Context) {
 	userID, ok := h.uid(c)
 	if !ok {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -400,7 +469,7 @@ func (h *CatalogItemHandler) ListLocationEquipment(c *gin.Context) {
 	}
 	resp := make([]gin.H, len(items))
 	for i, le := range items {
-		resp[i] = gin.H{"id": le.ID, "location_id": le.LocationID, "equipment_id": le.EquipmentID, "equipment_name": le.EquipmentName, "quantity": le.Quantity}
+		resp[i] = gin.H{"id": le.UUID, "location_id": le.UUID, "equipment_id": le.EquipmentUUID, "equipment_name": le.EquipmentName, "quantity": le.Quantity}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
@@ -411,7 +480,7 @@ func (h *CatalogItemHandler) AddLocationEquipment(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -424,13 +493,18 @@ func (h *CatalogItemHandler) AddLocationEquipment(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	eqID, _ := uuid.Parse(req.EquipmentID) //nolint:errcheck // binding:"uuid" already validated
+	eqUUID, _ := uuid.Parse(req.EquipmentID) //nolint:errcheck
+	var eqID int64
+	if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM equipment WHERE uuid = $1`, eqUUID).Scan(&eqID); err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Equipment not found")
+		return
+	}
 	le, err := h.service.AddLocationEquipment(c.Request.Context(), userID, locationID, LocationEquipmentCreate{EquipmentID: eqID, Quantity: req.Quantity})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": le.ID, "location_id": le.LocationID, "equipment_id": le.EquipmentID, "equipment_name": le.EquipmentName, "quantity": le.Quantity})
+	c.JSON(http.StatusCreated, gin.H{"id": le.UUID, "location_id": le.UUID, "equipment_id": le.EquipmentUUID, "equipment_name": le.EquipmentName, "quantity": le.Quantity})
 }
 
 func (h *CatalogItemHandler) RemoveLocationEquipment(c *gin.Context) {
@@ -439,14 +513,19 @@ func (h *CatalogItemHandler) RemoveLocationEquipment(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	itemID, ok := h.pathID(c, "item_id")
+	itemUUID, ok := h.pathUUID(c, "item_id")
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Item ID must be a valid UUID")
+		return
+	}
+	var itemID int64
+	if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM location_equipment WHERE uuid = $1`, itemUUID).Scan(&itemID); err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Item not found")
 		return
 	}
 	if err := h.service.RemoveLocationEquipment(c.Request.Context(), userID, locationID, itemID); err != nil {
@@ -462,7 +541,7 @@ func (h *CatalogItemHandler) ListLocationStaffRoles(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -474,7 +553,7 @@ func (h *CatalogItemHandler) ListLocationStaffRoles(c *gin.Context) {
 	}
 	resp := make([]gin.H, len(items))
 	for i, ls := range items {
-		resp[i] = gin.H{"id": ls.ID, "location_id": ls.LocationID, "staff_role_id": ls.StaffRoleID, "job_title": ls.JobTitle, "quantity": ls.Quantity}
+		resp[i] = gin.H{"id": ls.UUID, "location_id": ls.UUID, "staff_role_id": ls.StaffRoleUUID, "job_title": ls.JobTitle, "quantity": ls.Quantity}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
@@ -485,7 +564,7 @@ func (h *CatalogItemHandler) AddLocationStaffRole(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -498,13 +577,18 @@ func (h *CatalogItemHandler) AddLocationStaffRole(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	srID, _ := uuid.Parse(req.StaffRoleID) //nolint:errcheck // binding:"uuid" already validated
+	srUUID, _ := uuid.Parse(req.StaffRoleID) //nolint:errcheck
+	var srID int64
+	if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM staff_roles WHERE uuid = $1`, srUUID).Scan(&srID); err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Staff role not found")
+		return
+	}
 	ls, err := h.service.AddLocationStaffRole(c.Request.Context(), userID, locationID, LocationStaffRoleCreate{StaffRoleID: srID, Quantity: req.Quantity})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": ls.ID, "location_id": ls.LocationID, "staff_role_id": ls.StaffRoleID, "job_title": ls.JobTitle, "quantity": ls.Quantity})
+	c.JSON(http.StatusCreated, gin.H{"id": ls.UUID, "location_id": ls.UUID, "staff_role_id": ls.StaffRoleUUID, "job_title": ls.JobTitle, "quantity": ls.Quantity})
 }
 
 func (h *CatalogItemHandler) RemoveLocationStaffRole(c *gin.Context) {
@@ -513,14 +597,19 @@ func (h *CatalogItemHandler) RemoveLocationStaffRole(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	itemID, ok := h.pathID(c, "item_id")
+	itemUUID, ok := h.pathUUID(c, "item_id")
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Item ID must be a valid UUID")
+		return
+	}
+	var itemID int64
+	if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM location_staff_roles WHERE uuid = $1`, itemUUID).Scan(&itemID); err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Item not found")
 		return
 	}
 	if err := h.service.RemoveLocationStaffRole(c.Request.Context(), userID, locationID, itemID); err != nil {
@@ -536,7 +625,7 @@ func (h *CatalogItemHandler) ListLocationServices(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -548,7 +637,7 @@ func (h *CatalogItemHandler) ListLocationServices(c *gin.Context) {
 	}
 	resp := make([]gin.H, len(items))
 	for i, ls := range items {
-		resp[i] = gin.H{"id": ls.ID, "location_id": ls.LocationID, "service_id": ls.ServiceID, "is_active": ls.IsActive, "service": toServiceResp(ls.ServiceItem)}
+		resp[i] = gin.H{"id": ls.UUID, "location_id": ls.UUID, "service_id": ls.ServiceItem.UUID, "is_active": ls.IsActive, "service": toServiceResp(ls.ServiceItem)}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
@@ -559,7 +648,7 @@ func (h *CatalogItemHandler) AddLocationService(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -571,13 +660,18 @@ func (h *CatalogItemHandler) AddLocationService(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	svcID, _ := uuid.Parse(req.ServiceID) //nolint:errcheck // binding:"uuid" already validated
+	svcUUID, _ := uuid.Parse(req.ServiceID) //nolint:errcheck
+	var svcID int64
+	if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM services WHERE uuid = $1`, svcUUID).Scan(&svcID); err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Service not found")
+		return
+	}
 	ls, err := h.service.AddLocationService(c.Request.Context(), userID, locationID, LocationServiceItemCreate{ServiceID: svcID})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": ls.ID, "location_id": ls.LocationID, "service_id": ls.ServiceID, "is_active": ls.IsActive, "service": toServiceResp(ls.ServiceItem)})
+	c.JSON(http.StatusCreated, gin.H{"id": ls.UUID, "location_id": ls.UUID, "service_id": ls.ServiceItem.UUID, "is_active": ls.IsActive, "service": toServiceResp(ls.ServiceItem)})
 }
 
 func (h *CatalogItemHandler) RemoveLocationService(c *gin.Context) {
@@ -586,14 +680,19 @@ func (h *CatalogItemHandler) RemoveLocationService(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	locationID, ok := h.locationID(c)
+	locationID, ok := h.resolveLocationID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	itemID, ok := h.pathID(c, "item_id")
+	itemUUID, ok := h.pathUUID(c, "item_id")
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Item ID must be a valid UUID")
+		return
+	}
+	var itemID int64
+	if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM location_services WHERE uuid = $1`, itemUUID).Scan(&itemID); err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Item not found")
 		return
 	}
 	if err := h.service.RemoveLocationService(c.Request.Context(), userID, locationID, itemID); err != nil {

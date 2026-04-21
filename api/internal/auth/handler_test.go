@@ -48,10 +48,52 @@ func newTestRouter(repo userRepository, mailProvider mail.Provider) *gin.Engine 
 	return r
 }
 
-// bearerToken generates a valid signed JWT for the given user ID.
-func bearerToken(userID uuid.UUID) string {
-	token, _ := NewJWTService(testJWTSecret).GenerateAccessToken(userID)
+// bearerToken generates a valid signed JWT for the given user UUID and
+// creates a mock repo that resolves the UUID to the user's internal ID.
+func bearerToken(userUUID uuid.UUID) string {
+	token, _ := NewJWTService(testJWTSecret).GenerateAccessToken(userUUID)
 	return fmt.Sprintf("Bearer %s", token)
+}
+
+// newTestRouterWithUser wires a router with a mock that knows how to resolve
+// the test user's UUID to their int64 ID (needed for AuthMiddleware).
+func newTestRouterWithUser(user *identity.User, extraRepo *mockRepository, mailProvider mail.Provider) *gin.Engine {
+	repo := &mockRepository{
+		getByUUID: func(_ context.Context, id uuid.UUID) (*identity.User, error) {
+			if id == user.UUID {
+				return user, nil
+			}
+			return nil, identity.ErrUserNotFound
+		},
+	}
+	// Merge extra fields from extraRepo
+	if extraRepo != nil {
+		if extraRepo.getByEmail != nil {
+			repo.getByEmail = extraRepo.getByEmail
+		}
+		if extraRepo.getByID != nil {
+			repo.getByID = extraRepo.getByID
+		}
+		if extraRepo.create != nil {
+			repo.create = extraRepo.create
+		}
+		if extraRepo.isProvider != nil {
+			repo.isProvider = extraRepo.isProvider
+		}
+		if extraRepo.createRefreshToken != nil {
+			repo.createRefreshToken = extraRepo.createRefreshToken
+		}
+		if extraRepo.createAuthToken != nil {
+			repo.createAuthToken = extraRepo.createAuthToken
+		}
+		if extraRepo.validateAuthToken != nil {
+			repo.validateAuthToken = extraRepo.validateAuthToken
+		}
+		if extraRepo.setEmailVerified != nil {
+			repo.setEmailVerified = extraRepo.setEmailVerified
+		}
+	}
+	return newTestRouter(repo, mailProvider)
 }
 
 // do sends an HTTP request to the router and returns the recorded response.
@@ -164,8 +206,8 @@ func TestHandler_Refresh(t *testing.T) {
 		t.Parallel()
 		user := testUser()
 		repo := &mockRepository{
-			validateRefreshToken: func(_ context.Context, _ string) (uuid.UUID, error) { return user.ID, nil },
-			getByID:              func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
+			validateRefreshToken: func(_ context.Context, _ string) (int64, error) { return user.ID, nil },
+			getByID:              func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
 		}
 		rr := do(newTestRouter(repo, &mockMailProvider{}), http.MethodPost, "/api/v1/auth/refresh",
 			map[string]any{"refresh_token": "valid-token"},
@@ -226,11 +268,11 @@ func TestHandler_AuthMiddleware(t *testing.T) {
 	t.Run("allows request with a valid token", func(t *testing.T) {
 		t.Parallel()
 		user := testUser()
-		repo := &mockRepository{
-			getByID: func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
-		}
-		rr := do(newTestRouter(repo, &mockMailProvider{}), http.MethodPost, "/api/v1/auth/resend-verification",
-			nil, map[string]string{"Authorization": bearerToken(user.ID)},
+		r := newTestRouterWithUser(user, &mockRepository{
+			getByID: func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
+		}, &mockMailProvider{})
+		rr := do(r, http.MethodPost, "/api/v1/auth/resend-verification",
+			nil, map[string]string{"Authorization": bearerToken(user.UUID)},
 		)
 		assert.NotEqual(t, http.StatusUnauthorized, rr.Code)
 	})
@@ -269,7 +311,7 @@ func TestHandler_VerifyEmail(t *testing.T) {
 	t.Run("200 on valid token", func(t *testing.T) {
 		t.Parallel()
 		repo := &mockRepository{
-			validateAuthToken: func(_ context.Context, _, _ string) (uuid.UUID, error) { return uuid.New(), nil },
+			validateAuthToken: func(_ context.Context, _, _ string) (int64, error) { return int64(1), nil },
 		}
 		rr := do(newTestRouter(repo, &mockMailProvider{}), http.MethodPost, "/api/v1/auth/verify-email",
 			map[string]any{"token": "valid-token"},
@@ -322,7 +364,7 @@ func TestHandler_ResetPassword(t *testing.T) {
 	t.Run("200 on valid token and new password", func(t *testing.T) {
 		t.Parallel()
 		repo := &mockRepository{
-			validateAuthToken: func(_ context.Context, _, _ string) (uuid.UUID, error) { return uuid.New(), nil },
+			validateAuthToken: func(_ context.Context, _, _ string) (int64, error) { return int64(1), nil },
 		}
 		rr := do(newTestRouter(repo, &mockMailProvider{}), http.MethodPost, "/api/v1/auth/reset-password",
 			map[string]any{"token": "valid-token", "password": "newpassword123"},
@@ -350,11 +392,11 @@ func TestHandler_ResendVerification(t *testing.T) {
 	t.Run("200 on authenticated request for unverified user", func(t *testing.T) {
 		t.Parallel()
 		user := testUser()
-		repo := &mockRepository{
-			getByID: func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
-		}
-		rr := do(newTestRouter(repo, &mockMailProvider{}), http.MethodPost, "/api/v1/auth/resend-verification",
-			nil, map[string]string{"Authorization": bearerToken(user.ID)},
+		r := newTestRouterWithUser(user, &mockRepository{
+			getByID: func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
+		}, &mockMailProvider{})
+		rr := do(r, http.MethodPost, "/api/v1/auth/resend-verification",
+			nil, map[string]string{"Authorization": bearerToken(user.UUID)},
 		)
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
@@ -375,9 +417,10 @@ func TestHandler_CreateAppSwitchToken(t *testing.T) {
 
 	t.Run("200 returns a token on authenticated request", func(t *testing.T) {
 		t.Parallel()
-		userID := uuid.New()
-		rr := do(newTestRouter(&mockRepository{}, &mockMailProvider{}), http.MethodPost, "/api/v1/auth/app-switch-token",
-			nil, map[string]string{"Authorization": bearerToken(userID)},
+		user := testUser()
+		r := newTestRouterWithUser(user, nil, &mockMailProvider{})
+		rr := do(r, http.MethodPost, "/api/v1/auth/app-switch-token",
+			nil, map[string]string{"Authorization": bearerToken(user.UUID)},
 		)
 		assert.Equal(t, http.StatusOK, rr.Code)
 		var resp map[string]any
@@ -403,10 +446,10 @@ func TestHandler_ExchangeAppSwitchToken(t *testing.T) {
 		t.Parallel()
 		user := testUser()
 		repo := &mockRepository{
-			validateAuthTokenWithIP: func(_ context.Context, _, _, _ string) (uuid.UUID, error) {
+			validateAuthTokenWithIP: func(_ context.Context, _, _, _ string) (int64, error) {
 				return user.ID, nil
 			},
-			getByID: func(_ context.Context, _ uuid.UUID) (*identity.User, error) { return user, nil },
+			getByID: func(_ context.Context, _ int64) (*identity.User, error) { return user, nil },
 		}
 		rr := do(newTestRouter(repo, &mockMailProvider{}), http.MethodPost, "/api/v1/auth/exchange-app-switch-token",
 			map[string]any{"token": "valid-switch-token"},

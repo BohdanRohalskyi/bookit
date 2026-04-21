@@ -17,48 +17,53 @@ var (
 // ─── Equipment ────────────────────────────────────────────────────────────────
 
 type Equipment struct {
-	ID         uuid.UUID
-	BusinessID uuid.UUID
+	ID         int64
+	UUID       uuid.UUID
+	BusinessID int64
 	Name       string
 	CreatedAt  time.Time
 }
 
 type EquipmentCreate struct {
-	BusinessID uuid.UUID
+	BusinessID int64
 	Name       string
 }
 
 // ─── Staff roles ──────────────────────────────────────────────────────────────
 
 type StaffRole struct {
-	ID         uuid.UUID
-	BusinessID uuid.UUID
+	ID         int64
+	UUID       uuid.UUID
+	BusinessID int64
 	JobTitle   string
 	CreatedAt  time.Time
 }
 
 type StaffRoleCreate struct {
-	BusinessID uuid.UUID
+	BusinessID int64
 	JobTitle   string
 }
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 
 type ServiceEquipmentReq struct {
-	EquipmentID    uuid.UUID
-	EquipmentName  string
+	EquipmentID   int64
+	EquipmentUUID uuid.UUID
+	EquipmentName string
 	QuantityNeeded int
 }
 
 type ServiceStaffReq struct {
-	StaffRoleID    uuid.UUID
+	StaffRoleID   int64
+	StaffRoleUUID uuid.UUID
 	JobTitle       string
 	QuantityNeeded int
 }
 
 type ServiceItem struct {
-	ID              uuid.UUID
-	BusinessID      uuid.UUID
+	ID              int64
+	UUID            uuid.UUID
+	BusinessID      int64
 	Name            string
 	Description     *string
 	DurationMinutes int
@@ -71,13 +76,13 @@ type ServiceItem struct {
 }
 
 type ServiceCreateReqItem struct {
-	EquipmentID    uuid.UUID
-	StaffRoleID    uuid.UUID
+	EquipmentID    int64
+	StaffRoleID    int64
 	QuantityNeeded int
 }
 
 type ServiceItemCreate struct {
-	BusinessID      uuid.UUID
+	BusinessID      int64
 	Name            string
 	Description     *string
 	DurationMinutes int
@@ -90,39 +95,44 @@ type ServiceItemCreate struct {
 // ─── Location pivots ──────────────────────────────────────────────────────────
 
 type LocationEquipment struct {
-	ID            uuid.UUID
-	LocationID    uuid.UUID
-	EquipmentID   uuid.UUID
+	ID            int64
+	UUID          uuid.UUID
+	LocationID    int64
+	EquipmentID   int64
+	EquipmentUUID uuid.UUID
 	EquipmentName string
 	Quantity      int
 }
 
 type LocationEquipmentCreate struct {
-	EquipmentID uuid.UUID
+	EquipmentID int64
 	Quantity    int
 }
 
 type LocationStaffRole struct {
-	ID          uuid.UUID
-	LocationID  uuid.UUID
-	StaffRoleID uuid.UUID
+	ID          int64
+	UUID        uuid.UUID
+	LocationID  int64
+	StaffRoleID int64
+	StaffRoleUUID uuid.UUID
 	JobTitle    string
 	Quantity    int
 }
 
 type LocationStaffRoleCreate struct {
-	StaffRoleID uuid.UUID
+	StaffRoleID int64
 	Quantity    int
 }
 
 type LocationServiceItem struct {
-	ID          uuid.UUID
-	LocationID  uuid.UUID
-	ServiceID   uuid.UUID
+	ID          int64
+	UUID        uuid.UUID
+	LocationID  int64
+	ServiceID   int64
 	IsActive    bool
 	ServiceItem ServiceItem
 }
 
 type LocationServiceItemCreate struct {
-	ServiceID uuid.UUID
+	ServiceID int64
 }

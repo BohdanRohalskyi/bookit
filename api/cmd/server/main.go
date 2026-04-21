@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/BohdanRohalskyi/bookit/api/internal/auth"
 	"github.com/BohdanRohalskyi/bookit/api/internal/catalog"
@@ -171,7 +172,7 @@ func run() error {
 
 	catalogRepo := catalog.NewRepository(db.Pool)
 	catalogService := catalog.NewService(catalogRepo, userRepo, storageClient)
-	catalogHandler := catalog.NewHandler(catalogService)
+	catalogHandler := catalog.NewHandler(catalogService, catalogRepo)
 
 	businesses := router.Group("/api/v1/businesses")
 	businesses.Use(authHandler.AuthMiddleware())
@@ -187,12 +188,12 @@ func run() error {
 	// Location endpoints (protected)
 	locationRepo := catalog.NewLocationRepository(db.Pool)
 	locationService := catalog.NewLocationService(locationRepo, userRepo, catalogRepo, storageClient)
-	locationHandler := catalog.NewLocationHandler(locationService)
+	locationHandler := catalog.NewLocationHandler(locationService, locationRepo)
 
 	// Catalog: equipment, staff roles, services, location pivots (protected)
 	catalogItemRepo := catalog.NewCatalogRepository(db.Pool)
 	catalogItemService := catalog.NewCatalogService(catalogItemRepo, catalogRepo, userRepo, locationRepo)
-	catalogItemHandler := catalog.NewCatalogItemHandler(catalogItemService)
+	catalogItemHandler := catalog.NewCatalogItemHandler(catalogItemService, locationRepo, catalogRepo, catalogItemRepo)
 
 	locations := router.Group("/api/v1/locations")
 	locations.Use(authHandler.AuthMiddleware())
@@ -241,7 +242,9 @@ func run() error {
 	rbacRepo := rbac.NewRepository(db.Pool)
 	ownerAdapter := rbac.NewIdentityOwnerAdapter(userRepo, catalogRepo)
 	rbacSvc := rbac.NewService(rbacRepo, ownerAdapter)
-	_ = rbacSvc // used by RequirePermission on protected routes below
+
+	// businessResolver satisfies rbac.BusinessResolver using catalogRepo
+	businessResolver := &catalogBusinessResolver{repo: catalogRepo}
 
 	// ── Staff management ──────────────────────────────────────────────────────
 	staffRepo := staff.NewRepository(db.Pool)
@@ -258,6 +261,7 @@ func run() error {
 	// Business-scoped staff profile (self-service)
 	profileGroup := router.Group("/api/v1/businesses/:id/me")
 	profileGroup.Use(authHandler.AuthMiddleware())
+	profileGroup.Use(rbacSvc.RequirePermission(rbac.ResourceBusiness, rbac.ActionRead, businessResolver))
 	{
 		profileGroup.GET("/profile", staffHandler.GetMyProfile)
 		profileGroup.PUT("/profile", staffHandler.UpdateMyProfile)
@@ -268,15 +272,15 @@ func run() error {
 	membersGroup.Use(authHandler.AuthMiddleware())
 	{
 		membersGroup.GET("",
-			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionRead),
+			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionRead, businessResolver),
 			staffHandler.ListMembers,
 		)
 		membersGroup.POST("/invite",
-			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionWrite),
+			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionWrite, businessResolver),
 			staffHandler.InviteMember,
 		)
 		membersGroup.DELETE("/:memberId",
-			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionWrite),
+			rbacSvc.RequirePermission(rbac.ResourceStaff, rbac.ActionWrite, businessResolver),
 			staffHandler.RemoveMember,
 		)
 	}
@@ -330,6 +334,19 @@ func run() error {
 
 	log.Info("server stopped")
 	return nil
+}
+
+// catalogBusinessResolver satisfies rbac.BusinessResolver using catalog.Repository.
+type catalogBusinessResolver struct {
+	repo *catalog.Repository
+}
+
+func (r *catalogBusinessResolver) GetBusinessIntIDByUUID(ctx context.Context, businessUUID uuid.UUID) (int64, error) {
+	b, err := r.repo.GetByUUID(ctx, businessUUID)
+	if err != nil {
+		return 0, err
+	}
+	return b.ID, nil
 }
 
 func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {

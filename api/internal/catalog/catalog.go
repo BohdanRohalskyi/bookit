@@ -16,8 +16,9 @@ var (
 
 // Business is the full business entity returned from the DB.
 type Business struct {
-	ID          uuid.UUID
-	ProviderID  uuid.UUID
+	ID          int64
+	UUID        uuid.UUID
+	ProviderID  int64
 	Name        string
 	Category    string
 	Description *string

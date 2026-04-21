@@ -3,8 +3,6 @@ package catalog
 import (
 	"context"
 
-	"github.com/google/uuid"
-
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
 )
 
@@ -22,7 +20,7 @@ func NewCatalogService(repo *CatalogRepository, bizRepo *Repository, identityRep
 }
 
 // ownsBusinessID verifies the user is a provider who owns the given business.
-func (s *CatalogService) ownsBusinessID(ctx context.Context, userID, businessID uuid.UUID) error {
+func (s *CatalogService) ownsBusinessID(ctx context.Context, userID, businessID int64) error {
 	providerID, err := s.identityRepo.GetProviderIDByUserID(ctx, userID)
 	if err != nil {
 		return ErrNotProvider
@@ -40,7 +38,7 @@ func (s *CatalogService) ownsBusinessID(ctx context.Context, userID, businessID 
 // memberAccess returns nil if the user is the business owner (full access),
 // or a *MemberAccess describing their role and location restrictions.
 // Returns ErrNotOwner if the user has neither ownership nor a role assignment.
-func (s *CatalogService) memberAccess(ctx context.Context, userID, businessID uuid.UUID) (*MemberAccess, error) {
+func (s *CatalogService) memberAccess(ctx context.Context, userID, businessID int64) (*MemberAccess, error) {
 	if err := s.ownsBusinessID(ctx, userID, businessID); err == nil {
 		return nil, nil
 	}
@@ -52,14 +50,14 @@ func (s *CatalogService) memberAccess(ctx context.Context, userID, businessID uu
 }
 
 // canReadBusiness passes for owners and any role member of the business.
-func (s *CatalogService) canReadBusiness(ctx context.Context, userID, businessID uuid.UUID) error {
+func (s *CatalogService) canReadBusiness(ctx context.Context, userID, businessID int64) error {
 	_, err := s.memberAccess(ctx, userID, businessID)
 	return err
 }
 
 // canWriteBusiness passes for owners and administrators of the business.
 // Staff are denied — they hold no write permissions on catalog items.
-func (s *CatalogService) canWriteBusiness(ctx context.Context, userID, businessID uuid.UUID) error {
+func (s *CatalogService) canWriteBusiness(ctx context.Context, userID, businessID int64) error {
 	access, err := s.memberAccess(ctx, userID, businessID)
 	if err != nil {
 		return err
@@ -71,7 +69,7 @@ func (s *CatalogService) canWriteBusiness(ctx context.Context, userID, businessI
 }
 
 // canReadLocation passes for owners and any role member with access to locationID.
-func (s *CatalogService) canReadLocation(ctx context.Context, userID, locationID uuid.UUID) error {
+func (s *CatalogService) canReadLocation(ctx context.Context, userID, locationID int64) error {
 	businessID, err := s.locationRepo.GetOwnerBusinessID(ctx, locationID)
 	if err != nil {
 		return ErrLocationNotFound
@@ -80,14 +78,14 @@ func (s *CatalogService) canReadLocation(ctx context.Context, userID, locationID
 	if err != nil {
 		return err
 	}
-	if access != nil && access.Restricted && !containsUUID(access.LocationIDs, locationID) {
+	if access != nil && access.Restricted && !containsID(access.LocationIDs, locationID) {
 		return ErrLocationNotOwner
 	}
 	return nil
 }
 
 // canEditLocation passes for owners and administrators with access to locationID.
-func (s *CatalogService) canEditLocation(ctx context.Context, userID, locationID uuid.UUID) error {
+func (s *CatalogService) canEditLocation(ctx context.Context, userID, locationID int64) error {
 	businessID, err := s.locationRepo.GetOwnerBusinessID(ctx, locationID)
 	if err != nil {
 		return ErrLocationNotFound
@@ -100,7 +98,7 @@ func (s *CatalogService) canEditLocation(ctx context.Context, userID, locationID
 		if access.Role != "administrator" {
 			return ErrLocationNotOwner
 		}
-		if access.Restricted && !containsUUID(access.LocationIDs, locationID) {
+		if access.Restricted && !containsID(access.LocationIDs, locationID) {
 			return ErrLocationNotOwner
 		}
 	}
@@ -109,21 +107,21 @@ func (s *CatalogService) canEditLocation(ctx context.Context, userID, locationID
 
 // ─── Equipment ────────────────────────────────────────────────────────────────
 
-func (s *CatalogService) CreateEquipment(ctx context.Context, userID uuid.UUID, req EquipmentCreate) (Equipment, error) {
+func (s *CatalogService) CreateEquipment(ctx context.Context, userID int64, req EquipmentCreate) (Equipment, error) {
 	if err := s.canWriteBusiness(ctx, userID, req.BusinessID); err != nil {
 		return Equipment{}, err
 	}
 	return s.repo.CreateEquipment(ctx, req)
 }
 
-func (s *CatalogService) ListEquipment(ctx context.Context, userID, businessID uuid.UUID) ([]Equipment, error) {
+func (s *CatalogService) ListEquipment(ctx context.Context, userID, businessID int64) ([]Equipment, error) {
 	if err := s.canReadBusiness(ctx, userID, businessID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListEquipmentByBusiness(ctx, businessID)
 }
 
-func (s *CatalogService) DeleteEquipment(ctx context.Context, userID, id uuid.UUID) error {
+func (s *CatalogService) DeleteEquipment(ctx context.Context, userID, id int64) error {
 	businessID, err := s.repo.GetEquipmentBusinessID(ctx, id)
 	if err != nil {
 		return err
@@ -131,27 +129,27 @@ func (s *CatalogService) DeleteEquipment(ctx context.Context, userID, id uuid.UU
 	return s.ownsBusinessID(ctx, userID, businessID)
 }
 
-func (s *CatalogService) DeleteEquipmentExec(ctx context.Context, id uuid.UUID) error {
+func (s *CatalogService) DeleteEquipmentExec(ctx context.Context, id int64) error {
 	return s.repo.DeleteEquipment(ctx, id)
 }
 
 // ─── Staff roles ──────────────────────────────────────────────────────────────
 
-func (s *CatalogService) CreateStaffRole(ctx context.Context, userID uuid.UUID, req StaffRoleCreate) (StaffRole, error) {
+func (s *CatalogService) CreateStaffRole(ctx context.Context, userID int64, req StaffRoleCreate) (StaffRole, error) {
 	if err := s.canWriteBusiness(ctx, userID, req.BusinessID); err != nil {
 		return StaffRole{}, err
 	}
 	return s.repo.CreateStaffRole(ctx, req)
 }
 
-func (s *CatalogService) ListStaffRoles(ctx context.Context, userID, businessID uuid.UUID) ([]StaffRole, error) {
+func (s *CatalogService) ListStaffRoles(ctx context.Context, userID, businessID int64) ([]StaffRole, error) {
 	if err := s.canReadBusiness(ctx, userID, businessID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListStaffRolesByBusiness(ctx, businessID)
 }
 
-func (s *CatalogService) DeleteStaffRole(ctx context.Context, userID, id uuid.UUID) error {
+func (s *CatalogService) DeleteStaffRole(ctx context.Context, userID, id int64) error {
 	businessID, err := s.repo.GetStaffRoleBusinessID(ctx, id)
 	if err != nil {
 		return err
@@ -164,21 +162,21 @@ func (s *CatalogService) DeleteStaffRole(ctx context.Context, userID, id uuid.UU
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 
-func (s *CatalogService) CreateService(ctx context.Context, userID uuid.UUID, req ServiceItemCreate) (ServiceItem, error) {
+func (s *CatalogService) CreateService(ctx context.Context, userID int64, req ServiceItemCreate) (ServiceItem, error) {
 	if err := s.canWriteBusiness(ctx, userID, req.BusinessID); err != nil {
 		return ServiceItem{}, err
 	}
 	return s.repo.CreateService(ctx, req)
 }
 
-func (s *CatalogService) ListServices(ctx context.Context, userID, businessID uuid.UUID) ([]ServiceItem, error) {
+func (s *CatalogService) ListServices(ctx context.Context, userID, businessID int64) ([]ServiceItem, error) {
 	if err := s.canReadBusiness(ctx, userID, businessID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListServicesByBusiness(ctx, businessID)
 }
 
-func (s *CatalogService) DeleteService(ctx context.Context, userID, id uuid.UUID) error {
+func (s *CatalogService) DeleteService(ctx context.Context, userID, id int64) error {
 	businessID, err := s.repo.GetServiceBusinessID(ctx, id)
 	if err != nil {
 		return err
@@ -191,21 +189,21 @@ func (s *CatalogService) DeleteService(ctx context.Context, userID, id uuid.UUID
 
 // ─── Location pivots ──────────────────────────────────────────────────────────
 
-func (s *CatalogService) AddLocationEquipment(ctx context.Context, userID, locationID uuid.UUID, req LocationEquipmentCreate) (LocationEquipment, error) {
+func (s *CatalogService) AddLocationEquipment(ctx context.Context, userID, locationID int64, req LocationEquipmentCreate) (LocationEquipment, error) {
 	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return LocationEquipment{}, err
 	}
 	return s.repo.AddLocationEquipment(ctx, locationID, req)
 }
 
-func (s *CatalogService) ListLocationEquipment(ctx context.Context, userID, locationID uuid.UUID) ([]LocationEquipment, error) {
+func (s *CatalogService) ListLocationEquipment(ctx context.Context, userID, locationID int64) ([]LocationEquipment, error) {
 	if err := s.canReadLocation(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListLocationEquipment(ctx, locationID)
 }
 
-func (s *CatalogService) RemoveLocationEquipment(ctx context.Context, userID, locationID, itemID uuid.UUID) error {
+func (s *CatalogService) RemoveLocationEquipment(ctx context.Context, userID, locationID, itemID int64) error {
 	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return err
 	}
@@ -219,21 +217,21 @@ func (s *CatalogService) RemoveLocationEquipment(ctx context.Context, userID, lo
 	return s.repo.RemoveLocationEquipment(ctx, itemID)
 }
 
-func (s *CatalogService) AddLocationStaffRole(ctx context.Context, userID, locationID uuid.UUID, req LocationStaffRoleCreate) (LocationStaffRole, error) {
+func (s *CatalogService) AddLocationStaffRole(ctx context.Context, userID, locationID int64, req LocationStaffRoleCreate) (LocationStaffRole, error) {
 	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return LocationStaffRole{}, err
 	}
 	return s.repo.AddLocationStaffRole(ctx, locationID, req)
 }
 
-func (s *CatalogService) ListLocationStaffRoles(ctx context.Context, userID, locationID uuid.UUID) ([]LocationStaffRole, error) {
+func (s *CatalogService) ListLocationStaffRoles(ctx context.Context, userID, locationID int64) ([]LocationStaffRole, error) {
 	if err := s.canReadLocation(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListLocationStaffRoles(ctx, locationID)
 }
 
-func (s *CatalogService) RemoveLocationStaffRole(ctx context.Context, userID, locationID, itemID uuid.UUID) error {
+func (s *CatalogService) RemoveLocationStaffRole(ctx context.Context, userID, locationID, itemID int64) error {
 	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return err
 	}
@@ -247,21 +245,21 @@ func (s *CatalogService) RemoveLocationStaffRole(ctx context.Context, userID, lo
 	return s.repo.RemoveLocationStaffRole(ctx, itemID)
 }
 
-func (s *CatalogService) AddLocationService(ctx context.Context, userID, locationID uuid.UUID, req LocationServiceItemCreate) (LocationServiceItem, error) {
+func (s *CatalogService) AddLocationService(ctx context.Context, userID, locationID int64, req LocationServiceItemCreate) (LocationServiceItem, error) {
 	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return LocationServiceItem{}, err
 	}
 	return s.repo.AddLocationService(ctx, locationID, req)
 }
 
-func (s *CatalogService) ListLocationServices(ctx context.Context, userID, locationID uuid.UUID) ([]LocationServiceItem, error) {
+func (s *CatalogService) ListLocationServices(ctx context.Context, userID, locationID int64) ([]LocationServiceItem, error) {
 	if err := s.canReadLocation(ctx, userID, locationID); err != nil {
 		return nil, err
 	}
 	return s.repo.ListLocationServices(ctx, locationID)
 }
 
-func (s *CatalogService) RemoveLocationService(ctx context.Context, userID, locationID, itemID uuid.UUID) error {
+func (s *CatalogService) RemoveLocationService(ctx context.Context, userID, locationID, itemID int64) error {
 	if err := s.canEditLocation(ctx, userID, locationID); err != nil {
 		return err
 	}

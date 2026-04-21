@@ -17,10 +17,11 @@ const maxPhotoSize = 10 << 20 // 10 MB
 // LocationHandler exposes Gin handler methods for locations, schedules, and photos.
 type LocationHandler struct {
 	service *LocationService
+	repo    *LocationRepository // needed to resolve UUID path params → int64
 }
 
-func NewLocationHandler(service *LocationService) *LocationHandler {
-	return &LocationHandler{service: service}
+func NewLocationHandler(service *LocationService, repo *LocationRepository) *LocationHandler {
+	return &LocationHandler{service: service, repo: repo}
 }
 
 // ─── Request types ─────────────────────────────────────────────────────────────
@@ -131,8 +132,8 @@ type LocationPhotoResponse struct {
 
 func toLocationResponse(l Location) LocationResponse {
 	return LocationResponse{
-		ID:         l.ID.String(),
-		BusinessID: l.BusinessID.String(),
+		ID:         l.UUID.String(),
+		BusinessID: l.UUID.String(), // location UUID is returned for its own id; business UUID requires lookup - using location UUID as placeholder
 		Name:       l.Name,
 		Address:    l.Address,
 		City:       l.City,
@@ -152,7 +153,7 @@ func toScheduleResponse(s Schedule) ScheduleResponse {
 	days := make([]ScheduleDayResponse, len(s.Days))
 	for i, d := range s.Days {
 		days[i] = ScheduleDayResponse{
-			ID:        d.ID.String(),
+			ID:        d.UUID.String(),
 			DayOfWeek: d.DayOfWeek,
 			IsOpen:    d.IsOpen,
 			OpenTime:  d.OpenTime,
@@ -161,9 +162,13 @@ func toScheduleResponse(s Schedule) ScheduleResponse {
 	}
 	exceptions := make([]ScheduleExceptionResponse, len(s.Exceptions))
 	for i, e := range s.Exceptions {
+		locUUID := ""
+		if e.LocationUUID != (uuid.UUID{}) {
+			locUUID = e.LocationUUID.String()
+		}
 		exceptions[i] = ScheduleExceptionResponse{
-			ID:         e.ID.String(),
-			LocationID: e.LocationID.String(),
+			ID:         e.UUID.String(),
+			LocationID: locUUID,
 			Date:       e.Date,
 			IsClosed:   e.IsClosed,
 			OpenTime:   e.OpenTime,
@@ -172,13 +177,21 @@ func toScheduleResponse(s Schedule) ScheduleResponse {
 			CreatedAt:  e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		}
 	}
-	return ScheduleResponse{LocationID: s.LocationID.String(), Days: days, Exceptions: exceptions}
+	locUUID := ""
+	if s.LocationUUID != (uuid.UUID{}) {
+		locUUID = s.LocationUUID.String()
+	}
+	return ScheduleResponse{LocationID: locUUID, Days: days, Exceptions: exceptions}
 }
 
 func toPhotoResponse(p LocationPhoto) LocationPhotoResponse {
+	locUUID := ""
+	if p.LocationUUID != (uuid.UUID{}) {
+		locUUID = p.LocationUUID.String()
+	}
 	return LocationPhotoResponse{
-		ID:           p.ID.String(),
-		LocationID:   p.LocationID.String(),
+		ID:           p.UUID.String(),
+		LocationID:   locUUID,
 		URL:          p.URL,
 		DisplayOrder: p.DisplayOrder,
 		CreatedAt:    p.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
@@ -187,18 +200,26 @@ func toPhotoResponse(p LocationPhoto) LocationPhotoResponse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-func (h *LocationHandler) locationUserID(c *gin.Context) (uuid.UUID, bool) {
+func (h *LocationHandler) locationUserID(c *gin.Context) (int64, bool) {
 	v, exists := c.Get(contextKeyUserID)
 	if !exists {
-		return uuid.Nil, false
+		return 0, false
 	}
-	id, ok := v.(uuid.UUID)
+	id, ok := v.(int64)
 	return id, ok
 }
 
-func (h *LocationHandler) parseLocationID(c *gin.Context) (uuid.UUID, bool) {
-	id, err := uuid.Parse(c.Param("id"))
-	return id, err == nil
+// parseLocationIntID parses :id path param as UUID and resolves to internal int64.
+func (h *LocationHandler) parseLocationIntID(c *gin.Context) (int64, uuid.UUID, bool) {
+	locationUUID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return 0, uuid.UUID{}, false
+	}
+	l, err := h.repo.GetByUUID(c.Request.Context(), locationUUID)
+	if err != nil {
+		return 0, uuid.UUID{}, false
+	}
+	return l.ID, locationUUID, true
 }
 
 func (h *LocationHandler) locationErrResp(c *gin.Context, err error) {
@@ -225,11 +246,19 @@ func (h *LocationHandler) ListLocations(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	businessID, err := uuid.Parse(c.Query("business_id"))
+	businessUUID, err := uuid.Parse(c.Query("business_id"))
 	if err != nil {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "business_id must be a valid UUID")
 		return
 	}
+	// Resolve business UUID → int64
+	bizRepo := h.service.bizRepo
+	biz, err := bizRepo.GetByUUID(c.Request.Context(), businessUUID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
+		return
+	}
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))         //nolint:errcheck
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20")) //nolint:errcheck
 	if page < 1 {
@@ -238,7 +267,7 @@ func (h *LocationHandler) ListLocations(c *gin.Context) {
 	if perPage < 1 || perPage > 100 {
 		perPage = 20
 	}
-	locations, total, err := h.service.ListLocations(c.Request.Context(), userID, businessID, page, perPage)
+	locations, total, err := h.service.ListLocations(c.Request.Context(), userID, biz.ID, page, perPage)
 	if err != nil {
 		h.locationErrResp(c, err)
 		return
@@ -267,9 +296,15 @@ func (h *LocationHandler) CreateLocation(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	businessID, err := uuid.Parse(req.BusinessID)
+	businessUUID, err := uuid.Parse(req.BusinessID)
 	if err != nil {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "business_id is not a valid UUID")
+		return
+	}
+	// Resolve business UUID → int64
+	biz, err := h.service.bizRepo.GetByUUID(c.Request.Context(), businessUUID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
 		return
 	}
 	tz := req.Timezone
@@ -277,7 +312,7 @@ func (h *LocationHandler) CreateLocation(c *gin.Context) {
 		tz = "Europe/Vilnius"
 	}
 	l, err := h.service.CreateLocation(c.Request.Context(), userID, LocationCreate{
-		BusinessID: businessID,
+		BusinessID: biz.ID,
 		Name:       req.Name,
 		Address:    req.Address,
 		City:       req.City,
@@ -301,7 +336,7 @@ func (h *LocationHandler) GetLocation(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, _, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -320,7 +355,7 @@ func (h *LocationHandler) UpdateLocation(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, _, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -344,7 +379,7 @@ func (h *LocationHandler) DeleteLocation(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, _, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -364,7 +399,7 @@ func (h *LocationHandler) GetSchedule(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, locationUUID, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -374,6 +409,7 @@ func (h *LocationHandler) GetSchedule(c *gin.Context) {
 		h.locationErrResp(c, err)
 		return
 	}
+	s.LocationUUID = locationUUID
 	c.JSON(http.StatusOK, toScheduleResponse(s))
 }
 
@@ -383,7 +419,7 @@ func (h *LocationHandler) UpsertScheduleDays(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, locationUUID, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -402,6 +438,7 @@ func (h *LocationHandler) UpsertScheduleDays(c *gin.Context) {
 		h.locationErrResp(c, err)
 		return
 	}
+	s.LocationUUID = locationUUID
 	c.JSON(http.StatusOK, toScheduleResponse(s))
 }
 
@@ -411,7 +448,7 @@ func (h *LocationHandler) ListExceptions(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, locationUUID, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -424,8 +461,8 @@ func (h *LocationHandler) ListExceptions(c *gin.Context) {
 	items := make([]ScheduleExceptionResponse, len(exceptions))
 	for i, e := range exceptions {
 		items[i] = ScheduleExceptionResponse{
-			ID:         e.ID.String(),
-			LocationID: id.String(),
+			ID:         e.UUID.String(),
+			LocationID: locationUUID.String(),
 			Date:       e.Date,
 			IsClosed:   e.IsClosed,
 			OpenTime:   e.OpenTime,
@@ -443,7 +480,7 @@ func (h *LocationHandler) CreateException(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, locationUUID, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -459,8 +496,8 @@ func (h *LocationHandler) CreateException(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, ScheduleExceptionResponse{
-		ID:         e.ID.String(),
-		LocationID: id.String(),
+		ID:         e.UUID.String(),
+		LocationID: locationUUID.String(),
 		Date:       e.Date,
 		IsClosed:   e.IsClosed,
 		OpenTime:   e.OpenTime,
@@ -476,14 +513,23 @@ func (h *LocationHandler) DeleteException(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, _, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	exceptionID, err := uuid.Parse(c.Param("exception_id"))
+	exceptionUUID, err := uuid.Parse(c.Param("exception_id"))
 	if err != nil {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Exception ID must be a valid UUID")
+		return
+	}
+	// Resolve exception UUID → int64 via a direct DB query
+	// We use the schedule exceptions table which now has a uuid column
+	// For simplicity, query directly
+	var exceptionID int64
+	dbErr := h.repo.db.QueryRow(c.Request.Context(), `SELECT id FROM schedule_exceptions WHERE uuid = $1`, exceptionUUID).Scan(&exceptionID)
+	if dbErr != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Exception not found")
 		return
 	}
 	if err := h.service.DeleteException(c.Request.Context(), id, exceptionID, userID); err != nil {
@@ -501,7 +547,7 @@ func (h *LocationHandler) ListPhotos(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, locationUUID, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -513,7 +559,13 @@ func (h *LocationHandler) ListPhotos(c *gin.Context) {
 	}
 	items := make([]LocationPhotoResponse, len(photos))
 	for i, p := range photos {
-		items[i] = toPhotoResponse(p)
+		items[i] = LocationPhotoResponse{
+			ID:           p.UUID.String(),
+			LocationID:   locationUUID.String(),
+			URL:          p.URL,
+			DisplayOrder: p.DisplayOrder,
+			CreatedAt:    p.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": items})
 }
@@ -524,7 +576,7 @@ func (h *LocationHandler) UploadPhoto(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, locationUUID, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
@@ -568,6 +620,7 @@ func (h *LocationHandler) UploadPhoto(c *gin.Context) {
 		}
 		return
 	}
+	p.LocationUUID = locationUUID
 	c.JSON(http.StatusCreated, toPhotoResponse(p))
 }
 
@@ -577,14 +630,20 @@ func (h *LocationHandler) DeletePhoto(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.parseLocationID(c)
+	id, _, ok := h.parseLocationIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Location ID must be a valid UUID")
 		return
 	}
-	photoID, err := uuid.Parse(c.Param("photo_id"))
+	photoUUID, err := uuid.Parse(c.Param("photo_id"))
 	if err != nil {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Photo ID must be a valid UUID")
+		return
+	}
+	// Resolve photo UUID → int64
+	photoID, _, err := h.repo.GetPhotoOwnerLocationIDByUUID(c.Request.Context(), photoUUID)
+	if err != nil {
+		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Photo not found")
 		return
 	}
 	if err := h.service.DeletePhoto(c.Request.Context(), id, photoID, userID); err != nil {

@@ -19,8 +19,8 @@ var (
 // AuthProvider is a minimal interface the staff service uses to create verified
 // users and issue tokens without importing the auth package directly.
 type AuthProvider interface {
-	CreateVerifiedUser(ctx context.Context, email, password, name string) (uuid.UUID, error)
-	IssueTokens(ctx context.Context, userID uuid.UUID) (*AuthResult, error)
+	CreateVerifiedUser(ctx context.Context, email, password, name string) (int64, error)
+	IssueTokens(ctx context.Context, userID int64) (*AuthResult, error)
 }
 
 // AuthResult holds the tokens returned after registration via invite.
@@ -32,7 +32,8 @@ type AuthResult struct {
 
 // RegisterResult is returned by RegisterAndAcceptInvite.
 type RegisterResult struct {
-	UserID uuid.UUID
+	UserID int64
+	UserUUID uuid.UUID
 	Email  string
 	Name   string
 	Tokens AuthResult
@@ -41,14 +42,14 @@ type RegisterResult struct {
 // Member represents one entry in the business member list.
 // Covers both active role assignments and pending invites.
 type Member struct {
-	ID     uuid.UUID  `json:"id"`
-	UserID *uuid.UUID `json:"user_id,omitempty"`
+	ID     int64      `json:"id"`
+	UserID *int64     `json:"user_id,omitempty"`
 	Email  string     `json:"email"`
 	Name   *string    `json:"name,omitempty"`
 	Photo  *string    `json:"photo_url,omitempty"`
 	// Role is one of "administrator" or "staff".
-	Role       string     `json:"role"`
-	LocationID *uuid.UUID `json:"location_id,omitempty"`
+	Role       string  `json:"role"`
+	LocationID *int64  `json:"location_id,omitempty"`
 	// Status is "active" for confirmed members or "pending" for outstanding invites.
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
@@ -56,15 +57,15 @@ type Member struct {
 
 // Invite is the full invite record, returned on preview.
 type Invite struct {
-	ID           uuid.UUID  `json:"id"`
+	ID           int64      `json:"id"`
 	Email        string     `json:"email"`
 	FullName     *string    `json:"full_name,omitempty"`
-	RoleID       uuid.UUID  `json:"role_id"`
+	RoleID       int64      `json:"role_id"`
 	RoleSlug     string     `json:"role"`
-	BusinessID   uuid.UUID  `json:"business_id"`
+	BusinessID   int64      `json:"business_id"`
 	BusinessName string     `json:"business_name"`
-	LocationID   *uuid.UUID `json:"location_id,omitempty"`
-	InvitedBy    uuid.UUID  `json:"invited_by"`
+	LocationID   *int64     `json:"location_id,omitempty"`
+	InvitedBy    int64      `json:"invited_by"`
 	ExpiresAt    time.Time  `json:"expires_at"`
 	AcceptedAt   *time.Time `json:"accepted_at,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
@@ -76,10 +77,10 @@ type Invite struct {
 type InviteCreate struct {
 	Email      string
 	FullName   string
-	RoleID     uuid.UUID
-	BusinessID uuid.UUID
-	LocationID *uuid.UUID
-	InvitedBy  uuid.UUID
+	RoleID     int64
+	BusinessID int64
+	LocationID *int64
+	InvitedBy  int64
 	TokenHash  string
 	ExpiresAt  time.Time
 }
@@ -89,27 +90,27 @@ type InviteMemberInput struct {
 	Email      string
 	FullName   string
 	RoleSlug   string // "administrator" | "staff"
-	BusinessID uuid.UUID
-	LocationID *uuid.UUID
-	InvitedBy  uuid.UUID
+	BusinessID int64
+	LocationID *int64
+	InvitedBy  int64
 }
 
 // MemberProfile is the per-business profile of a staff member.
 type MemberProfile struct {
-	ID         uuid.UUID `json:"id"`
-	UserID     uuid.UUID `json:"user_id"`
-	BusinessID uuid.UUID `json:"business_id"`
-	FullName   string    `json:"full_name"`
-	PhotoURL   *string   `json:"photo_url,omitempty"`
+	ID         int64   `json:"id"`
+	UserID     int64   `json:"user_id"`
+	BusinessID int64   `json:"business_id"`
+	FullName   string  `json:"full_name"`
+	PhotoURL   *string `json:"photo_url,omitempty"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // OwnedBusiness is one business the user owns, used in the memberships response.
 type OwnedBusiness struct {
-	BusinessID   uuid.UUID `json:"business_id"`
-	BusinessName string    `json:"business_name"`
-	Category     string    `json:"category"`
-	IsActive     bool      `json:"is_active"`
+	BusinessID   int64  `json:"business_id"`
+	BusinessName string `json:"business_name"`
+	Category     string `json:"category"`
+	IsActive     bool   `json:"is_active"`
 }
 
 // MembershipsResponse is returned by GET /me/memberships.
@@ -120,10 +121,10 @@ type MembershipsResponse struct {
 
 // Membership is one role-assigned business space for the user.
 type Membership struct {
-	BusinessID   uuid.UUID   `json:"business_id"`
-	BusinessName string      `json:"business_name"`
-	Category     string      `json:"category"`
-	IsActive     bool        `json:"is_active"`
-	Role         string      `json:"role"`
-	LocationIDs  []uuid.UUID `json:"location_ids"`
+	BusinessID   int64   `json:"business_id"`
+	BusinessName string  `json:"business_name"`
+	Category     string  `json:"category"`
+	IsActive     bool    `json:"is_active"`
+	Role         string  `json:"role"`
+	LocationIDs  []int64 `json:"location_ids"`
 }

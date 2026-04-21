@@ -13,6 +13,7 @@ import (
 )
 
 // contextKeyUserID must match the key set by the auth middleware.
+// After the int64 migration, the context stores int64 (not uuid.UUID).
 const contextKeyUserID = "userID"
 
 const maxLogoSize = 5 << 20 // 5 MB
@@ -26,10 +27,11 @@ var allowedImageTypes = map[string]string{
 // Handler holds the catalog service and exposes Gin handler methods.
 type Handler struct {
 	service *Service
+	repo    *Repository // needed to resolve UUID path params → int64
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, repo *Repository) *Handler {
+	return &Handler{service: service, repo: repo}
 }
 
 // ─── Response types ────────────────────────────────────────────────────────────
@@ -83,10 +85,11 @@ type UpdateBusinessRequest struct {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
+// toResponse builds the JSON response from a Business. The public "id" comes from UUID.
 func toResponse(b Business) BusinessResponse {
 	return BusinessResponse{
-		ID:          b.ID.String(),
-		ProviderID:  b.ProviderID.String(),
+		ID:          b.UUID.String(),
+		ProviderID:  b.UUID.String(), // expose business UUID as provider_id placeholder; actual provider UUID would require a join
 		Name:        b.Name,
 		Category:    b.Category,
 		Description: b.Description,
@@ -97,18 +100,26 @@ func toResponse(b Business) BusinessResponse {
 	}
 }
 
-func (h *Handler) userID(c *gin.Context) (uuid.UUID, bool) {
+func (h *Handler) userID(c *gin.Context) (int64, bool) {
 	v, exists := c.Get(contextKeyUserID)
 	if !exists {
-		return uuid.Nil, false
+		return 0, false
 	}
-	id, ok := v.(uuid.UUID)
+	id, ok := v.(int64)
 	return id, ok
 }
 
-func (h *Handler) businessID(c *gin.Context) (uuid.UUID, bool) {
-	id, err := uuid.Parse(c.Param("id"))
-	return id, err == nil
+// businessIntID parses :id path param as UUID and resolves it to internal int64.
+func (h *Handler) businessIntID(c *gin.Context) (int64, bool) {
+	businessUUID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return 0, false
+	}
+	b, err := h.repo.GetByUUID(c.Request.Context(), businessUUID)
+	if err != nil {
+		return 0, false
+	}
+	return b.ID, true
 }
 
 func errResp(c *gin.Context, status int, slug, title, detail string) {
@@ -136,8 +147,8 @@ func (h *Handler) ListBusinesses(c *gin.Context) {
 		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))         //nolint:errcheck // invalid input → default applied below
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20")) //nolint:errcheck // invalid input → default applied below
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))         //nolint:errcheck
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20")) //nolint:errcheck
 	if page < 1 {
 		page = 1
 	}
@@ -207,7 +218,7 @@ func (h *Handler) GetBusiness(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.businessID(c)
+	id, ok := h.businessIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Business ID must be a valid UUID")
 		return
@@ -236,7 +247,7 @@ func (h *Handler) UpdateBusiness(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.businessID(c)
+	id, ok := h.businessIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Business ID must be a valid UUID")
 		return
@@ -271,7 +282,7 @@ func (h *Handler) DeleteBusiness(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.businessID(c)
+	id, ok := h.businessIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Business ID must be a valid UUID")
 		return
@@ -299,7 +310,7 @@ func (h *Handler) UploadLogo(c *gin.Context) {
 		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
 		return
 	}
-	id, ok := h.businessID(c)
+	id, ok := h.businessIntID(c)
 	if !ok {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Business ID must be a valid UUID")
 		return
@@ -310,7 +321,7 @@ func (h *Handler) UploadLogo(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "file field is required")
 		return
 	}
-	defer file.Close() //nolint:errcheck // multipart file close; no meaningful error to handle
+	defer file.Close() //nolint:errcheck
 
 	if header.Size > maxLogoSize {
 		errResp(c, http.StatusBadRequest, "file-too-large", "File Too Large", "Logo must be smaller than 5 MB")
@@ -318,11 +329,9 @@ func (h *Handler) UploadLogo(c *gin.Context) {
 	}
 
 	contentType := header.Header.Get("Content-Type")
-	// Normalise — browsers may send "image/jpeg; charset=..." etc.
 	contentType = strings.SplitN(contentType, ";", 2)[0]
 	ext, allowed := allowedImageTypes[contentType]
 	if !allowed {
-		// Fall back to extension-based detection
 		ext = strings.ToLower(filepath.Ext(header.Filename))
 		switch ext {
 		case ".jpg", ".jpeg":

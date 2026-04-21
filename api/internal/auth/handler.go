@@ -7,12 +7,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
 )
 
-// contextKeyUserID is the Gin context key for the authenticated user's ID.
+// contextKeyUserID is the Gin context key for the authenticated user's internal int64 ID.
 const contextKeyUserID = "userID"
 
 type Handler struct {
@@ -200,7 +199,9 @@ func (h *Handler) Logout(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// AuthMiddleware validates JWT from Authorization header
+// AuthMiddleware validates JWT from Authorization header.
+// On success it stores the user's internal int64 ID in the Gin context under "userID".
+// It resolves the JWT UUID claim → int64 ID via a DB lookup.
 func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -245,8 +246,20 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Store user ID in context
-		c.Set(contextKeyUserID, claims.UserID)
+		// Resolve JWT UUID → internal int64 ID via DB lookup
+		user, err := h.service.repo.GetByUUID(c.Request.Context(), claims.UserID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{
+				Type:   "unauthorized",
+				Title:  "Unauthorized",
+				Status: http.StatusUnauthorized,
+				Detail: "User not found",
+			})
+			return
+		}
+
+		// Store the internal int64 ID in context
+		c.Set(contextKeyUserID, user.ID)
 		c.Next()
 	}
 }
@@ -301,7 +314,7 @@ func (h *Handler) ResendVerification(c *gin.Context) {
 		return
 	}
 
-	err := h.service.ResendVerificationEmail(c.Request.Context(), userID.(uuid.UUID))
+	err := h.service.ResendVerificationEmail(c.Request.Context(), userID.(int64))
 	if errors.Is(err, ErrEmailAlreadyVerified) {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
 			Type:   "email-already-verified",
@@ -395,7 +408,7 @@ func (h *Handler) CreateAppSwitchToken(c *gin.Context) {
 	}
 
 	clientIP := c.ClientIP()
-	token, err := h.service.CreateAppSwitchToken(c.Request.Context(), userID.(uuid.UUID), clientIP)
+	token, err := h.service.CreateAppSwitchToken(c.Request.Context(), userID.(int64), clientIP)
 	if err != nil {
 		slog.Error("create app switch token failed", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -423,7 +436,7 @@ func (h *Handler) CreateProvider(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.service.CreateProvider(c.Request.Context(), userID.(uuid.UUID))
+	resp, err := h.service.CreateProvider(c.Request.Context(), userID.(int64))
 	if errors.Is(err, identity.ErrAlreadyProvider) {
 		c.JSON(http.StatusConflict, ErrorResponse{
 			Type:   "already-a-provider",

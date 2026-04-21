@@ -29,23 +29,25 @@ const (
 )
 
 // userRepository defines the data access contract required by the auth service.
+// All user IDs are int64 (internal primary keys). The JWT still uses uuid.UUID.
 type userRepository interface {
 	GetByEmail(ctx context.Context, email string) (*identity.User, error)
-	GetByID(ctx context.Context, id uuid.UUID) (*identity.User, error)
+	GetByUUID(ctx context.Context, id uuid.UUID) (*identity.User, error)
+	GetByID(ctx context.Context, id int64) (*identity.User, error)
 	Create(ctx context.Context, email, passwordHash, name, phone string) (*identity.User, error)
-	IsProvider(ctx context.Context, userID uuid.UUID) (bool, error)
-	CreateProvider(ctx context.Context, userID uuid.UUID) (*identity.Provider, error)
-	CreateRefreshToken(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) error
-	ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error)
+	IsProvider(ctx context.Context, userID int64) (bool, error)
+	CreateProvider(ctx context.Context, userID int64) (*identity.Provider, error)
+	CreateRefreshToken(ctx context.Context, userID int64, token string, expiresAt time.Time) error
+	ValidateRefreshToken(ctx context.Context, token string) (int64, error)
 	RevokeRefreshToken(ctx context.Context, token string) error
-	RevokeAllUserTokens(ctx context.Context, userID uuid.UUID) error
-	CreateAuthToken(ctx context.Context, userID uuid.UUID, token, tokenType string, expiresAt time.Time) error
-	CreateAuthTokenWithIP(ctx context.Context, userID uuid.UUID, token, tokenType, ipAddress string, expiresAt time.Time) error
-	ValidateAuthToken(ctx context.Context, token, tokenType string) (uuid.UUID, error)
-	ValidateAuthTokenWithIP(ctx context.Context, token, tokenType, ipAddress string) (uuid.UUID, error)
+	RevokeAllUserTokens(ctx context.Context, userID int64) error
+	CreateAuthToken(ctx context.Context, userID int64, token, tokenType string, expiresAt time.Time) error
+	CreateAuthTokenWithIP(ctx context.Context, userID int64, token, tokenType, ipAddress string, expiresAt time.Time) error
+	ValidateAuthToken(ctx context.Context, token, tokenType string) (int64, error)
+	ValidateAuthTokenWithIP(ctx context.Context, token, tokenType, ipAddress string) (int64, error)
 	UseAuthToken(ctx context.Context, token, tokenType string) error
-	SetEmailVerified(ctx context.Context, userID uuid.UUID) error
-	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
+	SetEmailVerified(ctx context.Context, userID int64) error
+	UpdatePassword(ctx context.Context, userID int64, passwordHash string) error
 }
 
 type Service struct {
@@ -98,7 +100,6 @@ func (s *Service) Register(ctx context.Context, email, password, name, phone str
 	}
 
 	// Send verification email (non-blocking - don't fail registration if email fails)
-	// Use a detached context so the email sends even if the request is canceled
 	go func(bgCtx context.Context) {
 		token, err := s.CreateEmailVerificationToken(bgCtx, user.ID)
 		if err != nil {
@@ -141,7 +142,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (*AuthRespo
 }
 
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (*AuthResponse, error) {
-	// Validate refresh token
+	// Validate refresh token — returns internal int64 user ID
 	userID, err := s.repo.ValidateRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return nil, err
@@ -152,7 +153,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*AuthRespon
 		return nil, err
 	}
 
-	// Get user
+	// Get user by internal ID
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -176,7 +177,8 @@ func (s *Service) ValidateToken(tokenString string) (*Claims, error) {
 }
 
 func (s *Service) generateAuthResponse(ctx context.Context, user *identity.User, isProvider bool) (*AuthResponse, error) {
-	accessToken, err := s.jwt.GenerateAccessToken(user.ID)
+	// JWT contains the user's public UUID (not the internal int64 ID)
+	accessToken, err := s.jwt.GenerateAccessToken(user.UUID)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +203,7 @@ func (s *Service) generateAuthResponse(ctx context.Context, user *identity.User,
 	}, nil
 }
 
-func (s *Service) CreateProvider(ctx context.Context, userID uuid.UUID) (*identity.ProviderResponse, error) {
+func (s *Service) CreateProvider(ctx context.Context, userID int64) (*identity.ProviderResponse, error) {
 	provider, err := s.repo.CreateProvider(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -212,7 +214,7 @@ func (s *Service) CreateProvider(ctx context.Context, userID uuid.UUID) (*identi
 
 // Email verification
 
-func (s *Service) CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID) (string, error) {
+func (s *Service) CreateEmailVerificationToken(ctx context.Context, userID int64) (string, error) {
 	token, err := GenerateRefreshToken() // reuse the random token generator
 	if err != nil {
 		return "", err
@@ -239,7 +241,7 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	return s.repo.SetEmailVerified(ctx, userID)
 }
 
-func (s *Service) ResendVerificationEmail(ctx context.Context, userID uuid.UUID) error {
+func (s *Service) ResendVerificationEmail(ctx context.Context, userID int64) error {
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
 		return err
@@ -322,7 +324,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 
 // App switch token methods
 
-func (s *Service) CreateAppSwitchToken(ctx context.Context, userID uuid.UUID, ipAddress string) (string, error) {
+func (s *Service) CreateAppSwitchToken(ctx context.Context, userID int64, ipAddress string) (string, error) {
 	token, err := GenerateRefreshToken()
 	if err != nil {
 		return "", err
@@ -361,27 +363,28 @@ func (s *Service) ExchangeAppSwitchToken(ctx context.Context, token, ipAddress s
 
 // CreateVerifiedUser creates a user with email already verified and no
 // verification email sent. Used when accepting an invite proves email ownership.
-func (s *Service) CreateVerifiedUser(ctx context.Context, email, password, name string) (uuid.UUID, error) {
+// Returns the internal int64 user ID.
+func (s *Service) CreateVerifiedUser(ctx context.Context, email, password, name string) (int64, error) {
 	_, err := s.repo.GetByEmail(ctx, email)
 	if err == nil {
-		return uuid.Nil, identity.ErrEmailExists
+		return 0, identity.ErrEmailExists
 	}
 	if !errors.Is(err, identity.ErrUserNotFound) {
-		return uuid.Nil, err
+		return 0, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 
 	user, err := s.repo.Create(ctx, email, string(hash), name, "")
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 
 	if err := s.repo.SetEmailVerified(ctx, user.ID); err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 
 	return user.ID, nil
@@ -390,7 +393,7 @@ func (s *Service) CreateVerifiedUser(ctx context.Context, email, password, name 
 // IssueTokens generates access and refresh tokens for an existing user.
 // Satisfies the staff.AuthProvider interface so staff.Service can log the user
 // in immediately after RegisterAndAcceptInvite without importing this package.
-func (s *Service) IssueTokens(ctx context.Context, userID uuid.UUID) (*staff.AuthResult, error) {
+func (s *Service) IssueTokens(ctx context.Context, userID int64) (*staff.AuthResult, error) {
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
