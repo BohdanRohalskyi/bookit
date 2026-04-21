@@ -1,1 +1,0 @@
-ALTER TABLE invites ADD COLUMN full_name VARCHAR(255);
