@@ -11,8 +11,6 @@ import {
   CalendarCheck,
   Users,
   UserCircle,
-  Calendar,
-  FileText,
   CreditCard,
   Settings,
   LogOut,
@@ -56,8 +54,6 @@ const navItems: NavItem[] = [
   { icon: Users,           label: 'Team',               path: '/dashboard/staff',       end: true,  showTo: 'admin' },
   { icon: UserCircle,      label: 'My Profile',         path: '/dashboard/profile',     end: true,  showTo: 'all' },
   { icon: CalendarCheck,   label: 'Bookings',                                                        showTo: 'all' },
-  { icon: Calendar,        label: 'Calendar',                                                        showTo: 'admin' },
-  { icon: FileText,        label: 'Reports',                                                         showTo: 'owner' },
   { icon: CreditCard,      label: 'Payment',                                                         showTo: 'owner' },
   { icon: Settings,        label: 'Settings',                                                        showTo: 'owner' },
 ]
