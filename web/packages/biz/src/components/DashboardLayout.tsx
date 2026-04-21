@@ -50,7 +50,7 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',          path: '/dashboard',             end: true,  showTo: 'all' },
   { icon: Building2,       label: 'Manage Businesses',  path: '/dashboard/businesses',  end: true,  showTo: 'owner' },
   { icon: PlusCircle,      label: 'Add Business',       path: '/dashboard/businesses/new', end: false, showTo: 'owner' },
-  { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'admin' },
+  { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'all' },
   { icon: Users,           label: 'Team',               path: '/dashboard/staff',       end: true,  showTo: 'admin' },
   { icon: UserCircle,      label: 'My Profile',         path: '/dashboard/profile',     end: true,  showTo: 'all' },
   { icon: CalendarCheck,   label: 'Bookings',                                                        showTo: 'all' },
