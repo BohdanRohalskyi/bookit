@@ -132,3 +132,17 @@ cd api && go test ./...
 ```
 
 The pre-push hook runs golangci-lint automatically.
+
+## Primary Key Convention
+
+**Every new table MUST follow this pattern — no exceptions:**
+
+```sql
+id   BIGSERIAL PRIMARY KEY,
+uuid UUID      NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+```
+
+- `id` (BIGSERIAL) — internal only. Used for all JOINs and FK columns. Never exposed in API responses.
+- `uuid` (UUID) — public identifier. Returned as `"id"` in every JSON response. Used in URL path params.
+- All FK columns reference the integer `id`: `business_id BIGINT NOT NULL REFERENCES businesses(id)`
+- Never use `UUID PRIMARY KEY`. Never expose the integer `id` to API consumers.
