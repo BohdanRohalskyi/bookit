@@ -79,6 +79,6 @@ type Membership struct {
 	BusinessName string
 	Category     string
 	IsActive     bool
-	Role         string   // "administrator" | "staff"
-	LocationIDs  []int64  // non-empty only for location-scoped assignments
+	Role         string  // "administrator" | "staff"
+	LocationIDs  []int64 // non-empty only for location-scoped assignments
 }

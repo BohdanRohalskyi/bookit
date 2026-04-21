@@ -32,24 +32,24 @@ type AuthResult struct {
 
 // RegisterResult is returned by RegisterAndAcceptInvite.
 type RegisterResult struct {
-	UserID int64
+	UserID   int64
 	UserUUID uuid.UUID
-	Email  string
-	Name   string
-	Tokens AuthResult
+	Email    string
+	Name     string
+	Tokens   AuthResult
 }
 
 // Member represents one entry in the business member list.
 // Covers both active role assignments and pending invites.
 type Member struct {
-	ID     int64      `json:"id"`
-	UserID *int64     `json:"user_id,omitempty"`
-	Email  string     `json:"email"`
-	Name   *string    `json:"name,omitempty"`
-	Photo  *string    `json:"photo_url,omitempty"`
+	ID     int64   `json:"id"`
+	UserID *int64  `json:"user_id,omitempty"`
+	Email  string  `json:"email"`
+	Name   *string `json:"name,omitempty"`
+	Photo  *string `json:"photo_url,omitempty"`
 	// Role is one of "administrator" or "staff".
-	Role       string  `json:"role"`
-	LocationID *int64  `json:"location_id,omitempty"`
+	Role       string `json:"role"`
+	LocationID *int64 `json:"location_id,omitempty"`
 	// Status is "active" for confirmed members or "pending" for outstanding invites.
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
@@ -97,11 +97,11 @@ type InviteMemberInput struct {
 
 // MemberProfile is the per-business profile of a staff member.
 type MemberProfile struct {
-	ID         int64   `json:"id"`
-	UserID     int64   `json:"user_id"`
-	BusinessID int64   `json:"business_id"`
-	FullName   string  `json:"full_name"`
-	PhotoURL   *string `json:"photo_url,omitempty"`
+	ID         int64     `json:"id"`
+	UserID     int64     `json:"user_id"`
+	BusinessID int64     `json:"business_id"`
+	FullName   string    `json:"full_name"`
+	PhotoURL   *string   `json:"photo_url,omitempty"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
