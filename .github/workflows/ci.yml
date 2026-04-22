@@ -14,6 +14,7 @@ on:
       - 'api/**'
       - '.github/workflows/ci.yml'
       - 'docker-compose.yml'
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -187,11 +188,8 @@ jobs:
             DB_PASS=$(echo "$DB_URL" | sed 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/')
           fi
 
-          # For staging: drop all tables first so a clean-schema migration set always wins.
-          # For production: apply incrementally — never drop.
-          if [[ "${{ env.ENVIRONMENT }}" != "prod" ]]; then
-            ./migrate -path api/migrations -database "postgres://bookit:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=disable" drop -f || true
-          fi
+          # ONE-TIME PROD RESET: drop all tables then re-apply from scratch.
+          ./migrate -path api/migrations -database "postgres://bookit:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=disable" drop -f || true
 
           ./migrate -path api/migrations -database "postgres://bookit:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=disable" up
 
