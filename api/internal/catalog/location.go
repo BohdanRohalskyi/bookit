@@ -28,17 +28,17 @@ type Location struct {
 	BusinessID   int64
 	BusinessUUID uuid.UUID
 	Name         string
-	Address    string
-	City       string
-	Country    string
-	Phone      *string
-	Email      *string
-	Lat        *float64
-	Lng        *float64
-	Timezone   string
-	IsActive   bool
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	Address      string
+	City         string
+	Country      string
+	Phone        *string
+	Email        *string
+	Lat          *float64
+	Lng          *float64
+	Timezone     string
+	IsActive     bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type LocationCreate struct {
