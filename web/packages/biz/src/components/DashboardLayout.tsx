@@ -46,7 +46,7 @@ function isImplemented(item: NavItem): item is ImplementedNavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',          path: '/dashboard',             end: true,  showTo: 'all' },
+  { icon: LayoutDashboard, label: 'Dashboard',          path: '/dashboard',             end: true,  showTo: 'admin' },
   { icon: Building2,       label: 'Manage Businesses',  path: '/dashboard/businesses',  end: true,  showTo: 'owner' },
   { icon: PlusCircle,      label: 'Add Business',       path: '/dashboard/businesses/new', end: false, showTo: 'owner' },
   { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'all' },
@@ -125,7 +125,7 @@ export function DashboardLayout() {
 
   const { businessId, businessName, role, clearSpace, setSpace } = useSpaceStore()
   // isOwner/isAdmin: if no space selected yet, default to owner (existing provider flow)
-  const { isOwner, isAdmin } = useMyRole()
+  const { isOwner, isAdmin, isStaff } = useMyRole()
   const effectiveIsOwner = role === null ? true : isOwner
   const effectiveIsAdmin = role === null ? true : isAdmin
 
@@ -134,6 +134,12 @@ export function DashboardLayout() {
   useEffect(() => {
     if (!isAuthenticated) navigate('/login')
   }, [isAuthenticated, navigate])
+
+  useEffect(() => {
+    if (isStaff && location.pathname === '/dashboard') {
+      navigate('/dashboard/locations', { replace: true })
+    }
+  }, [isStaff, location.pathname, navigate])
 
   // Smart workspace routing — only runs when no space is selected yet
   useEffect(() => {
