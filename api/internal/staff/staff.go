@@ -67,6 +67,7 @@ type Invite struct {
 	BusinessName string     `json:"business_name"`
 	LocationID   *int64     `json:"-"` // internal PK — not exposed; use LocationUUID for JSON
 	LocationUUID *uuid.UUID `json:"location_id,omitempty"`
+	StaffRoleIDs []int64    `json:"-"` // internal PKs — not exposed
 	InvitedBy    int64      `json:"invited_by"`
 	ExpiresAt    time.Time  `json:"expires_at"`
 	AcceptedAt   *time.Time `json:"accepted_at,omitempty"`
@@ -77,24 +78,34 @@ type Invite struct {
 
 // InviteCreate is the input for creating a new invite record.
 type InviteCreate struct {
-	Email      string
-	FullName   string
-	RoleID     int64
-	BusinessID int64
-	LocationID *int64
-	InvitedBy  int64
-	TokenHash  string
-	ExpiresAt  time.Time
+	Email        string
+	FullName     string
+	RoleID       int64
+	BusinessID   int64
+	LocationID   *int64
+	StaffRoleIDs []int64
+	InvitedBy    int64
+	TokenHash    string
+	ExpiresAt    time.Time
+}
+
+// ResolvedStaffRole holds the data returned when resolving staff role UUIDs.
+type ResolvedStaffRole struct {
+	ID       int64
+	RoleID   int64
+	RoleSlug string
 }
 
 // InviteMemberInput is the service-layer input for InviteMember.
 type InviteMemberInput struct {
-	Email      string
-	FullName   string
-	RoleSlug   string // "administrator" | "staff"
-	BusinessID int64
-	LocationID *int64
-	InvitedBy  int64
+	Email           string
+	FullName        string
+	DerivedRoleID   int64  // RBAC role — resolved from job titles (highest privilege wins)
+	DerivedRoleSlug string // for email templates
+	BusinessID      int64
+	LocationID      *int64
+	StaffRoleIDs    []int64 // internal PKs of selected job titles
+	InvitedBy       int64
 }
 
 // MemberProfile is the per-business profile of a staff member.

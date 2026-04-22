@@ -10,6 +10,7 @@ import (
 var (
 	ErrEquipmentNotFound    = errors.New("equipment not found")
 	ErrStaffRoleNotFound    = errors.New("staff role not found")
+	ErrStaffRoleProtected   = errors.New("staff role is system-managed and cannot be deleted")
 	ErrServiceNotFound      = errors.New("service not found")
 	ErrLocationItemNotFound = errors.New("location item not found")
 )
@@ -32,16 +33,22 @@ type EquipmentCreate struct {
 // ─── Staff roles ──────────────────────────────────────────────────────────────
 
 type StaffRole struct {
-	ID         int64
-	UUID       uuid.UUID
-	BusinessID int64
-	JobTitle   string
-	CreatedAt  time.Time
+	ID           int64
+	UUID         uuid.UUID
+	BusinessID   int64
+	BusinessUUID uuid.UUID
+	IsSystem     bool
+	RoleID       int64  // internal FK to roles table
+	RoleSlug     string // "administrator" | "staff" — exposed in JSON as "role"
+	JobTitle     string
+	CreatedAt    time.Time
 }
 
 type StaffRoleCreate struct {
 	BusinessID int64
+	RoleID     int64 // resolved from slug by caller
 	JobTitle   string
+	IsSystem   bool
 }
 
 // ─── Services ─────────────────────────────────────────────────────────────────

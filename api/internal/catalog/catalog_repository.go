@@ -77,16 +77,32 @@ func (r *CatalogRepository) GetEquipmentBusinessID(ctx context.Context, id int64
 func (r *CatalogRepository) CreateStaffRole(ctx context.Context, req StaffRoleCreate) (StaffRole, error) {
 	var s StaffRole
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO staff_roles (business_id, job_title) VALUES ($1, $2)
-		RETURNING id, uuid, business_id, job_title, created_at
-	`, req.BusinessID, req.JobTitle).Scan(&s.ID, &s.UUID, &s.BusinessID, &s.JobTitle, &s.CreatedAt)
+		WITH ins AS (
+			INSERT INTO staff_roles (business_id, job_title, role_id, is_system)
+			VALUES ($1, $2, $3, $4)
+			RETURNING id, uuid, business_id, role_id, job_title, is_system, created_at
+		)
+		SELECT ins.id, ins.uuid, ins.business_id, b.uuid, ins.role_id, ro.slug,
+		       ins.job_title, ins.is_system, ins.created_at
+		FROM ins
+		JOIN roles      ro ON ro.id = ins.role_id
+		JOIN businesses  b ON  b.id = ins.business_id
+	`, req.BusinessID, req.JobTitle, req.RoleID, req.IsSystem).Scan(
+		&s.ID, &s.UUID, &s.BusinessID, &s.BusinessUUID, &s.RoleID, &s.RoleSlug,
+		&s.JobTitle, &s.IsSystem, &s.CreatedAt,
+	)
 	return s, err
 }
 
 func (r *CatalogRepository) ListStaffRolesByBusiness(ctx context.Context, businessID int64) ([]StaffRole, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, uuid, business_id, job_title, created_at FROM staff_roles
-		WHERE business_id = $1 ORDER BY job_title
+		SELECT sr.id, sr.uuid, sr.business_id, b.uuid, sr.role_id, ro.slug,
+		       sr.job_title, sr.is_system, sr.created_at
+		FROM staff_roles sr
+		JOIN roles      ro ON ro.id = sr.role_id
+		JOIN businesses  b ON  b.id = sr.business_id
+		WHERE sr.business_id = $1
+		ORDER BY sr.is_system DESC, sr.job_title
 	`, businessID)
 	if err != nil {
 		return nil, err
@@ -95,7 +111,8 @@ func (r *CatalogRepository) ListStaffRolesByBusiness(ctx context.Context, busine
 	var items []StaffRole
 	for rows.Next() {
 		var s StaffRole
-		if err := rows.Scan(&s.ID, &s.UUID, &s.BusinessID, &s.JobTitle, &s.CreatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.UUID, &s.BusinessID, &s.BusinessUUID, &s.RoleID, &s.RoleSlug,
+			&s.JobTitle, &s.IsSystem, &s.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, s)
@@ -107,14 +124,31 @@ func (r *CatalogRepository) ListStaffRolesByBusiness(ctx context.Context, busine
 }
 
 func (r *CatalogRepository) DeleteStaffRole(ctx context.Context, id int64) error {
-	res, err := r.db.Exec(ctx, `DELETE FROM staff_roles WHERE id = $1`, id)
+	res, err := r.db.Exec(ctx, `DELETE FROM staff_roles WHERE id = $1 AND is_system = false`, id)
 	if err != nil {
 		return err
 	}
 	if res.RowsAffected() == 0 {
-		return ErrStaffRoleNotFound
+		// Distinguish "not found" from "protected"
+		var isSystem bool
+		scanErr := r.db.QueryRow(ctx, `SELECT is_system FROM staff_roles WHERE id = $1`, id).Scan(&isSystem)
+		if errors.Is(scanErr, pgx.ErrNoRows) {
+			return ErrStaffRoleNotFound
+		}
+		return ErrStaffRoleProtected
 	}
 	return nil
+}
+
+func (r *CatalogRepository) GetRoleIDBySlug(ctx context.Context, slug string) (int64, error) {
+	var id int64
+	err := r.db.QueryRow(ctx,
+		`SELECT id FROM roles WHERE slug = $1 AND is_system = true LIMIT 1`, slug,
+	).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrStaffRoleNotFound
+	}
+	return id, err
 }
 
 func (r *CatalogRepository) GetStaffRoleBusinessID(ctx context.Context, id int64) (int64, error) {

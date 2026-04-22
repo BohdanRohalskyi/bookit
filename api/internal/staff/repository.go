@@ -7,6 +7,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -89,17 +90,70 @@ func (r *Repository) ListMembers(ctx context.Context, businessID int64) ([]Membe
 	return members, rows.Err()
 }
 
+// ResolveLocationUUID resolves a location UUID to its internal integer PK.
+func (r *Repository) ResolveLocationUUID(ctx context.Context, locationUUID uuid.UUID) (int64, error) {
+	var id int64
+	err := r.db.QueryRow(ctx, `SELECT id FROM locations WHERE uuid = $1`, locationUUID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrMemberNotFound
+	}
+	return id, err
+}
+
+// ResolveStaffRoles resolves a slice of staff_role UUIDs to their PKs and linked RBAC role slugs.
+func (r *Repository) ResolveStaffRoles(ctx context.Context, uuids []uuid.UUID) ([]ResolvedStaffRole, error) {
+	if len(uuids) == 0 {
+		return nil, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT sr.id, sr.role_id, ro.slug
+		FROM staff_roles sr
+		JOIN roles ro ON ro.id = sr.role_id
+		WHERE sr.uuid = ANY($1)
+	`, uuids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []ResolvedStaffRole
+	for rows.Next() {
+		var s ResolvedStaffRole
+		if err := rows.Scan(&s.ID, &s.RoleID, &s.RoleSlug); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// CreateStaffRoleAssignments batch-inserts user_staff_role_assignments, ignoring duplicates.
+func (r *Repository) CreateStaffRoleAssignments(ctx context.Context, userID, businessID int64, staffRoleIDs []int64, assignedBy int64) error {
+	for _, srID := range staffRoleIDs {
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO user_staff_role_assignments (user_id, staff_role_id, business_id, assigned_by)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (user_id, staff_role_id, business_id) DO NOTHING
+		`, userID, srID, businessID, assignedBy); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CreateInvite inserts a new invite record.
 func (r *Repository) CreateInvite(ctx context.Context, inv InviteCreate) (Invite, error) {
 	var out Invite
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO invites (email, full_name, role_id, business_id, location_id, invited_by, token_hash, expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, email, full_name, role_id, business_id, location_id, invited_by, expires_at, accepted_at, created_at
-	`, inv.Email, inv.FullName, inv.RoleID, inv.BusinessID, inv.LocationID, inv.InvitedBy, inv.TokenHash, inv.ExpiresAt,
+		INSERT INTO invites (email, full_name, role_id, business_id, location_id,
+		                     staff_role_ids, invited_by, token_hash, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, email, full_name, role_id, business_id, location_id,
+		          staff_role_ids, invited_by, expires_at, accepted_at, created_at
+	`, inv.Email, inv.FullName, inv.RoleID, inv.BusinessID, inv.LocationID,
+		inv.StaffRoleIDs, inv.InvitedBy, inv.TokenHash, inv.ExpiresAt,
 	).Scan(
 		&out.ID, &out.Email, &out.FullName, &out.RoleID, &out.BusinessID, &out.LocationID,
-		&out.InvitedBy, &out.ExpiresAt, &out.AcceptedAt, &out.CreatedAt,
+		&out.StaffRoleIDs, &out.InvitedBy, &out.ExpiresAt, &out.AcceptedAt, &out.CreatedAt,
 	)
 	return out, err
 }
@@ -109,19 +163,19 @@ func (r *Repository) GetInviteByToken(ctx context.Context, token string) (Invite
 	var inv Invite
 	err := r.db.QueryRow(ctx, `
 		SELECT inv.id, inv.email, inv.full_name, inv.role_id, inv.business_id, inv.location_id,
-		       inv.invited_by, inv.expires_at, inv.accepted_at, inv.created_at,
-		       r.slug  AS role_slug,
+		       inv.staff_role_ids, inv.invited_by, inv.expires_at, inv.accepted_at, inv.created_at,
+		       ro.slug AS role_slug,
 		       b.name  AS business_name,
 		       b.uuid  AS business_uuid,
 		       l.uuid  AS location_uuid
 		FROM invites inv
-		JOIN roles          r ON r.id  = inv.role_id
-		JOIN businesses     b ON b.id  = inv.business_id
-		LEFT JOIN locations l ON l.id  = inv.location_id
+		JOIN roles          ro ON ro.id = inv.role_id
+		JOIN businesses      b ON  b.id = inv.business_id
+		LEFT JOIN locations  l ON  l.id = inv.location_id
 		WHERE inv.token_hash = $1
 	`, hashToken(token)).Scan(
 		&inv.ID, &inv.Email, &inv.FullName, &inv.RoleID, &inv.BusinessID, &inv.LocationID,
-		&inv.InvitedBy, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt,
+		&inv.StaffRoleIDs, &inv.InvitedBy, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt,
 		&inv.RoleSlug, &inv.BusinessName,
 		&inv.BusinessUUID, &inv.LocationUUID,
 	)
@@ -237,7 +291,8 @@ func (r *Repository) RemoveMember(ctx context.Context, assignmentID, businessID 
 }
 
 // txAcceptInvite atomically accepts an invite, creates the role assignment,
-// verifies the user's email, and upserts a business_member_profiles row.
+// verifies the user's email, upserts a business_member_profiles row,
+// and records the user's job title assignments.
 func (r *Repository) txAcceptInvite(ctx context.Context, inv Invite, userID int64) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -265,6 +320,16 @@ func (r *Repository) txAcceptInvite(ctx context.Context, inv Invite, userID int6
 		return err
 	}
 
+	for _, srID := range inv.StaffRoleIDs {
+		if _, err = tx.Exec(ctx, `
+			INSERT INTO user_staff_role_assignments (user_id, staff_role_id, business_id, assigned_by)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (user_id, staff_role_id, business_id) DO NOTHING
+		`, userID, srID, inv.BusinessID, inv.InvitedBy); err != nil {
+			return err
+		}
+	}
+
 	_, err = tx.Exec(ctx, `UPDATE users SET email_verified = true WHERE id = $1`, userID)
 	if err != nil {
 		return err
@@ -287,7 +352,7 @@ func (r *Repository) txAcceptInvite(ctx context.Context, inv Invite, userID int6
 }
 
 // txRegisterAndAcceptInvite atomically accepts an invite for a brand-new user:
-// accepts the invite, creates the role assignment, and creates the member profile.
+// accepts the invite, creates the role assignment, job title assignments, and member profile.
 // The user row itself is created before this call (by auth.CreateVerifiedUser).
 func (r *Repository) txRegisterAndAcceptInvite(ctx context.Context, inv Invite, userID int64, fullName string) error {
 	tx, err := r.db.Begin(ctx)
@@ -314,6 +379,16 @@ func (r *Repository) txRegisterAndAcceptInvite(ctx context.Context, inv Invite, 
 	`, userID, inv.RoleID, inv.BusinessID, inv.LocationID, inv.InvitedBy)
 	if err != nil {
 		return err
+	}
+
+	for _, srID := range inv.StaffRoleIDs {
+		if _, err = tx.Exec(ctx, `
+			INSERT INTO user_staff_role_assignments (user_id, staff_role_id, business_id, assigned_by)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (user_id, staff_role_id, business_id) DO NOTHING
+		`, userID, srID, inv.BusinessID, inv.InvitedBy); err != nil {
+			return err
+		}
 	}
 
 	_, err = tx.Exec(ctx, `

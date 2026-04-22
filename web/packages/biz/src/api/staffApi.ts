@@ -121,7 +121,7 @@ export async function inviteMember(
   body: {
     email: string
     full_name: string
-    role: 'administrator' | 'staff'
+    staff_role_ids: string[]
     location_id?: string | null
   },
 ): Promise<void> {

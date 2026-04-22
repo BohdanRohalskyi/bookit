@@ -191,14 +191,18 @@ type StaffRoleResponse struct {
 	ID         string `json:"id"`
 	BusinessID string `json:"business_id"`
 	JobTitle   string `json:"job_title"`
+	Role       string `json:"role"`
+	IsSystem   bool   `json:"is_system"`
 	CreatedAt  string `json:"created_at"`
 }
 
 func toStaffRoleResp(s StaffRole) StaffRoleResponse {
 	return StaffRoleResponse{
 		ID:         s.UUID.String(),
-		BusinessID: s.UUID.String(), // business UUID would require join
+		BusinessID: s.BusinessUUID.String(),
 		JobTitle:   s.JobTitle,
+		Role:       s.RoleSlug,
+		IsSystem:   s.IsSystem,
 		CreatedAt:  s.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
@@ -237,9 +241,19 @@ func (h *CatalogItemHandler) CreateStaffRole(c *gin.Context) {
 	var req struct {
 		BusinessID string `json:"business_id" binding:"required,uuid"`
 		JobTitle   string `json:"job_title"   binding:"required,min=1,max=100"`
+		Role       string `json:"role"        binding:"omitempty,oneof=administrator staff"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
+		return
+	}
+	roleSlug := req.Role
+	if roleSlug == "" {
+		roleSlug = "staff"
+	}
+	roleID, err := h.catalogRepo.GetRoleIDBySlug(c.Request.Context(), roleSlug)
+	if err != nil {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "invalid role")
 		return
 	}
 	businessUUID, _ := uuid.Parse(req.BusinessID) //nolint:errcheck
@@ -248,7 +262,11 @@ func (h *CatalogItemHandler) CreateStaffRole(c *gin.Context) {
 		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
 		return
 	}
-	s, err := h.service.CreateStaffRole(c.Request.Context(), userID, StaffRoleCreate{BusinessID: biz.ID, JobTitle: req.JobTitle})
+	s, err := h.service.CreateStaffRole(c.Request.Context(), userID, StaffRoleCreate{
+		BusinessID: biz.ID,
+		JobTitle:   req.JobTitle,
+		RoleID:     roleID,
+	})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
@@ -274,6 +292,10 @@ func (h *CatalogItemHandler) DeleteStaffRole(c *gin.Context) {
 		return
 	}
 	if err := h.service.DeleteStaffRole(c.Request.Context(), userID, srID); err != nil {
+		if errors.Is(err, ErrStaffRoleProtected) {
+			errResp(c, http.StatusUnprocessableEntity, "protected", "Protected Resource", "System job titles cannot be deleted")
+			return
+		}
 		h.catalogErr(c, err)
 		return
 	}
