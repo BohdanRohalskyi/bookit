@@ -29,7 +29,7 @@ func NewHandler(service *Service) *Handler {
 type InviteRequest struct {
 	Email        string   `json:"email"          binding:"required,email,max=255"`
 	FullName     string   `json:"full_name"      binding:"required,max=255"`
-	LocationID   *string  `json:"location_id"`   // UUID string, optional
+	LocationID   *string  `json:"location_id"`                             // UUID string, optional
 	StaffRoleIDs []string `json:"staff_role_ids" binding:"required,min=1"` // at least one job title UUID
 }
 
