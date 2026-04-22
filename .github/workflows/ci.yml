@@ -187,7 +187,12 @@ jobs:
             DB_PASS=$(echo "$DB_URL" | sed 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/')
           fi
 
-          # Run migrations via proxy
+          # For staging: drop all tables first so a clean-schema migration set always wins.
+          # For production: apply incrementally — never drop.
+          if [[ "${{ env.ENVIRONMENT }}" != "prod" ]]; then
+            ./migrate -path api/migrations -database "postgres://bookit:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=disable" drop -f || true
+          fi
+
           ./migrate -path api/migrations -database "postgres://bookit:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=disable" up
 
           echo "Migrations completed"
