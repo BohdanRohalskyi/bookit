@@ -15,7 +15,6 @@ import {
   Settings,
   LogOut,
   ArrowUpRight,
-  ChevronDown,
 } from 'lucide-react'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
@@ -184,18 +183,11 @@ export function DashboardLayout() {
           </span>
         </Link>
 
-        {/* Space indicator */}
+        {/* Business name */}
         {businessName && (
-          <button
-            onClick={() => { clearSpace(); navigate('/spaces') }}
-            className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 hover:bg-white/5 transition-colors group"
-          >
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs text-white/40 leading-none mb-0.5">Current workspace</p>
-              <p className="text-xs font-medium text-white/70 truncate">{businessName}</p>
-            </div>
-            <ChevronDown className="size-3.5 text-white/30 shrink-0 group-hover:text-white/50 transition-colors" />
-          </button>
+          <div className="flex items-center px-4 py-2.5 border-b border-white/10">
+            <p className="text-xs font-medium text-white/70 truncate">{businessName}</p>
+          </div>
         )}
 
         {/* Navigation */}
