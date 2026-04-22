@@ -261,7 +261,7 @@ function StaffRolesSection({ businessId, locationId }: { businessId: string; loc
   const { mutate: createAndAdd, isPending: creating } = useMutation({
     mutationFn: async () => {
       const { data, error } = await api.POST('/api/v1/staff-roles', {
-        body: { business_id: businessId, job_title: newTitle.trim() },
+        body: { business_id: businessId, job_title: newTitle.trim(), role: 'staff' as const },
       })
       if (error) throw error
       return (data as StaffRoleItem).id

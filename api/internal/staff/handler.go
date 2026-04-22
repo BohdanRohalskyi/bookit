@@ -27,10 +27,10 @@ func NewHandler(service *Service) *Handler {
 // ─── Request / response types ─────────────────────────────────────────────────
 
 type InviteRequest struct {
-	Email      string  `json:"email"      binding:"required,email,max=255"`
-	FullName   string  `json:"full_name"  binding:"required,max=255"`
-	Role       string  `json:"role"       binding:"required,oneof=administrator staff"`
-	LocationID *string `json:"location_id"` // UUID string, resolved to int64
+	Email        string   `json:"email"          binding:"required,email,max=255"`
+	FullName     string   `json:"full_name"      binding:"required,max=255"`
+	LocationID   *string  `json:"location_id"`   // UUID string, optional
+	StaffRoleIDs []string `json:"staff_role_ids" binding:"required,min=1"` // at least one job title UUID
 }
 
 type RegisterAndAcceptRequest struct {
@@ -113,7 +113,6 @@ func (h *Handler) InviteMember(c *gin.Context) {
 		return
 	}
 
-	// businessIntID set by RBAC middleware
 	raw, exists := c.Get("businessIntID")
 	if !exists {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Business ID must be a valid UUID")
@@ -131,23 +130,66 @@ func (h *Handler) InviteMember(c *gin.Context) {
 		return
 	}
 
-	// locationID is optional UUID string → resolve to int64 if provided
-	// For simplicity, we pass nil location_id (int64 nil) when not provided.
-	// Full location resolution would require a location repo lookup.
-	var locationID *int64
-	// location_id in request is currently ignored for int64 resolution
-	// as it would require another repo dependency. Set nil for now.
-	_ = req.LocationID
+	ctx := c.Request.Context()
 
-	err := h.service.InviteMember(c.Request.Context(), InviteMemberInput{
-		Email:      req.Email,
-		FullName:   req.FullName,
-		RoleSlug:   req.Role,
-		BusinessID: businessID,
-		LocationID: locationID,
-		InvitedBy:  userID,
-	})
-	if err != nil {
+	// Resolve optional location UUID → int64.
+	var locationID *int64
+	if req.LocationID != nil {
+		locUUID, err := uuid.Parse(*req.LocationID)
+		if err != nil {
+			errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "location_id must be a valid UUID")
+			return
+		}
+		locID, err := h.service.ResolveLocationUUID(ctx, locUUID)
+		if err != nil {
+			errResp(c, http.StatusNotFound, "not-found", "Not Found", "Location not found")
+			return
+		}
+		locationID = &locID
+	}
+
+	// Resolve staff role UUIDs → internal IDs and derive RBAC role.
+	var srUUIDs []uuid.UUID
+	for _, s := range req.StaffRoleIDs {
+		u, err := uuid.Parse(s)
+		if err != nil {
+			continue
+		}
+		srUUIDs = append(srUUIDs, u)
+	}
+	if len(srUUIDs) == 0 {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "at least one valid staff_role_id is required")
+		return
+	}
+
+	resolvedRoles, err := h.service.ResolveStaffRoles(ctx, srUUIDs)
+	if err != nil || len(resolvedRoles) == 0 {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "no valid job titles found for the provided IDs")
+		return
+	}
+
+	// Highest privilege wins: administrator > staff.
+	derivedRoleID := resolvedRoles[0].RoleID
+	derivedRoleSlug := resolvedRoles[0].RoleSlug
+	var staffRoleIDs []int64
+	for _, sr := range resolvedRoles {
+		staffRoleIDs = append(staffRoleIDs, sr.ID)
+		if sr.RoleSlug == "administrator" {
+			derivedRoleID = sr.RoleID
+			derivedRoleSlug = sr.RoleSlug
+		}
+	}
+
+	if err := h.service.InviteMember(ctx, InviteMemberInput{
+		Email:           req.Email,
+		FullName:        req.FullName,
+		DerivedRoleID:   derivedRoleID,
+		DerivedRoleSlug: derivedRoleSlug,
+		BusinessID:      businessID,
+		LocationID:      locationID,
+		StaffRoleIDs:    staffRoleIDs,
+		InvitedBy:       userID,
+	}); err != nil {
 		slog.Error("invite member", "error", err)
 		errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
 		return

@@ -19,16 +19,35 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, providerID int64, req BusinessCreate) (Business, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return Business{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }() //nolint:errcheck
+
 	var b Business
-	err := r.db.QueryRow(ctx, `
+	if err := tx.QueryRow(ctx, `
 		INSERT INTO businesses (provider_id, name, category, description, logo_url)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, uuid, provider_id, name, category, description, logo_url, is_active, created_at, updated_at
 	`, providerID, req.Name, req.Category, req.Description, req.LogoURL).Scan(
 		&b.ID, &b.UUID, &b.ProviderID, &b.Name, &b.Category,
 		&b.Description, &b.LogoURL, &b.IsActive, &b.CreatedAt, &b.UpdatedAt,
-	)
-	return b, err
+	); err != nil {
+		return Business{}, err
+	}
+
+	// Seed the "Administrator" job title for every new business.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO staff_roles (business_id, job_title, role_id, is_system)
+		VALUES ($1, 'Administrator',
+		        (SELECT id FROM roles WHERE slug = 'administrator' AND is_system = true LIMIT 1),
+		        true)
+	`, b.ID); err != nil {
+		return Business{}, err
+	}
+
+	return b, tx.Commit(ctx)
 }
 
 func (r *Repository) GetByID(ctx context.Context, id int64) (Business, error) {

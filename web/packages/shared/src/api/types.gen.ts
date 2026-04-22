@@ -1286,6 +1286,13 @@ export interface components {
             /** Format: uuid */
             business_id: string;
             job_title: string;
+            /**
+             * @description The RBAC role this job title maps to.
+             * @enum {string}
+             */
+            role: "administrator" | "staff";
+            /** @description System job titles (e.g. Administrator) cannot be deleted. */
+            is_system: boolean;
             /** Format: date-time */
             created_at: string;
         };
@@ -1293,6 +1300,12 @@ export interface components {
             /** Format: uuid */
             business_id: string;
             job_title: string;
+            /**
+             * @description The RBAC role this job title maps to. Defaults to staff.
+             * @default staff
+             * @enum {string}
+             */
+            role: "administrator" | "staff";
         };
         StaffRoleList: {
             data: components["schemas"]["StaffRole"][];

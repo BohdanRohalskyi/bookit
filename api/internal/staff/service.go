@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/rbac"
 	"github.com/BohdanRohalskyi/bookit/api/internal/mail"
 )
@@ -84,15 +86,20 @@ func (s *Service) CancelInvite(ctx context.Context, inviteID, businessID int64) 
 	return s.repo.CancelInvite(ctx, inviteID, businessID)
 }
 
+// ResolveLocationUUID delegates to the repository.
+func (s *Service) ResolveLocationUUID(ctx context.Context, locationUUID uuid.UUID) (int64, error) {
+	return s.repo.ResolveLocationUUID(ctx, locationUUID)
+}
+
+// ResolveStaffRoles delegates to the repository.
+func (s *Service) ResolveStaffRoles(ctx context.Context, uuids []uuid.UUID) ([]ResolvedStaffRole, error) {
+	return s.repo.ResolveStaffRoles(ctx, uuids)
+}
+
 // InviteMember sends an invite email. If the email already belongs to a
 // registered user, the role assignment is created immediately and a notification
 // email is sent. Otherwise an invite record is created and an invite email is sent.
 func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error {
-	roleID, err := s.rbacRepo.GetRoleBySlug(ctx, req.RoleSlug)
-	if err != nil {
-		return fmt.Errorf("unknown role: %w", err)
-	}
-
 	businessName, err := s.repo.GetBusinessName(ctx, req.BusinessID)
 	if err != nil {
 		return fmt.Errorf("get business name: %w", err)
@@ -103,7 +110,7 @@ func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error
 		// User already registered — assign role immediately
 		assignErr := s.rbacRepo.AssignRole(ctx, rbac.UserRoleAssignment{
 			UserID:     existingUserID,
-			RoleID:     roleID,
+			RoleID:     req.DerivedRoleID,
 			BusinessID: req.BusinessID,
 			LocationID: req.LocationID,
 			AssignedBy: &req.InvitedBy,
@@ -111,7 +118,10 @@ func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error
 		if assignErr != nil && assignErr != rbac.ErrAssignmentExists {
 			return fmt.Errorf("assign role: %w", assignErr)
 		}
-		msg := s.templates.MemberAdded(req.Email, businessName, req.RoleSlug, s.bizURL)
+		if err := s.repo.CreateStaffRoleAssignments(ctx, existingUserID, req.BusinessID, req.StaffRoleIDs, req.InvitedBy); err != nil {
+			return fmt.Errorf("assign staff roles: %w", err)
+		}
+		msg := s.templates.MemberAdded(req.Email, businessName, req.DerivedRoleSlug, s.bizURL)
 		_ = s.mailer.Send(ctx, msg) //nolint:errcheck
 		return nil
 	}
@@ -124,20 +134,21 @@ func (s *Service) InviteMember(ctx context.Context, req InviteMemberInput) error
 
 	tokenHash := hashToken(token)
 	_, err = s.repo.CreateInvite(ctx, InviteCreate{
-		Email:      req.Email,
-		FullName:   req.FullName,
-		RoleID:     roleID,
-		BusinessID: req.BusinessID,
-		LocationID: req.LocationID,
-		InvitedBy:  req.InvitedBy,
-		TokenHash:  tokenHash,
-		ExpiresAt:  InviteExpiresAt(),
+		Email:        req.Email,
+		FullName:     req.FullName,
+		RoleID:       req.DerivedRoleID,
+		BusinessID:   req.BusinessID,
+		LocationID:   req.LocationID,
+		StaffRoleIDs: req.StaffRoleIDs,
+		InvitedBy:    req.InvitedBy,
+		TokenHash:    tokenHash,
+		ExpiresAt:    InviteExpiresAt(),
 	})
 	if err != nil {
 		return fmt.Errorf("create invite: %w", err)
 	}
 
-	msg := s.templates.StaffInvite(req.Email, businessName, req.RoleSlug, token, s.bizURL)
+	msg := s.templates.StaffInvite(req.Email, businessName, req.DerivedRoleSlug, token, s.bizURL)
 	_ = s.mailer.Send(ctx, msg) //nolint:errcheck
 	return nil
 }

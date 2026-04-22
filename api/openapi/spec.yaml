@@ -2870,7 +2870,7 @@ components:
     # ----------------------------------------------------------
     StaffRole:
       type: object
-      required: [id, business_id, job_title, created_at]
+      required: [id, business_id, job_title, role, is_system, created_at]
       properties:
         id:
           type: string
@@ -2880,6 +2880,13 @@ components:
           format: uuid
         job_title:
           type: string
+        role:
+          type: string
+          enum: [administrator, staff]
+          description: The RBAC role this job title maps to.
+        is_system:
+          type: boolean
+          description: System job titles (e.g. Administrator) cannot be deleted.
         created_at:
           type: string
           format: date-time
@@ -2895,6 +2902,11 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+        role:
+          type: string
+          enum: [administrator, staff]
+          default: staff
+          description: The RBAC role this job title maps to. Defaults to staff.
 
     StaffRoleList:
       type: object
