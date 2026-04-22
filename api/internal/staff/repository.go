@@ -111,15 +111,19 @@ func (r *Repository) GetInviteByToken(ctx context.Context, token string) (Invite
 		SELECT inv.id, inv.email, inv.full_name, inv.role_id, inv.business_id, inv.location_id,
 		       inv.invited_by, inv.expires_at, inv.accepted_at, inv.created_at,
 		       r.slug  AS role_slug,
-		       b.name  AS business_name
+		       b.name  AS business_name,
+		       b.uuid  AS business_uuid,
+		       l.uuid  AS location_uuid
 		FROM invites inv
-		JOIN roles      r ON r.id = inv.role_id
-		JOIN businesses b ON b.id = inv.business_id
+		JOIN roles          r ON r.id  = inv.role_id
+		JOIN businesses     b ON b.id  = inv.business_id
+		LEFT JOIN locations l ON l.id  = inv.location_id
 		WHERE inv.token_hash = $1
 	`, hashToken(token)).Scan(
 		&inv.ID, &inv.Email, &inv.FullName, &inv.RoleID, &inv.BusinessID, &inv.LocationID,
 		&inv.InvitedBy, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt,
 		&inv.RoleSlug, &inv.BusinessName,
+		&inv.BusinessUUID, &inv.LocationUUID,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Invite{}, ErrInviteNotFound
@@ -183,7 +187,7 @@ func (r *Repository) GetBusinessName(ctx context.Context, businessID int64) (str
 // GetOwnedBusinesses returns all businesses owned by a user via the providers table.
 func (r *Repository) GetOwnedBusinesses(ctx context.Context, userID int64) ([]OwnedBusiness, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT b.id, b.name, b.category, b.is_active
+		SELECT b.uuid, b.name, b.category, b.is_active
 		FROM businesses b
 		JOIN providers p ON p.id = b.provider_id
 		WHERE p.user_id = $1

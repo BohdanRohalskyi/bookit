@@ -3,6 +3,8 @@ package rbac
 import (
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ─── Sentinel errors ──────────────────────────────────────────────────────────
@@ -75,10 +77,10 @@ type AccessRequest struct {
 // Membership represents one business space a user belongs to,
 // returned by GetUserMemberships for the space picker.
 type Membership struct {
-	BusinessID   int64
+	BusinessID   uuid.UUID
 	BusinessName string
 	Category     string
 	IsActive     bool
-	Role         string  // "administrator" | "staff"
-	LocationIDs  []int64 // non-empty only for location-scoped assignments
+	Role         string      // "administrator" | "staff"
+	LocationIDs  []uuid.UUID // non-empty only for location-scoped assignments
 }

@@ -61,21 +61,22 @@ func (r *PgRepository) GetUserPermissions(ctx context.Context, userID, businessI
 func (r *PgRepository) GetUserMemberships(ctx context.Context, userID int64) ([]Membership, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
-		    ura.business_id,
+		    b.uuid,
 		    b.name,
 		    b.category,
 		    b.is_active,
 		    r.slug AS role,
 		    COALESCE(
-		        ARRAY_AGG(ura.location_id ORDER BY ura.location_id)
+		        ARRAY_AGG(l.uuid ORDER BY l.uuid)
 		        FILTER (WHERE ura.location_id IS NOT NULL),
-		        '{}'::bigint[]
+		        '{}'::uuid[]
 		    ) AS location_ids
 		FROM user_role_assignments ura
-		JOIN roles r      ON r.id = ura.role_id
-		JOIN businesses b ON b.id = ura.business_id
+		JOIN roles r           ON r.id  = ura.role_id
+		JOIN businesses b      ON b.id  = ura.business_id
+		LEFT JOIN locations l  ON l.id  = ura.location_id
 		WHERE ura.user_id = $1
-		GROUP BY ura.business_id, b.name, b.category, b.is_active, r.slug
+		GROUP BY b.uuid, b.name, b.category, b.is_active, r.slug
 		ORDER BY b.name
 	`, userID)
 	if err != nil {
@@ -86,13 +87,11 @@ func (r *PgRepository) GetUserMemberships(ctx context.Context, userID int64) ([]
 	var memberships []Membership
 	for rows.Next() {
 		var m Membership
-		var locationIDs []int64
 		if err := rows.Scan(
-			&m.BusinessID, &m.BusinessName, &m.Category, &m.IsActive, &m.Role, &locationIDs,
+			&m.BusinessID, &m.BusinessName, &m.Category, &m.IsActive, &m.Role, &m.LocationIDs,
 		); err != nil {
 			return nil, err
 		}
-		m.LocationIDs = locationIDs
 		memberships = append(memberships, m)
 	}
 	if memberships == nil {

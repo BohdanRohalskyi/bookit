@@ -62,9 +62,11 @@ type Invite struct {
 	FullName     *string    `json:"full_name,omitempty"`
 	RoleID       int64      `json:"role_id"`
 	RoleSlug     string     `json:"role"`
-	BusinessID   int64      `json:"business_id"`
+	BusinessID   int64      `json:"-"` // internal PK — not exposed; use BusinessUUID for JSON
+	BusinessUUID uuid.UUID  `json:"business_id"`
 	BusinessName string     `json:"business_name"`
-	LocationID   *int64     `json:"location_id,omitempty"`
+	LocationID   *int64     `json:"-"` // internal PK — not exposed; use LocationUUID for JSON
+	LocationUUID *uuid.UUID `json:"location_id,omitempty"`
 	InvitedBy    int64      `json:"invited_by"`
 	ExpiresAt    time.Time  `json:"expires_at"`
 	AcceptedAt   *time.Time `json:"accepted_at,omitempty"`
@@ -107,10 +109,10 @@ type MemberProfile struct {
 
 // OwnedBusiness is one business the user owns, used in the memberships response.
 type OwnedBusiness struct {
-	BusinessID   int64  `json:"business_id"`
-	BusinessName string `json:"business_name"`
-	Category     string `json:"category"`
-	IsActive     bool   `json:"is_active"`
+	BusinessID   uuid.UUID `json:"business_id"`
+	BusinessName string    `json:"business_name"`
+	Category     string    `json:"category"`
+	IsActive     bool      `json:"is_active"`
 }
 
 // MembershipsResponse is returned by GET /me/memberships.
@@ -121,10 +123,10 @@ type MembershipsResponse struct {
 
 // Membership is one role-assigned business space for the user.
 type Membership struct {
-	BusinessID   int64   `json:"business_id"`
-	BusinessName string  `json:"business_name"`
-	Category     string  `json:"category"`
-	IsActive     bool    `json:"is_active"`
-	Role         string  `json:"role"`
-	LocationIDs  []int64 `json:"location_ids"`
+	BusinessID   uuid.UUID   `json:"business_id"`
+	BusinessName string      `json:"business_name"`
+	Category     string      `json:"category"`
+	IsActive     bool        `json:"is_active"`
+	Role         string      `json:"role"`
+	LocationIDs  []uuid.UUID `json:"location_ids"`
 }
