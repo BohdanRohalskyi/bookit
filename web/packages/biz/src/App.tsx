@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
@@ -15,6 +15,13 @@ import { SpaceGuard } from './components/SpaceGuard'
 import { InviteAccept } from './pages/InviteAccept'
 import { NotFound } from './pages/NotFound'
 import { DashboardLayout } from './components/DashboardLayout'
+import { useMyRole } from './hooks/useMyRole'
+
+function RequireOwner({ children }: { children: React.ReactNode }) {
+  const { isOwner, hasRole } = useMyRole()
+  if (hasRole && !isOwner) return <Navigate to="/dashboard/locations" replace />
+  return <>{children}</>
+}
 
 export default function App() {
   return (
@@ -32,8 +39,8 @@ export default function App() {
         {/* Dashboard — auth + space guarded inside DashboardLayout */}
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/businesses" element={<Businesses />} />
-          <Route path="/dashboard/businesses/new" element={<BusinessForm />} />
+          <Route path="/dashboard/businesses" element={<RequireOwner><Businesses /></RequireOwner>} />
+          <Route path="/dashboard/businesses/new" element={<RequireOwner><BusinessForm /></RequireOwner>} />
 
           {/* Location routes */}
           <Route path="/dashboard/locations" element={<LocationList />} />
