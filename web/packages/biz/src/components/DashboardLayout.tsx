@@ -264,9 +264,6 @@ export function DashboardLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
         <header className="h-16 shrink-0 bg-white border-b border-[rgba(2,9,5,0.08)] flex items-center justify-between px-8 gap-6">
-          {businessName && (
-            <p className="text-sm font-medium text-[#020905]">{businessName}</p>
-          )}
           <button
             onClick={() => switchTo(consumerUrl)}
             className="flex items-center gap-1.5 text-sm text-[rgba(2,9,5,0.5)] hover:text-[#020905] transition-colors"
