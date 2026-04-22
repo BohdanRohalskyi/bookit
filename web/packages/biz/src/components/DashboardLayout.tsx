@@ -123,7 +123,7 @@ export function DashboardLayout() {
   const { switchTo } = useAppSwitch()
   const consumerUrl = import.meta.env.VITE_CONSUMER_URL || 'https://pt-duo-bookit.web.app'
 
-  const { businessId, businessName, role, clearSpace, setSpace } = useSpaceStore()
+  const { businessId, businessName, role, clearSpace, setSpace, hasHydrated } = useSpaceStore()
   // isOwner/isAdmin: if no space selected yet, default to owner (existing provider flow)
   const { isOwner, isAdmin, isStaff } = useMyRole()
   const effectiveIsOwner = role === null ? true : isOwner
@@ -162,6 +162,7 @@ export function DashboardLayout() {
   }, [isAuthenticated, businessId, memberships, location.pathname, navigate, setSpace])
 
   if (!isAuthenticated) return null
+  if (!hasHydrated) return <div className="min-h-screen bg-[#f8f9fa]" />
 
   const navLinkBase =
     'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors'

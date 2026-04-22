@@ -8,6 +8,7 @@ interface SpaceState {
   businessName: string | null
   role: SpaceRole | null
   locationIds: string[]
+  hasHydrated: boolean
 
   setSpace(params: {
     businessId: string
@@ -16,6 +17,7 @@ interface SpaceState {
     locationIds: string[]
   }): void
   clearSpace(): void
+  setHasHydrated(v: boolean): void
 }
 
 export const useSpaceStore = create<SpaceState>()(
@@ -25,13 +27,21 @@ export const useSpaceStore = create<SpaceState>()(
       businessName: null,
       role: null,
       locationIds: [],
+      hasHydrated: false,
 
       setSpace: ({ businessId, businessName, role, locationIds }) =>
         set({ businessId, businessName, role, locationIds }),
 
       clearSpace: () =>
         set({ businessId: null, businessName: null, role: null, locationIds: [] }),
+
+      setHasHydrated: (v) => set({ hasHydrated: v }),
     }),
-    { name: 'space-storage' },
+    {
+      name: 'space-storage',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
+    },
   ),
 )
