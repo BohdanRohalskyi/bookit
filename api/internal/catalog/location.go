@@ -23,10 +23,11 @@ type MemberAccess struct {
 
 // Location is the full location entity returned from the DB.
 type Location struct {
-	ID         int64
-	UUID       uuid.UUID
-	BusinessID int64
-	Name       string
+	ID           int64
+	UUID         uuid.UUID
+	BusinessID   int64
+	BusinessUUID uuid.UUID
+	Name         string
 	Address    string
 	City       string
 	Country    string

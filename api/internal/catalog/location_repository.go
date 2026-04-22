@@ -23,7 +23,7 @@ func scanLocation(row pgx.Row) (Location, error) {
 	err := row.Scan(
 		&l.ID, &l.UUID, &l.BusinessID, &l.Name, &l.Address, &l.City, &l.Country,
 		&l.Phone, &l.Email, &l.Lat, &l.Lng, &l.Timezone, &l.IsActive,
-		&l.CreatedAt, &l.UpdatedAt,
+		&l.CreatedAt, &l.UpdatedAt, &l.BusinessUUID,
 	)
 	return l, err
 }
@@ -34,9 +34,15 @@ func (r *LocationRepository) Create(ctx context.Context, req LocationCreate) (Lo
 		tz = "Europe/Vilnius"
 	}
 	row := r.db.QueryRow(ctx, `
-		INSERT INTO locations (business_id, name, address, city, country, phone, email, lat, lng, timezone)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-		RETURNING id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
+		WITH ins AS (
+			INSERT INTO locations (business_id, name, address, city, country, phone, email, lat, lng, timezone)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+			RETURNING id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
+		)
+		SELECT ins.id, ins.uuid, ins.business_id, ins.name, ins.address, ins.city, ins.country,
+		       ins.phone, ins.email, ins.lat, ins.lng, ins.timezone, ins.is_active, ins.created_at, ins.updated_at,
+		       b.uuid
+		FROM ins JOIN businesses b ON b.id = ins.business_id
 	`, req.BusinessID, req.Name, req.Address, req.City, req.Country,
 		req.Phone, req.Email, req.Lat, req.Lng, tz)
 	return scanLocation(row)
@@ -44,8 +50,11 @@ func (r *LocationRepository) Create(ctx context.Context, req LocationCreate) (Lo
 
 func (r *LocationRepository) GetByID(ctx context.Context, id int64) (Location, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
-		FROM locations WHERE id = $1
+		SELECT l.id, l.uuid, l.business_id, l.name, l.address, l.city, l.country,
+		       l.phone, l.email, l.lat, l.lng, l.timezone, l.is_active, l.created_at, l.updated_at,
+		       b.uuid
+		FROM locations l JOIN businesses b ON b.id = l.business_id
+		WHERE l.id = $1
 	`, id)
 	l, err := scanLocation(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -56,8 +65,11 @@ func (r *LocationRepository) GetByID(ctx context.Context, id int64) (Location, e
 
 func (r *LocationRepository) GetByUUID(ctx context.Context, id uuid.UUID) (Location, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
-		FROM locations WHERE uuid = $1
+		SELECT l.id, l.uuid, l.business_id, l.name, l.address, l.city, l.country,
+		       l.phone, l.email, l.lat, l.lng, l.timezone, l.is_active, l.created_at, l.updated_at,
+		       b.uuid
+		FROM locations l JOIN businesses b ON b.id = l.business_id
+		WHERE l.uuid = $1
 	`, id)
 	l, err := scanLocation(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -73,9 +85,12 @@ func (r *LocationRepository) ListByBusinessID(ctx context.Context, businessID in
 		return nil, 0, err
 	}
 	rows, err := r.db.Query(ctx, `
-		SELECT id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
-		FROM locations WHERE business_id = $1
-		ORDER BY created_at ASC
+		SELECT l.id, l.uuid, l.business_id, l.name, l.address, l.city, l.country,
+		       l.phone, l.email, l.lat, l.lng, l.timezone, l.is_active, l.created_at, l.updated_at,
+		       b.uuid
+		FROM locations l JOIN businesses b ON b.id = l.business_id
+		WHERE l.business_id = $1
+		ORDER BY l.created_at ASC
 		LIMIT $2 OFFSET $3
 	`, businessID, perPage, offset)
 	if err != nil {
@@ -98,20 +113,26 @@ func (r *LocationRepository) ListByBusinessID(ctx context.Context, businessID in
 
 func (r *LocationRepository) Update(ctx context.Context, id int64, req LocationUpdate) (Location, error) {
 	row := r.db.QueryRow(ctx, `
-		UPDATE locations SET
-			name      = COALESCE($2, name),
-			address   = COALESCE($3, address),
-			city      = COALESCE($4, city),
-			country   = COALESCE($5, country),
-			phone     = COALESCE($6, phone),
-			email     = COALESCE($7, email),
-			lat       = COALESCE($8, lat),
-			lng       = COALESCE($9, lng),
-			timezone  = COALESCE($10, timezone),
-			is_active = COALESCE($11, is_active),
-			updated_at = NOW()
-		WHERE id = $1
-		RETURNING id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
+		WITH upd AS (
+			UPDATE locations SET
+				name      = COALESCE($2, name),
+				address   = COALESCE($3, address),
+				city      = COALESCE($4, city),
+				country   = COALESCE($5, country),
+				phone     = COALESCE($6, phone),
+				email     = COALESCE($7, email),
+				lat       = COALESCE($8, lat),
+				lng       = COALESCE($9, lng),
+				timezone  = COALESCE($10, timezone),
+				is_active = COALESCE($11, is_active),
+				updated_at = NOW()
+			WHERE id = $1
+			RETURNING id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
+		)
+		SELECT upd.id, upd.uuid, upd.business_id, upd.name, upd.address, upd.city, upd.country,
+		       upd.phone, upd.email, upd.lat, upd.lng, upd.timezone, upd.is_active, upd.created_at, upd.updated_at,
+		       b.uuid
+		FROM upd JOIN businesses b ON b.id = upd.business_id
 	`, id, req.Name, req.Address, req.City, req.Country, req.Phone, req.Email, req.Lat, req.Lng, req.Timezone, req.IsActive)
 	l, err := scanLocation(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -188,9 +209,12 @@ func (r *LocationRepository) ListByIDs(ctx context.Context, ids []int64, page, p
 		return nil, 0, err
 	}
 	rows, err := r.db.Query(ctx, `
-		SELECT id, uuid, business_id, name, address, city, country, phone, email, lat, lng, timezone, is_active, created_at, updated_at
-		FROM locations WHERE id = ANY($1)
-		ORDER BY created_at ASC
+		SELECT l.id, l.uuid, l.business_id, l.name, l.address, l.city, l.country,
+		       l.phone, l.email, l.lat, l.lng, l.timezone, l.is_active, l.created_at, l.updated_at,
+		       b.uuid
+		FROM locations l JOIN businesses b ON b.id = l.business_id
+		WHERE l.id = ANY($1)
+		ORDER BY l.created_at ASC
 		LIMIT $2 OFFSET $3
 	`, ids, perPage, offset)
 	if err != nil {

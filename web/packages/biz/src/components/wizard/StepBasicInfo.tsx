@@ -161,9 +161,9 @@ export function StepBasicInfo({ businessId, locationId, onSaved }: Props) {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (values: FormValues) => {
-      if (locationId) {
+      if (savedId) {
         const { data, error } = await api.PUT('/api/v1/locations/{id}', {
-          params: { path: { id: locationId } },
+          params: { path: { id: savedId } },
           body: {
             name: values.name,
             address: values.address,

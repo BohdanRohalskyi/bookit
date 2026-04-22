@@ -133,7 +133,7 @@ type LocationPhotoResponse struct {
 func toLocationResponse(l Location) LocationResponse {
 	return LocationResponse{
 		ID:         l.UUID.String(),
-		BusinessID: l.UUID.String(), // location UUID is returned for its own id; business UUID requires lookup - using location UUID as placeholder
+		BusinessID: l.BusinessUUID.String(),
 		Name:       l.Name,
 		Address:    l.Address,
 		City:       l.City,
