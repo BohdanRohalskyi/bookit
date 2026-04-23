@@ -170,10 +170,10 @@ describe('BookingsList booking detail', () => {
     // Click the booking block (there should be a button with the consumer name)
     await user.click(screen.getAllByText('Jane Smith')[0])
 
-    // Popover shows detail info + action buttons
+    // Popover shows detail info + action buttons (exact match to avoid matching filter pills)
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /complete/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^complete$/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument()
     })
   })
 })
