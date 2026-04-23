@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react' // useEffect kept for auth redirect
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle2, Clock, Banknote } from 'lucide-react'
@@ -66,7 +66,6 @@ export function BookingWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
-  const [locationId, setLocationId] = useState('')
   const [notes, setNotes] = useState('')
   const [booking, setBooking] = useState<Booking | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
@@ -103,14 +102,8 @@ export function BookingWizard() {
     enabled: Boolean(serviceId) && Boolean(selectedDate) && isAuthenticated,
   })
 
-  useEffect(() => {
-    if (slotsData?.location_id) {
-      setLocationId(slotsData.location_id)
-    }
-  }, [slotsData])
-
-  // Reset slot when date changes
-  useEffect(() => { setSelectedSlot(null) }, [selectedDate])
+  // Derive location_id from the slots response — no effect needed
+  const locationId = slotsData?.location_id ?? ''
 
   // Book mutation
   const { mutate: createBooking, isPending: booking_ } = useMutation({
@@ -188,7 +181,7 @@ export function BookingWizard() {
                 type="date"
                 value={selectedDate}
                 min={new Date().toISOString().split('T')[0]}
-                onChange={e => setSelectedDate(e.target.value)}
+                onChange={e => { setSelectedDate(e.target.value); setSelectedSlot(null) }}
                 className="px-4 py-2.5 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#1069d1] transition-colors text-sm"
               />
             </div>

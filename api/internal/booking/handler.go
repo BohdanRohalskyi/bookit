@@ -157,12 +157,13 @@ func (h *Handler) CreateBooking(c *gin.Context) {
 		return
 	}
 
-	locationUUID, _ := uuid.Parse(req.LocationID)
+	// binding:"required,uuid" guarantees valid UUIDs — parse errors are impossible here
+	locationUUID, _ := uuid.Parse(req.LocationID) //nolint:errcheck
 
 	// Resolve service UUIDs and build items
 	items := make([]CreateBookingItemReq, 0, len(req.Items))
 	for _, item := range req.Items {
-		svcUUID, _ := uuid.Parse(item.ServiceID)
+		svcUUID, _ := uuid.Parse(item.ServiceID) //nolint:errcheck
 
 		// Get service info to find duration and price
 		date := item.StartDatetime.UTC().Truncate(24 * time.Hour)
@@ -202,7 +203,7 @@ func (h *Handler) CreateBooking(c *gin.Context) {
 	var locationID int64
 	if len(items) > 0 {
 		// Re-fetch first item's schedule to get the location ID for the given location UUID
-		firstItemUUID, _ := uuid.Parse(req.Items[0].ServiceID)
+		firstItemUUID, _ := uuid.Parse(req.Items[0].ServiceID) //nolint:errcheck
 		date := req.Items[0].StartDatetime.UTC().Truncate(24 * time.Hour)
 		info, err := h.service.repo.GetServiceSchedule(c.Request.Context(), firstItemUUID, date)
 		if err == nil {
@@ -271,8 +272,8 @@ func (h *Handler) ListMyBookings(c *gin.Context) {
 		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))         //nolint:errcheck
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20")) //nolint:errcheck
 	if page < 1 {
 		page = 1
 	}
