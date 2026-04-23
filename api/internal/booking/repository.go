@@ -65,7 +65,7 @@ func (r *Repository) GetServiceSchedule(ctx context.Context, serviceUUID uuid.UU
 	return &info, nil
 }
 
-// GetBookedStartTimes returns "HH:MM" start times for non-cancelled booking
+// GetBookedStartTimes returns "HH:MM" start times for non-canceled booking
 // items for the given service on the given date (UTC).
 func (r *Repository) GetBookedStartTimes(ctx context.Context, serviceID int64, date time.Time) ([]string, error) {
 	rows, err := r.db.Query(ctx, `

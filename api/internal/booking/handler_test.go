@@ -108,16 +108,16 @@ func buildScheduleInfo() *ServiceScheduleInfo {
 
 func buildBookingRow() *BookingRow {
 	return &BookingRow{
-		ID:          1,
-		UUID:        uuid.New(),
-		LocationID:  1,
+		ID:           1,
+		UUID:         uuid.New(),
+		LocationID:   1,
 		LocationUUID: uuid.New(),
-		ConsumerID:  testConsumerID,
+		ConsumerID:   testConsumerID,
 		ConsumerUUID: uuid.New(),
-		Status:      "confirmed",
-		TotalAmount: 25.00,
-		Currency:    "EUR",
-		CreatedAt:   time.Now(),
+		Status:       "confirmed",
+		TotalAmount:  25.00,
+		Currency:     "EUR",
+		CreatedAt:    time.Now(),
 		Items: []BookingItemRow{{
 			ID:              1,
 			UUID:            uuid.New(),

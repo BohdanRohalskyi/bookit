@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/BohdanRohalskyi/bookit/api/internal/auth"
+	"github.com/BohdanRohalskyi/bookit/api/internal/booking"
 	"github.com/BohdanRohalskyi/bookit/api/internal/catalog"
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/identity"
 	"github.com/BohdanRohalskyi/bookit/api/internal/domain/rbac"
@@ -22,7 +23,6 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/logger"
-	"github.com/BohdanRohalskyi/bookit/api/internal/booking"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/migrate"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/storage"
 	"github.com/BohdanRohalskyi/bookit/api/internal/staff"

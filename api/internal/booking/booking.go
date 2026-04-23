@@ -65,10 +65,10 @@ type BookingItemRow struct {
 
 // CreateBookingReq is the input to Repository.Create.
 type CreateBookingReq struct {
-	LocationID  int64
-	ConsumerID  int64
-	Notes       *string
-	Items       []CreateBookingItemReq
+	LocationID int64
+	ConsumerID int64
+	Notes      *string
+	Items      []CreateBookingItemReq
 }
 
 type CreateBookingItemReq struct {
