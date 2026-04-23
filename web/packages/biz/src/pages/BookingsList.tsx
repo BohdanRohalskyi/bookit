@@ -129,7 +129,7 @@ function BookingDetail({
 }: {
   booking: BookingWithConsumer
   onClose: () => void
-  onStatusChange: (id: string, status: BookingStatus) => void
+  onStatusChange: (id: string, status: BookingStatus) => Promise<void>
   onReschedule: (id: string, startDatetime: string) => Promise<void>
 }) {
   const item = booking.items[0]
@@ -137,11 +137,33 @@ function BookingDetail({
   const nextActions = NEXT_STATUSES[booking.status] ?? []
   const canReschedule = booking.status === 'confirmed' || booking.status === 'pending_payment'
 
-  const [mode, setMode] = useState<'view' | 'reschedule'>('view')
+  const [mode, setMode] = useState<'view' | 'confirm' | 'reschedule'>('view')
+  const [pendingAction, setPendingAction] = useState<{ label: string; status: BookingStatus } | null>(null)
+  const [actionPending, setActionPending] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [rescheduleDate, setRescheduleDate] = useState('')
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [rescheduling, setRescheduling] = useState(false)
   const [rescheduleError, setRescheduleError] = useState<string | null>(null)
+
+  const handleActionClick = (action: { label: string; status: BookingStatus }) => {
+    setPendingAction(action)
+    setActionError(null)
+    setMode('confirm')
+  }
+
+  const confirmAction = async () => {
+    if (!pendingAction) return
+    setActionPending(true)
+    setActionError(null)
+    try {
+      await onStatusChange(booking.id, pendingAction.status)
+      onClose()
+    } catch {
+      setActionError('Something went wrong. Please try again.')
+      setActionPending(false)
+    }
+  }
 
   const serviceId = item?.service_id ?? ''
 
@@ -180,9 +202,9 @@ function BookingDetail({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          {mode === 'reschedule' ? (
+          {mode !== 'view' ? (
             <button
-              onClick={() => { setMode('view'); setRescheduleDate(''); setSelectedSlot(null) }}
+              onClick={() => { setMode('view'); setRescheduleDate(''); setSelectedSlot(null); setPendingAction(null) }}
               className="text-sm text-[rgba(2,9,5,0.5)] hover:text-[#020905] transition-colors"
             >
               ← Back
@@ -234,7 +256,7 @@ function BookingDetail({
                   {nextActions.map(action => (
                     <button
                       key={action.status}
-                      onClick={() => { onStatusChange(booking.id, action.status); onClose() }}
+                      onClick={() => handleActionClick(action)}
                       className={`flex-1 px-3 py-2 text-sm font-medium rounded-[6px] border transition-colors ${
                         action.status.startsWith('cancelled')
                           ? 'border-red-200 text-red-600 hover:bg-red-50'
@@ -246,6 +268,40 @@ function BookingDetail({
                   ))}
                 </div>
               )}
+            </div>
+          </>
+        ) : mode === 'confirm' && pendingAction ? (
+          <>
+            {/* Confirmation mode */}
+            <p className="font-heading font-semibold text-base text-[#020905] mb-2">
+              {pendingAction.status.startsWith('cancelled') ? 'Cancel booking?' : `${pendingAction.label} booking?`}
+            </p>
+            <p className="text-sm text-[rgba(2,9,5,0.5)] mb-6">
+              {pendingAction.status.startsWith('cancelled')
+                ? 'This will cancel the booking. The client will be notified.'
+                : `This will mark the booking as ${pendingAction.label.toLowerCase()}.`}
+            </p>
+            {actionError && (
+              <p className="text-xs text-red-600 mb-3">{actionError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setMode('view'); setPendingAction(null) }}
+                className="flex-1 px-3 py-2 text-sm font-medium rounded-[6px] border border-[rgba(2,9,5,0.15)] text-[rgba(2,9,5,0.6)] hover:bg-[rgba(2,9,5,0.03)] transition-colors"
+              >
+                Go back
+              </button>
+              <button
+                onClick={confirmAction}
+                disabled={actionPending}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-[6px] border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  pendingAction.status.startsWith('cancelled')
+                    ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'bg-[#1069d1] text-white border-[#1069d1] hover:bg-[#0d56b0]'
+                }`}
+              >
+                {actionPending ? 'Please wait…' : `Yes, ${pendingAction.label.toLowerCase()}`}
+              </button>
             </div>
           </>
         ) : (
@@ -359,7 +415,8 @@ export function BookingsList() {
       params: { path: { id } },
       body: { status },
     })
-    if (!error) queryClient.invalidateQueries({ queryKey: ['provider-bookings'] })
+    if (error) throw new Error(String(error))
+    queryClient.invalidateQueries({ queryKey: ['provider-bookings'] })
   }
 
   const reschedule = async (id: string, startDatetime: string) => {
