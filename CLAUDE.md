@@ -37,6 +37,19 @@ Before making any file edits, Claude must:
 
 If the user explicitly instructs to work on `main`, acknowledge the risk but comply.
 
+## Git Hooks
+
+A pre-push hook lives in `.githooks/pre-push` (tracked). It is activated by running `make setup` once after cloning, which sets `core.hooksPath = .githooks`.
+
+The hook fires on every `git push` (terminal or Claude) and runs automatically:
+
+| Area changed | Checks |
+|---|---|
+| `api/` | `go build ./...` → `go vet ./...` → `golangci-lint run ./...` |
+| `web/` | `npm run typecheck` → `npm run lint` |
+
+**Claude must NOT manually run build/lint/typecheck before pushing** — the hook handles this. If a push fails due to the hook, fix the reported issue and push again. Do not bypass with `--no-verify`.
+
 ## Feature Flag Discipline
 
 **Every user-facing change must ship behind a feature flag.**

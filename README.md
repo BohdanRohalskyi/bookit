@@ -162,6 +162,16 @@ Staging and production secrets are stored in GCP Secret Manager and mounted auto
 
 > Full guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
 
+### Setup
+
+After cloning, activate the pre-push git hook:
+
+```bash
+make setup
+```
+
+This runs `go build`, `go vet`, `golangci-lint`, `npm run typecheck`, and `npm run lint` automatically before every push — catching CI failures locally before they happen.
+
 ### Git Flow
 
 ```

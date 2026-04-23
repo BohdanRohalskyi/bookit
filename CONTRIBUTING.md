@@ -16,7 +16,7 @@
 ```bash
 git clone https://github.com/BohdanRohalskyi/bookit.git
 cd bookit
-make setup   # installs pre-push lint hook
+make setup        # activates the pre-push git hook (see Git hooks below)
 docker compose up
 ```
 
@@ -39,18 +39,7 @@ Docker Compose injects all required env vars automatically. No `.env` files need
 
 ## Active work
 
-Features currently in development — check these before starting new work to avoid overlap:
-
-| Plan | File |
-|------|------|
-| Authentication | [`docs/implementation-plans/in-progress/authentication.md`](./docs/implementation-plans/in-progress/authentication.md) |
-| Feature Flags with Firebase Remote Config | [`docs/implementation-plans/in-progress/feature-flags.md`](./docs/implementation-plans/in-progress/feature-flags.md) |
-| Landing Page | [`docs/implementation-plans/in-progress/landing-page.md`](./docs/implementation-plans/in-progress/landing-page.md) |
-| Multi-App Setup (Consumer + Business) | [`docs/implementation-plans/in-progress/multi-app-setup.md`](./docs/implementation-plans/in-progress/multi-app-setup.md) |
-
-Use `/open-plan <description>` in Claude Code to open any of these directly.
-
-> When a plan moves folders, update this table. The canonical list is always [`docs/implementation-plans/in-progress/`](./docs/implementation-plans/in-progress/).
+Check [`docs/implementation-plans/in-progress/`](./docs/implementation-plans/in-progress/) for features currently being developed before starting new work to avoid overlap. Use `/open-plan <description>` in Claude Code to open any plan directly.
 
 ---
 
@@ -109,7 +98,23 @@ main  ←──── your PR (auto-deploys to staging for review)
 
 > Never commit directly to `main`.
 
-A git pre-push hook (`.githooks/pre-push`) runs `golangci-lint` on API changes and `tsc` on web changes automatically on every `git push` — from the terminal or through Claude Code. Activated by `make setup`.
+### Git hooks
+
+A pre-push hook lives in `.githooks/pre-push` (tracked by git). It fires on every `git push` — from the terminal or through Claude Code — and runs:
+
+| Area changed | Checks run |
+|---|---|
+| `api/` | `go build ./...` → `go vet ./...` → `golangci-lint run ./...` |
+| `web/` | `npm run typecheck` → `npm run lint` |
+
+The hook compares only the commits being pushed (not all history), so it skips checks when the relevant area hasn't changed.
+
+**Install after cloning:**
+```bash
+make setup   # runs: git config core.hooksPath .githooks
+```
+
+This tells git to look in `.githooks/` instead of `.git/hooks/`. You only need to run it once per clone. The hook requires `golangci-lint` installed locally (`go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`).
 
 ---
 
@@ -166,7 +171,6 @@ Before opening a PR:
 
 - [ ] Feature is behind a flag (or explicitly not user-facing)
 - [ ] `curl http://localhost:8080/api/v1/health` passes
-- [ ] API changes: `cd api && go build ./... && go vet ./...` (or `docker compose --profile tools run --rm go-tools sh -c "go build ./... && go vet ./..."`)
-- [ ] Web changes: `cd web && npm run typecheck`
 - [ ] Tested on local Docker setup end-to-end
 - [ ] Implementation plan updated (if one exists for this feature)
+- [ ] `git push` passed cleanly — the pre-push hook runs build, vet, lint, and typecheck automatically

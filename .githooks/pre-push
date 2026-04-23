@@ -1,33 +1,61 @@
 #!/bin/bash
-# Pre-push hook — runs linting and type checking before every push.
-# Install once: git config core.hooksPath .githooks
-
-set -e
+set -euo pipefail
 
 ROOT=$(git rev-parse --show-toplevel)
+CHECK_API=false
+CHECK_WEB=false
 
-# Find changed files vs origin/main; fall back to HEAD~1 on a first push
-MERGE_BASE=$(git merge-base HEAD origin/main 2>/dev/null || true)
-if [ -n "$MERGE_BASE" ]; then
-  CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
-else
-  CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git show --name-only --format="" HEAD)
-fi
+# Read refs being pushed from stdin (one line per ref: local_ref local_sha remote_ref remote_sha)
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Skip branch deletions
+  if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+    continue
+  fi
 
-if [ -z "$CHANGED" ]; then
+  # For a new remote branch, compare against the merge base with main
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    base=$(git merge-base "$local_sha" origin/main 2>/dev/null || echo "$local_sha")
+    range="$base..$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  changed=$(git diff --name-only "$range" 2>/dev/null || true)
+
+  echo "$changed" | grep -q "^api/" && CHECK_API=true
+  echo "$changed" | grep -q "^web/" && CHECK_WEB=true
+done
+
+if ! $CHECK_API && ! $CHECK_WEB; then
   exit 0
 fi
 
-if echo "$CHANGED" | grep -q '^api/'; then
-  echo "→ API changes detected — running golangci-lint..."
-  docker compose --profile tools run --rm lint
+FAILED=false
+
+if $CHECK_API; then
+  echo ""
+  echo "=== API: go build + vet ==="
+  cd "$ROOT/api"
+  if ! go build ./...; then FAILED=true; fi
+  if ! go vet ./...;   then FAILED=true; fi
+
+  echo ""
+  echo "=== API: golangci-lint ==="
+  if ! golangci-lint run ./...; then FAILED=true; fi
 fi
 
-if echo "$CHANGED" | grep -q '^web/'; then
-  echo "→ Web changes detected — running type check..."
-  if [ -d "$ROOT/web/node_modules" ]; then
-    cd "$ROOT/web" && npm run typecheck
-  else
-    echo "  Skipping (no local node_modules — run npm install in web/ to enable)"
-  fi
+if $CHECK_WEB; then
+  echo ""
+  echo "=== Web: typecheck + lint ==="
+  cd "$ROOT/web"
+  if ! npm run typecheck; then FAILED=true; fi
+  if ! npm run lint;      then FAILED=true; fi
 fi
+
+echo ""
+if $FAILED; then
+  echo "Pre-push checks FAILED. Fix the issues above before pushing."
+  exit 1
+fi
+
+echo "All pre-push checks passed."
