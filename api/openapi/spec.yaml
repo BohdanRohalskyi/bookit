@@ -1825,6 +1825,43 @@ paths:
         '403':
           $ref: '#/components/responses/ProviderRequired'
 
+  /api/v1/bookings/{id}/reschedule:
+    patch:
+      tags: [Bookings]
+      summary: Reschedule a booking (provider/admin)
+      operationId: rescheduleBooking
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRescheduleRequest'
+      responses:
+        '200':
+          description: Booking rescheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: New time slot is not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/bookings/{id}/status:
     patch:
       tags: [Bookings]
@@ -3464,6 +3501,15 @@ components:
           type: integer
           minimum: 15
           description: Required for flexible duration services
+
+    BookingRescheduleRequest:
+      type: object
+      required:
+        - start_datetime
+      properties:
+        start_datetime:
+          type: string
+          format: date-time
 
     BookingStatusUpdate:
       type: object

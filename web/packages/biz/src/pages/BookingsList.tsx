@@ -125,71 +125,193 @@ function BookingDetail({
   booking,
   onClose,
   onStatusChange,
+  onReschedule,
 }: {
   booking: BookingWithConsumer
   onClose: () => void
   onStatusChange: (id: string, status: BookingStatus) => void
+  onReschedule: (id: string, startDatetime: string) => Promise<void>
 }) {
   const item = booking.items[0]
   const style = STATUS_STYLE[booking.status] ?? STATUS_STYLE.confirmed
   const nextActions = NEXT_STATUSES[booking.status] ?? []
+  const canReschedule = booking.status === 'confirmed' || booking.status === 'pending_payment'
+
+  const [mode, setMode] = useState<'view' | 'reschedule'>('view')
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  const [rescheduling, setRescheduling] = useState(false)
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null)
+
+  const serviceId = item?.service_id ?? ''
+
+  const { data: slotsData, isLoading: loadingSlots } = useQuery({
+    queryKey: ['reschedule-slots', serviceId, rescheduleDate],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/v1/availability/slots', {
+        params: { query: { service_id: serviceId, date: rescheduleDate } },
+      })
+      if (error) throw error
+      return data
+    },
+    enabled: Boolean(rescheduleDate) && Boolean(serviceId) && mode === 'reschedule',
+  })
+
+  const confirmReschedule = async () => {
+    if (!selectedSlot || !rescheduleDate) return
+    setRescheduling(true)
+    setRescheduleError(null)
+    try {
+      await onReschedule(booking.id, `${rescheduleDate}T${selectedSlot}:00Z`)
+      onClose()
+    } catch {
+      setRescheduleError('This slot is no longer available. Please pick another.')
+    } finally {
+      setRescheduling(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/20" />
       <div
-        className="relative bg-white rounded-xl shadow-xl border border-[rgba(2,9,5,0.08)] p-6 w-full max-w-sm"
+        className="relative bg-white rounded-xl shadow-xl border border-[rgba(2,9,5,0.08)] p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        {/* Status badge */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${style.bg} ${style.border} ${style.text}`}>
-            {booking.status.replace(/_/g, ' ')}
-          </span>
-          <button onClick={onClose} className="text-[rgba(2,9,5,0.3)] hover:text-[#020905] text-lg leading-none">×</button>
+          {mode === 'reschedule' ? (
+            <button
+              onClick={() => { setMode('view'); setRescheduleDate(''); setSelectedSlot(null) }}
+              className="text-sm text-[rgba(2,9,5,0.5)] hover:text-[#020905] transition-colors"
+            >
+              ← Back
+            </button>
+          ) : (
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${style.bg} ${style.border} ${style.text}`}>
+              {booking.status.replace(/_/g, ' ')}
+            </span>
+          )}
+          <button onClick={onClose} className="text-[rgba(2,9,5,0.3)] hover:text-[#020905] text-lg leading-none ml-auto">×</button>
         </div>
 
-        {/* Consumer */}
-        <p className="font-heading font-semibold text-lg text-[#020905] mb-0.5">
-          {booking.consumer_name ?? 'Client'}
-        </p>
-        {booking.consumer_email && (
-          <p className="text-sm text-[rgba(2,9,5,0.5)] mb-4">{booking.consumer_email}</p>
-        )}
-
-        {/* Slot info */}
-        {item && (
-          <div className="bg-[#f8f9fa] rounded-lg p-3 mb-4 text-sm text-[rgba(2,9,5,0.7)] space-y-1">
-            <p>
-              {new Date(item.start_datetime).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+        {mode === 'view' ? (
+          <>
+            {/* Consumer */}
+            <p className="font-heading font-semibold text-lg text-[#020905] mb-0.5">
+              {booking.consumer_name ?? 'Client'}
             </p>
-            <p>
-              {new Date(item.start_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-              {' – '}
-              {new Date(item.end_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-              {' · '}{item.duration_minutes} min
-            </p>
-            <p className="font-medium text-[#020905]">€{Number(booking.total_amount).toFixed(2)}</p>
-          </div>
-        )}
+            {booking.consumer_email && (
+              <p className="text-sm text-[rgba(2,9,5,0.5)] mb-4">{booking.consumer_email}</p>
+            )}
 
-        {/* Actions */}
-        {nextActions.length > 0 && (
-          <div className="flex gap-2">
-            {nextActions.map(action => (
-              <button
-                key={action.status}
-                onClick={() => { onStatusChange(booking.id, action.status); onClose() }}
-                className={`flex-1 px-3 py-2 text-sm font-medium rounded-[6px] border transition-colors ${
-                  action.status.startsWith('cancelled')
-                    ? 'border-red-200 text-red-600 hover:bg-red-50'
-                    : 'bg-[#1069d1] text-white border-[#1069d1] hover:bg-[#0d56b0]'
-                }`}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
+            {/* Slot info */}
+            {item && (
+              <div className="bg-[#f8f9fa] rounded-lg p-3 mb-4 text-sm text-[rgba(2,9,5,0.7)] space-y-1">
+                <p>{new Date(item.start_datetime).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                <p>
+                  {new Date(item.start_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                  {' – '}
+                  {new Date(item.end_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                  {' · '}{item.duration_minutes} min
+                </p>
+                <p className="font-medium text-[#020905]">€{Number(booking.total_amount).toFixed(2)}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2">
+              {canReschedule && (
+                <button
+                  onClick={() => setMode('reschedule')}
+                  className="w-full px-3 py-2 text-sm font-medium rounded-[6px] border border-[rgba(2,9,5,0.15)] text-[rgba(2,9,5,0.7)] hover:border-[#1069d1] hover:text-[#1069d1] transition-colors"
+                >
+                  Reschedule
+                </button>
+              )}
+              {nextActions.length > 0 && (
+                <div className="flex gap-2">
+                  {nextActions.map(action => (
+                    <button
+                      key={action.status}
+                      onClick={() => { onStatusChange(booking.id, action.status); onClose() }}
+                      className={`flex-1 px-3 py-2 text-sm font-medium rounded-[6px] border transition-colors ${
+                        action.status.startsWith('cancelled')
+                          ? 'border-red-200 text-red-600 hover:bg-red-50'
+                          : 'bg-[#1069d1] text-white border-[#1069d1] hover:bg-[#0d56b0]'
+                      }`}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Reschedule mode */}
+            <p className="font-heading font-semibold text-base text-[#020905] mb-4">
+              Reschedule booking
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-[rgba(2,9,5,0.6)] mb-1.5">New date</label>
+              <input
+                type="date"
+                value={rescheduleDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={e => { setRescheduleDate(e.target.value); setSelectedSlot(null) }}
+                className="w-full px-3 py-2 border border-[rgba(2,9,5,0.15)] rounded-[6px] text-sm text-[#020905] focus:outline-none focus:border-[#1069d1] transition-colors"
+              />
+            </div>
+
+            {rescheduleDate && (
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-[rgba(2,9,5,0.6)] mb-1.5">Available times</label>
+                {loadingSlots ? (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : !slotsData?.slots.length ? (
+                  <p className="text-sm text-[rgba(2,9,5,0.4)]">No available slots on this date.</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto">
+                    {slotsData.slots.map(slot => (
+                      <button
+                        key={slot.start_time}
+                        disabled={!slot.available}
+                        onClick={() => setSelectedSlot(slot.start_time)}
+                        className={`py-1.5 text-xs font-medium rounded-[6px] border transition-colors ${
+                          !slot.available
+                            ? 'border-[rgba(2,9,5,0.08)] text-[rgba(2,9,5,0.2)] cursor-not-allowed bg-[#f8f9fa]'
+                            : selectedSlot === slot.start_time
+                            ? 'border-[#1069d1] bg-[#1069d1] text-white'
+                            : 'border-[rgba(2,9,5,0.15)] text-[rgba(2,9,5,0.7)] hover:border-[#1069d1] hover:text-[#1069d1]'
+                        }`}
+                      >
+                        {slot.start_time}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {rescheduleError && (
+              <p className="text-xs text-red-600 mb-3">{rescheduleError}</p>
+            )}
+
+            <button
+              onClick={confirmReschedule}
+              disabled={!selectedSlot || rescheduling}
+              className="w-full px-3 py-2 text-sm font-medium bg-[#1069d1] text-white rounded-[6px] hover:bg-[#0d56b0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {rescheduling ? 'Rescheduling…' : 'Confirm reschedule'}
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -238,6 +360,15 @@ export function BookingsList() {
       body: { status },
     })
     if (!error) queryClient.invalidateQueries({ queryKey: ['provider-bookings'] })
+  }
+
+  const reschedule = async (id: string, startDatetime: string) => {
+    const { error } = await api.PATCH('/api/v1/bookings/{id}/reschedule', {
+      params: { path: { id } },
+      body: { start_datetime: startDatetime },
+    })
+    if (error) throw new Error(String(error))
+    queryClient.invalidateQueries({ queryKey: ['provider-bookings'] })
   }
 
   const goToToday = () => setWeekStart(getMondayOf(new Date()))
@@ -357,6 +488,7 @@ export function BookingsList() {
           booking={selected}
           onClose={() => setSelected(null)}
           onStatusChange={updateStatus}
+          onReschedule={reschedule}
         />
       )}
     </div>

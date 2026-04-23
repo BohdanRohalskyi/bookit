@@ -78,6 +78,44 @@ func toBookingJSON(b *BookingRow) gin.H {
 	return resp
 }
 
+// ─── PATCH /api/v1/bookings/{id}/reschedule ──────────────────────────────────
+
+type rescheduleRequest struct {
+	StartDatetime time.Time `json:"start_datetime" binding:"required"`
+}
+
+func (h *Handler) RescheduleBooking(c *gin.Context) {
+	providerID, ok := h.consumerID(c)
+	if !ok {
+		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
+		return
+	}
+	bookingUUID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Booking ID must be a valid UUID")
+		return
+	}
+	var req rescheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
+		return
+	}
+	booking, err := h.service.repo.Reschedule(c.Request.Context(), bookingUUID, providerID, req.StartDatetime)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrBookingNotFound):
+			errResp(c, http.StatusNotFound, "not-found", "Not Found", "Booking not found")
+		case errors.Is(err, ErrSlotTaken):
+			errResp(c, http.StatusConflict, "slot-taken", "Slot Unavailable", "The selected time slot is not available")
+		default:
+			slog.Error("reschedule booking", "error", err)
+			errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
+		}
+		return
+	}
+	c.JSON(http.StatusOK, toBookingJSON(booking))
+}
+
 // ─── GET /api/v1/bookings/provider ───────────────────────────────────────────
 
 func (h *Handler) ListProviderBookings(c *gin.Context) {

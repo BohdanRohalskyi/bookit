@@ -21,6 +21,7 @@ type bookingRepository interface {
 	ListByConsumer(ctx context.Context, consumerID int64, status *string, page, perPage int) ([]BookingRow, int, error)
 	ListByProvider(ctx context.Context, providerUserID int64, locationUUID *string, status *string, fromDate *string, toDate *string, page, perPage int) ([]BookingRow, int, error)
 	UpdateStatus(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, toStatus string, reason *string) (*BookingRow, error)
+	Reschedule(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, newStart time.Time) (*BookingRow, error)
 }
 
 // Repository implements bookingRepository against Postgres.
@@ -472,6 +473,70 @@ func (r *Repository) UpdateStatus(ctx context.Context, bookingUUID uuid.UUID, pr
 		return nil, err
 	}
 
+	return r.getByBookingID(ctx, bookingID)
+}
+
+// Reschedule moves all items of a booking to a new start time.
+// Returns ErrBookingNotFound if the booking doesn't belong to the provider.
+// Returns ErrSlotTaken if the new slot conflicts with an existing booking.
+func (r *Repository) Reschedule(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, newStart time.Time) (*BookingRow, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }() //nolint:errcheck
+
+	// Fetch booking + verify provider owns it
+	var bookingID int64
+	var serviceID int64
+	var durationMinutes int
+	err = tx.QueryRow(ctx, `
+		SELECT b.id, bi.service_id, bi.duration_minutes
+		FROM bookings b
+		JOIN booking_items bi  ON bi.booking_id = b.id
+		JOIN locations l       ON l.id = b.location_id
+		JOIN businesses bz     ON bz.id = l.business_id
+		JOIN providers p       ON p.id = bz.provider_id
+		WHERE b.uuid = $1 AND p.user_id = $2
+		LIMIT 1
+		FOR UPDATE
+	`, bookingUUID, providerUserID).Scan(&bookingID, &serviceID, &durationMinutes)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrBookingNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Check new slot is free for this service
+	var conflict bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM booking_items
+			WHERE service_id = $1 AND start_at = $2
+			  AND status != 'cancelled'
+			  AND booking_id != $3
+		)
+	`, serviceID, newStart, bookingID).Scan(&conflict); err != nil {
+		return nil, err
+	}
+	if conflict {
+		return nil, ErrSlotTaken
+	}
+
+	newEnd := newStart.Add(time.Duration(durationMinutes) * time.Minute)
+	if _, err := tx.Exec(ctx, `
+		UPDATE booking_items SET start_at=$1, end_at=$2 WHERE booking_id=$3
+	`, newStart, newEnd, bookingID); err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE bookings SET updated_at=NOW() WHERE id=$1`, bookingID); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
 	return r.getByBookingID(ctx, bookingID)
 }
 

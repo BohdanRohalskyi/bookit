@@ -321,6 +321,7 @@ func run() error {
 		bookingsGroup.GET("/provider", bookingHandler.ListProviderBookings)
 		bookingsGroup.GET("/:id", bookingHandler.GetBooking)
 		bookingsGroup.PATCH("/:id/status", bookingHandler.UpdateBookingStatus)
+		bookingsGroup.PATCH("/:id/reschedule", bookingHandler.RescheduleBooking)
 	}
 
 	// Create HTTP server

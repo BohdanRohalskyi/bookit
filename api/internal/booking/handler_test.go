@@ -28,6 +28,7 @@ type mockRepo struct {
 	listByConsumer     func(ctx context.Context, consumerID int64, status *string, page, perPage int) ([]BookingRow, int, error)
 	listByProvider     func(ctx context.Context, providerUserID int64, locationUUID *string, status *string, fromDate *string, toDate *string, page, perPage int) ([]BookingRow, int, error)
 	updateStatus       func(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, toStatus string, reason *string) (*BookingRow, error)
+	reschedule         func(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, newStart time.Time) (*BookingRow, error)
 }
 
 func (m *mockRepo) GetServiceSchedule(ctx context.Context, serviceUUID uuid.UUID, date time.Time) (*ServiceScheduleInfo, error) {
@@ -69,6 +70,12 @@ func (m *mockRepo) ListByProvider(ctx context.Context, providerUserID int64, loc
 func (m *mockRepo) UpdateStatus(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, toStatus string, reason *string) (*BookingRow, error) {
 	if m.updateStatus != nil {
 		return m.updateStatus(ctx, bookingUUID, providerUserID, toStatus, reason)
+	}
+	return nil, ErrBookingNotFound
+}
+func (m *mockRepo) Reschedule(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, newStart time.Time) (*BookingRow, error) {
+	if m.reschedule != nil {
+		return m.reschedule(ctx, bookingUUID, providerUserID, newStart)
 	}
 	return nil, ErrBookingNotFound
 }

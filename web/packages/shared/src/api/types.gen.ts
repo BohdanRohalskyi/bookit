@@ -843,6 +843,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bookings/{id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Reschedule a booking (provider/admin) */
+        patch: operations["rescheduleBooking"];
+        trace?: never;
+    };
     "/api/v1/bookings/{id}/status": {
         parameters: {
             query?: never;
@@ -1537,6 +1554,10 @@ export interface components {
             start_datetime: string;
             /** @description Required for flexible duration services */
             duration_minutes?: number;
+        };
+        BookingRescheduleRequest: {
+            /** Format: date-time */
+            start_datetime: string;
         };
         BookingStatusUpdate: {
             status: components["schemas"]["BookingStatus"];
@@ -3463,6 +3484,45 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
+        };
+    };
+    rescheduleBooking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BookingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingRescheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Booking rescheduled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Booking"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+            /** @description New time slot is not available */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     updateBookingStatus: {
