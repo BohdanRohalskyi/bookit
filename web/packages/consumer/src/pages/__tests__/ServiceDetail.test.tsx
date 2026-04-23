@@ -98,12 +98,12 @@ describe('ServiceDetailPage data display', () => {
     })
   })
 
-  test('renders Book now button (disabled — booking not yet implemented)', async () => {
+  test('renders Book now button (enabled — navigates to booking wizard)', async () => {
     get().mockResolvedValue({ data: buildDetail(), error: undefined })
     renderWithProviders(<ServiceDetailPage />, { initialEntries: ['/services/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'] })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /book now/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /book now/i })).not.toBeDisabled()
     })
   })
 })
