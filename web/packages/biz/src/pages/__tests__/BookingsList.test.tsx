@@ -17,11 +17,10 @@ vi.mock('@bookit/shared/api', () => ({
 }))
 
 const get = () => api.GET as unknown as Mock
-const patch = () => api.PATCH as unknown as Mock
 
 type Booking = components['schemas']['Booking']
 
-function buildBooking(overrides?: Partial<Booking & { consumer_name?: string }>): Booking & { consumer_name?: string } {
+function buildBooking(startISO: string, overrides?: Partial<Booking & { consumer_name?: string }>): Booking & { consumer_name?: string } {
   return {
     id: crypto.randomUUID(),
     location_id: crypto.randomUUID(),
@@ -32,8 +31,8 @@ function buildBooking(overrides?: Partial<Booking & { consumer_name?: string }>)
     items: [{
       id: crypto.randomUUID(),
       service_id: crypto.randomUUID(),
-      start_datetime: '2026-05-15T09:00:00Z',
-      end_datetime: '2026-05-15T10:00:00Z',
+      start_datetime: startISO,
+      end_datetime: new Date(new Date(startISO).getTime() + 3600000).toISOString(),
       duration_minutes: 60,
       price: 50,
       status: 'confirmed',
@@ -47,116 +46,134 @@ function buildBooking(overrides?: Partial<Booking & { consumer_name?: string }>)
 function buildList(bookings: ReturnType<typeof buildBooking>[], total = bookings.length) {
   return {
     data: bookings,
-    pagination: { page: 1, per_page: 20, total, total_pages: Math.ceil(total / 20) || 1 },
+    pagination: { page: 1, per_page: 200, total, total_pages: 1 },
   }
 }
 
 beforeEach(() => {
   get().mockReset()
-  patch().mockReset()
 })
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
-describe('BookingsList rendering', () => {
-  test('shows page heading', async () => {
+describe('BookingsList calendar rendering', () => {
+  test('shows Bookings heading', async () => {
     get().mockResolvedValue({ data: buildList([]), error: undefined })
     renderWithProviders(<BookingsList />)
 
     await waitFor(() => {
-      expect(screen.getByText(/bookings/i)).toBeInTheDocument()
+      expect(screen.getByText('Bookings')).toBeInTheDocument()
     })
   })
 
-  test('shows status filter tabs', async () => {
+  test('shows Today button and week navigation', async () => {
     get().mockResolvedValue({ data: buildList([]), error: undefined })
     renderWithProviders(<BookingsList />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /confirmed/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /completed/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /today/i })).toBeInTheDocument()
     })
   })
 
-  test('shows empty state when no bookings', async () => {
+  test('shows 7-day column headers (Mon–Sun)', async () => {
     get().mockResolvedValue({ data: buildList([]), error: undefined })
     renderWithProviders(<BookingsList />)
 
     await waitFor(() => {
-      expect(screen.getByText(/no bookings/i)).toBeInTheDocument()
+      expect(screen.getByText('Mon')).toBeInTheDocument()
+      expect(screen.getByText('Sun')).toBeInTheDocument()
     })
   })
 
-  test('shows booking rows with consumer name and date', async () => {
+  test('shows time labels on the left', async () => {
+    get().mockResolvedValue({ data: buildList([]), error: undefined })
+    renderWithProviders(<BookingsList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('07:00')).toBeInTheDocument()
+      expect(screen.getByText('12:00')).toBeInTheDocument()
+    })
+  })
+
+  test('renders booking block with consumer name', async () => {
+    const now = new Date()
+    const dow = now.getUTCDay()
+    const monday = new Date(now)
+    monday.setUTCDate(now.getUTCDate() - (dow === 0 ? 6 : dow - 1))
+    const startISO = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate(), 10, 0, 0)).toISOString()
+
     get().mockResolvedValue({
-      data: buildList([buildBooking({ consumer_name: 'John Doe' })]),
+      data: buildList([buildBooking(startISO, { consumer_name: 'John Doe' })]),
       error: undefined,
     })
     renderWithProviders(<BookingsList />)
 
     await waitFor(() => {
       expect(screen.getByText('John Doe')).toBeInTheDocument()
-      expect(screen.getByText(/15 May 2026/i)).toBeInTheDocument()
-    })
-  })
-
-  test('shows status badge', async () => {
-    get().mockResolvedValue({
-      data: buildList([buildBooking({ status: 'confirmed' })]),
-      error: undefined,
-    })
-    renderWithProviders(<BookingsList />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Confirmed')).toBeInTheDocument()
     })
   })
 })
 
-// ─── Filtering ────────────────────────────────────────────────────────────────
+// ─── Navigation ───────────────────────────────────────────────────────────────
 
-describe('BookingsList filtering', () => {
-  test('clicking Confirmed tab filters by status', async () => {
+describe('BookingsList week navigation', () => {
+  test('clicking next week refetches with new date range', async () => {
     const user = userEvent.setup()
     get().mockResolvedValue({ data: buildList([]), error: undefined })
     renderWithProviders(<BookingsList />)
 
-    await waitFor(() => expect(screen.getByRole('button', { name: /confirmed/i })).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: /confirmed/i }))
+    await waitFor(() => expect(screen.getByText('Mon')).toBeInTheDocument())
+    const callsBefore = get().mock.calls.length
+
+    // Click the right chevron (next week)
+    const buttons = screen.getAllByRole('button')
+    const nextBtn = buttons.find(b => b.querySelector('svg'))
+    if (nextBtn) await user.click(nextBtn)
 
     await waitFor(() => {
-      expect(get()).toHaveBeenCalledWith(
-        '/api/v1/bookings/provider',
-        expect.objectContaining({
-          params: expect.objectContaining({
-            query: expect.objectContaining({ status: 'confirmed' }),
-          }),
-        }),
-      )
+      expect(get().mock.calls.length).toBeGreaterThan(callsBefore)
     })
+  })
+
+  test('clicking Today resets to current week', async () => {
+    const user = userEvent.setup()
+    get().mockResolvedValue({ data: buildList([]), error: undefined })
+    renderWithProviders(<BookingsList />)
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /today/i })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /today/i }))
+
+    // Should still show the calendar
+    expect(screen.getByText('Mon')).toBeInTheDocument()
   })
 })
 
-// ─── Status actions ───────────────────────────────────────────────────────────
+// ─── Detail popover ───────────────────────────────────────────────────────────
 
-describe('BookingsList status actions', () => {
-  test('confirmed booking shows Complete and Cancel action buttons', async () => {
-    get().mockResolvedValue({ data: buildList([buildBooking({ status: 'confirmed' })]), error: undefined })
+describe('BookingsList booking detail', () => {
+  test('clicking a booking block opens detail popover', async () => {
+    const user = userEvent.setup()
+    const now = new Date()
+    const dow = now.getUTCDay()
+    const monday = new Date(now)
+    monday.setUTCDate(now.getUTCDate() - (dow === 0 ? 6 : dow - 1))
+    const startISO = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate(), 10, 0, 0)).toISOString()
+
+    get().mockResolvedValue({
+      data: buildList([buildBooking(startISO, { consumer_name: 'Jane Smith', status: 'confirmed' })]),
+      error: undefined,
+    })
     renderWithProviders(<BookingsList />)
 
+    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument())
+
+    // Click the booking block (there should be a button with the consumer name)
+    await user.click(screen.getAllByText('Jane Smith')[0])
+
+    // Popover shows detail info + action buttons
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /complete/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
     })
-  })
-
-  test('completed booking shows no action buttons', async () => {
-    get().mockResolvedValue({ data: buildList([buildBooking({ status: 'completed' })]), error: undefined })
-    renderWithProviders(<BookingsList />)
-
-    await waitFor(() => expect(screen.getByText('Completed')).toBeInTheDocument())
-    // Completed bookings have no next actions — only the filter tab buttons remain
-    expect(screen.queryByRole('button', { name: /^complete$/i })).not.toBeInTheDocument()
   })
 })
