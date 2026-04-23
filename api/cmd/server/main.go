@@ -22,6 +22,7 @@ import (
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/database"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/flags"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/logger"
+	"github.com/BohdanRohalskyi/bookit/api/internal/booking"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/migrate"
 	"github.com/BohdanRohalskyi/bookit/api/internal/platform/storage"
 	"github.com/BohdanRohalskyi/bookit/api/internal/staff"
@@ -302,6 +303,23 @@ func run() error {
 
 	// Register and accept invite in one step (no auth — token is the proof)
 	invitesGroup.POST("/:token/register-and-accept", staffHandler.RegisterAndAcceptInvite)
+
+	// ── Booking ───────────────────────────────────────────────────────────────
+	bookingRepo := booking.NewRepository(db.Pool)
+	bookingSvc := booking.NewService(bookingRepo, mailProvider, mailTemplates)
+	bookingHandler := booking.NewHandler(bookingSvc)
+
+	// Availability — public (no auth)
+	router.GET("/api/v1/availability/slots", bookingHandler.GetAvailableSlots)
+
+	// Bookings — auth required
+	bookingsGroup := router.Group("/api/v1/bookings")
+	bookingsGroup.Use(authHandler.AuthMiddleware())
+	{
+		bookingsGroup.GET("", bookingHandler.ListMyBookings)
+		bookingsGroup.POST("", bookingHandler.CreateBooking)
+		bookingsGroup.GET("/:id", bookingHandler.GetBooking)
+	}
 
 	// Create HTTP server
 	srv := &http.Server{
