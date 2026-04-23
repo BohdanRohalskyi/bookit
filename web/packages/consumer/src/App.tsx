@@ -12,6 +12,7 @@ import { NotFound } from './pages/NotFound'
 import { SearchPage } from './pages/Search'
 import { ServiceDetailPage } from './pages/ServiceDetail'
 import { BookingWizard } from './pages/BookingWizard'
+import { MyBookings } from './pages/MyBookings'
 
 function App() {
   return (
@@ -21,6 +22,14 @@ function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/services/:id" element={<ServiceDetailPage />} />
         <Route path="/book/:serviceId" element={<BookingWizard />} />
+        <Route
+          path="/bookings"
+          element={
+            <RequireAuth>
+              <MyBookings />
+            </RequireAuth>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
