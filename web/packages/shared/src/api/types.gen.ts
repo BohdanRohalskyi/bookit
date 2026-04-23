@@ -843,6 +843,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bookings/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update booking status (provider/admin) */
+        patch: operations["updateBookingStatus"];
+        trace?: never;
+    };
     "/api/v1/availability/slots": {
         parameters: {
             query?: never;
@@ -1520,6 +1537,10 @@ export interface components {
             start_datetime: string;
             /** @description Required for flexible duration services */
             duration_minutes?: number;
+        };
+        BookingStatusUpdate: {
+            status: components["schemas"]["BookingStatus"];
+            reason?: string;
         };
         BookingCancelRequest: {
             reason?: string;
@@ -3442,6 +3463,45 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
+        };
+    };
+    updateBookingStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BookingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Booking status updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Booking"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+            /** @description Transition not allowed from current status */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getAvailableSlots: {

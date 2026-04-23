@@ -1825,6 +1825,43 @@ paths:
         '403':
           $ref: '#/components/responses/ProviderRequired'
 
+  /api/v1/bookings/{id}/status:
+    patch:
+      tags: [Bookings]
+      summary: Update booking status (provider/admin)
+      operationId: updateBookingStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingStatusUpdate'
+      responses:
+        '200':
+          description: Booking status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Transition not allowed from current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   # ============================================================
   # AVAILABILITY
   # ============================================================
@@ -3427,6 +3464,17 @@ components:
           type: integer
           minimum: 15
           description: Required for flexible duration services
+
+    BookingStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        reason:
+          type: string
+          maxLength: 500
 
     BookingCancelRequest:
       type: object

@@ -318,7 +318,9 @@ func run() error {
 	{
 		bookingsGroup.GET("", bookingHandler.ListMyBookings)
 		bookingsGroup.POST("", bookingHandler.CreateBooking)
+		bookingsGroup.GET("/provider", bookingHandler.ListProviderBookings)
 		bookingsGroup.GET("/:id", bookingHandler.GetBooking)
+		bookingsGroup.PATCH("/:id/status", bookingHandler.UpdateBookingStatus)
 	}
 
 	// Create HTTP server

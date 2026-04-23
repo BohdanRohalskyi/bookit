@@ -52,7 +52,7 @@ const navItems: NavItem[] = [
   { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'all' },
   { icon: Users,           label: 'Team',               path: '/dashboard/staff',       end: true,  showTo: 'admin' },
   { icon: UserCircle,      label: 'My Profile',         path: '/dashboard/profile',     end: true,  showTo: 'all' },
-  { icon: CalendarCheck,   label: 'Bookings',                                                        showTo: 'all' },
+  { icon: CalendarCheck,   label: 'Bookings',          path: '/dashboard/bookings',    end: true,  showTo: 'owner' },
   { icon: CreditCard,      label: 'Payment',                                                         showTo: 'owner' },
   { icon: Settings,        label: 'Settings',                                                        showTo: 'owner' },
 ]

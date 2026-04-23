@@ -71,7 +71,111 @@ func toBookingJSON(b *BookingRow) gin.H {
 	if b.UpdatedAt != nil {
 		resp["updated_at"] = b.UpdatedAt.UTC().Format(time.RFC3339)
 	}
+	if b.ConsumerName != "" {
+		resp["consumer_name"] = b.ConsumerName
+		resp["consumer_email"] = b.ConsumerEmail
+	}
 	return resp
+}
+
+// ─── GET /api/v1/bookings/provider ───────────────────────────────────────────
+
+func (h *Handler) ListProviderBookings(c *gin.Context) {
+	providerID, ok := h.consumerID(c)
+	if !ok {
+		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))         //nolint:errcheck
+	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20")) //nolint:errcheck
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 20
+	}
+
+	var locationUUID, status, fromDate, toDate *string
+	if v := c.Query("location_id"); v != "" {
+		locationUUID = &v
+	}
+	if v := c.Query("status"); v != "" {
+		status = &v
+	}
+	if v := c.Query("from_date"); v != "" {
+		fromDate = &v
+	}
+	if v := c.Query("to_date"); v != "" {
+		toDate = &v
+	}
+
+	bookings, total, err := h.service.repo.ListByProvider(c.Request.Context(), providerID, locationUUID, status, fromDate, toDate, page, perPage)
+	if err != nil {
+		slog.Error("list provider bookings", "error", err)
+		errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
+		return
+	}
+
+	data := make([]gin.H, len(bookings))
+	for i := range bookings {
+		data[i] = toBookingJSON(&bookings[i])
+	}
+	totalPages := (total + perPage - 1) / perPage
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"data": data,
+		"pagination": gin.H{
+			"page": page, "per_page": perPage,
+			"total": total, "total_pages": totalPages,
+		},
+	})
+}
+
+// ─── PATCH /api/v1/bookings/{id}/status ──────────────────────────────────────
+
+type updateStatusRequest struct {
+	Status string  `json:"status" binding:"required"`
+	Reason *string `json:"reason"`
+}
+
+func (h *Handler) UpdateBookingStatus(c *gin.Context) {
+	providerID, ok := h.consumerID(c)
+	if !ok {
+		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
+		return
+	}
+
+	bookingUUID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Booking ID must be a valid UUID")
+		return
+	}
+
+	var req updateStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
+		return
+	}
+
+	booking, err := h.service.repo.UpdateStatus(c.Request.Context(), bookingUUID, providerID, req.Status, req.Reason)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrBookingNotFound):
+			errResp(c, http.StatusNotFound, "not-found", "Not Found", "Booking not found")
+		case errors.Is(err, ErrInvalidTransition):
+			errResp(c, http.StatusConflict, "invalid-transition", "Invalid Transition",
+				"Cannot transition from current status to "+req.Status)
+		default:
+			slog.Error("update booking status", "error", err)
+			errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, toBookingJSON(booking))
 }
 
 // ─── GET /api/v1/availability/slots ──────────────────────────────────────────
