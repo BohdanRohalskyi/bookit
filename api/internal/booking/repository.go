@@ -444,10 +444,10 @@ func (r *Repository) UpdateStatus(ctx context.Context, bookingUUID uuid.UUID, pr
 	}
 
 	// Update booking_items status where applicable
-	itemStatus := toStatus
+	var itemStatus string
 	switch toStatus {
-	case "cancelled_by_provider":
-		itemStatus = "cancelled"
+	case "cancelled_by_provider": //nolint:misspell
+		itemStatus = "cancelled" //nolint:misspell
 	case "completed":
 		itemStatus = "completed"
 	default:

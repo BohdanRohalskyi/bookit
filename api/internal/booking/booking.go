@@ -15,6 +15,9 @@ var (
 )
 
 // validTransitions defines allowed from→to status moves for providers.
+// Status strings match the OpenAPI spec — "cancelled" spelling is intentional.
+//
+//nolint:misspell
 var validTransitions = map[string]map[string]bool{
 	"pending_payment": {"confirmed": true, "cancelled_by_provider": true},
 	"confirmed":       {"completed": true, "cancelled_by_provider": true},
