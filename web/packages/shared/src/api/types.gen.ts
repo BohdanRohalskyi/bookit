@@ -599,6 +599,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search services (public)
+         * @description Full-text search across services. No authentication required. Results are scoped to active services belonging to active businesses.
+         */
+        get: operations["searchServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services": {
         parameters: {
             query?: never;
@@ -1279,6 +1299,32 @@ export interface components {
         };
         ServiceList: {
             data: components["schemas"]["Service"][];
+        };
+        ServiceSearchResult: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description?: string | null;
+            duration_minutes: number;
+            /** Format: double */
+            price: number;
+            /** @example EUR */
+            currency: string;
+            /** Format: uuid */
+            business_id: string;
+            business_name: string;
+            category: components["schemas"]["BusinessCategory"];
+            /** @description City of the location where this service is offered. */
+            city?: string | null;
+            /**
+             * Format: uri
+             * @description Cover photo of the business.
+             */
+            cover_image_url?: string | null;
+        };
+        ServiceSearchList: {
+            data: components["schemas"]["ServiceSearchResult"][];
+            pagination: components["schemas"]["Pagination"];
         };
         StaffRole: {
             /** Format: uuid */
@@ -2810,6 +2856,38 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    searchServices: {
+        parameters: {
+            query?: {
+                /** @description Free-text keyword matched against service name and description. */
+                q?: string;
+                /** @description Filter by business vertical. */
+                category?: components["schemas"]["BusinessCategory"];
+                /** @description Filter by location city (case-insensitive, partial match). */
+                city?: string;
+                /** @description ISO 8601 date (YYYY-MM-DD). When provided, only services with at least one available slot on this date are returned. */
+                date?: string;
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated list of matching services */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceSearchList"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
         };
     };
     listServices: {

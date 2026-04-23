@@ -9,12 +9,14 @@ import { VerifyEmail } from './pages/VerifyEmail'
 import { DevStatus } from './pages/DevStatus'
 import { RequireAuth } from './components/auth/RequireAuth'
 import { NotFound } from './pages/NotFound'
+import { SearchPage } from './pages/Search'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
