@@ -223,6 +223,9 @@ func run() error {
 		locations.DELETE("/:id/services/:item_id", catalogItemHandler.RemoveLocationService)
 	}
 
+	// Public catalog endpoints (no auth required)
+	router.GET("/api/v1/services/search", catalogItemHandler.SearchServices)
+
 	// Business-level catalog: equipment, staff roles, services
 	catalogProtected := router.Group("/api/v1")
 	catalogProtected.Use(authHandler.AuthMiddleware())

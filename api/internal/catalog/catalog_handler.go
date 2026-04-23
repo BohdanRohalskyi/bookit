@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -722,4 +723,87 @@ func (h *CatalogItemHandler) RemoveLocationService(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// ─── Public search ────────────────────────────────────────────────────────────
+
+type SearchServiceResponse struct {
+	ID              string  `json:"id"`
+	Name            string  `json:"name"`
+	Description     *string `json:"description"`
+	DurationMinutes int     `json:"duration_minutes"`
+	Price           float64 `json:"price"`
+	Currency        string  `json:"currency"`
+	BusinessID      string  `json:"business_id"`
+	BusinessName    string  `json:"business_name"`
+	Category        string  `json:"category"`
+	City            *string `json:"city"`
+	CoverImageURL   *string `json:"cover_image_url"`
+}
+
+func toSearchServiceResponse(item ServiceSearchResultItem) SearchServiceResponse {
+	return SearchServiceResponse{
+		ID:              item.UUID.String(),
+		Name:            item.Name,
+		Description:     item.Description,
+		DurationMinutes: item.DurationMinutes,
+		Price:           item.Price,
+		Currency:        item.Currency,
+		BusinessID:      item.BusinessUUID.String(),
+		BusinessName:    item.BusinessName,
+		Category:        item.Category,
+		City:            item.City,
+		CoverImageURL:   item.CoverImageURL,
+	}
+}
+
+func (h *CatalogItemHandler) SearchServices(c *gin.Context) {
+	params := ServiceSearchParams{Page: 1, PerPage: 20}
+
+	if q := c.Query("q"); q != "" {
+		params.Q = &q
+	}
+	if cat := c.Query("category"); cat != "" {
+		switch cat {
+		case "beauty", "sport", "pet_care":
+			params.Category = &cat
+		default:
+			errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "category must be one of: beauty, sport, pet_care")
+			return
+		}
+	}
+	if city := c.Query("city"); city != "" {
+		params.City = &city
+	}
+	if date := c.Query("date"); date != "" {
+		params.Date = &date
+	}
+	if p, err := strconv.Atoi(c.Query("page")); err == nil && p > 0 {
+		params.Page = p
+	}
+	if pp, err := strconv.Atoi(c.Query("per_page")); err == nil && pp > 0 && pp <= 50 {
+		params.PerPage = pp
+	}
+
+	items, total, err := h.catalogRepo.SearchServices(c.Request.Context(), params)
+	if err != nil {
+		slog.Error("search services", "error", err)
+		errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
+		return
+	}
+
+	results := make([]SearchServiceResponse, len(items))
+	for i, item := range items {
+		results[i] = toSearchServiceResponse(item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": results,
+		"pagination": gin.H{
+			"page":        params.Page,
+			"per_page":    params.PerPage,
+			"total":       total,
+			"total_pages": ceilDiv(total, params.PerPage),
+		},
+	})
 }

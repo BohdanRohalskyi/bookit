@@ -99,6 +99,31 @@ type ServiceItemCreate struct {
 	StaffReqs       []ServiceCreateReqItem
 }
 
+// ─── Service search ───────────────────────────────────────────────────────────
+
+type ServiceSearchParams struct {
+	Q        *string
+	Category *string
+	City     *string
+	Date     *string // reserved — requires scheduling domain
+	Page     int
+	PerPage  int
+}
+
+type ServiceSearchResultItem struct {
+	UUID            uuid.UUID
+	Name            string
+	Description     *string
+	DurationMinutes int
+	Price           float64
+	Currency        string
+	BusinessUUID    uuid.UUID
+	BusinessName    string
+	Category        string
+	City            *string
+	CoverImageURL   *string
+}
+
 // ─── Location pivots ──────────────────────────────────────────────────────────
 
 type LocationEquipment struct {

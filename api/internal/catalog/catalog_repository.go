@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -297,6 +298,81 @@ func (r *CatalogRepository) ListServicesByBusiness(ctx context.Context, business
 		services = []ServiceItem{}
 	}
 	return services, nil
+}
+
+func (r *CatalogRepository) SearchServices(ctx context.Context, p ServiceSearchParams) ([]ServiceSearchResultItem, int, error) {
+	var clauses []string
+	var args []any
+
+	clauses = append(clauses, "b.is_active = true")
+
+	if p.Q != nil && *p.Q != "" {
+		args = append(args, "%"+*p.Q+"%")
+		n := len(args)
+		clauses = append(clauses, fmt.Sprintf("(s.name ILIKE $%d OR s.description ILIKE $%d)", n, n))
+	}
+	if p.Category != nil && *p.Category != "" {
+		args = append(args, *p.Category)
+		clauses = append(clauses, fmt.Sprintf("b.category = $%d", len(args)))
+	}
+	if p.City != nil && *p.City != "" {
+		args = append(args, "%"+*p.City+"%")
+		clauses = append(clauses, fmt.Sprintf("l.city ILIKE $%d", len(args)))
+	}
+
+	where := "WHERE " + strings.Join(clauses, " AND ")
+
+	base := `
+		FROM services s
+		JOIN businesses b ON b.id = s.business_id
+		LEFT JOIN location_services ls ON ls.service_id = s.id AND ls.is_active = true
+		LEFT JOIN locations l ON l.id = ls.location_id AND l.is_active = true
+		` + where
+
+	var total int
+	if err := r.db.QueryRow(ctx, "SELECT COUNT(DISTINCT s.id)"+base, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (p.Page - 1) * p.PerPage
+	dataArgs := append(args, p.PerPage, offset)
+	nLimit := len(dataArgs) - 1
+	nOffset := len(dataArgs)
+
+	query := fmt.Sprintf(`
+		SELECT
+			s.uuid, s.name, s.description, s.duration_minutes, s.price::float8, s.currency,
+			b.uuid, b.name, b.category, b.logo_url,
+			MIN(l.city) AS city
+		%s
+		GROUP BY s.uuid, s.name, s.description, s.duration_minutes, s.price, s.currency,
+		         b.uuid, b.name, b.category, b.logo_url
+		ORDER BY s.name
+		LIMIT $%d OFFSET $%d
+	`, base, nLimit, nOffset)
+
+	rows, err := r.db.Query(ctx, query, dataArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []ServiceSearchResultItem
+	for rows.Next() {
+		var item ServiceSearchResultItem
+		if err := rows.Scan(
+			&item.UUID, &item.Name, &item.Description, &item.DurationMinutes, &item.Price, &item.Currency,
+			&item.BusinessUUID, &item.BusinessName, &item.Category, &item.CoverImageURL,
+			&item.City,
+		); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []ServiceSearchResultItem{}
+	}
+	return items, total, rows.Err()
 }
 
 func (r *CatalogRepository) DeleteService(ctx context.Context, id int64) error {
