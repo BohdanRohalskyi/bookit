@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// catalogSearcher is the narrow interface used by the public search handlers.
+// Defined here so tests can inject a mock without touching the concrete repo.
+type catalogSearcher interface {
+	SearchServices(ctx context.Context, p ServiceSearchParams) ([]ServiceSearchResultItem, int, error)
+	GetServiceDetail(ctx context.Context, serviceUUID uuid.UUID) (ServiceDetail, error)
+}
+
 // CatalogHandler exposes endpoints for equipment, staff roles, services
 // and location pivot management.
 type CatalogItemHandler struct {
@@ -17,10 +25,11 @@ type CatalogItemHandler struct {
 	locationRepo *LocationRepository // needed to resolve location UUID → int64
 	bizRepo      *Repository         // needed to resolve business UUID → int64
 	catalogRepo  *CatalogRepository  // needed to resolve item UUIDs → int64
+	searcher     catalogSearcher     // injectable for testing
 }
 
 func NewCatalogItemHandler(service *CatalogService, locationRepo *LocationRepository, bizRepo *Repository, catalogRepo *CatalogRepository) *CatalogItemHandler {
-	return &CatalogItemHandler{service: service, locationRepo: locationRepo, bizRepo: bizRepo, catalogRepo: catalogRepo}
+	return &CatalogItemHandler{service: service, locationRepo: locationRepo, bizRepo: bizRepo, catalogRepo: catalogRepo, searcher: catalogRepo}
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -763,7 +772,7 @@ func (h *CatalogItemHandler) GetServicePublic(c *gin.Context) {
 		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Service ID must be a valid UUID")
 		return
 	}
-	d, err := h.catalogRepo.GetServiceDetail(c.Request.Context(), svcUUID)
+	d, err := h.searcher.GetServiceDetail(c.Request.Context(), svcUUID)
 	if err != nil {
 		if errors.Is(err, ErrServiceNotFound) {
 			errResp(c, http.StatusNotFound, "not-found", "Not Found", "Service not found")
@@ -817,7 +826,7 @@ func (h *CatalogItemHandler) SearchServices(c *gin.Context) {
 		params.PerPage = pp
 	}
 
-	items, total, err := h.catalogRepo.SearchServices(c.Request.Context(), params)
+	items, total, err := h.searcher.SearchServices(c.Request.Context(), params)
 	if err != nil {
 		slog.Error("search services", "error", err)
 		errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
