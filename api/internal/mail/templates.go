@@ -1,6 +1,9 @@
 package mail
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // Templates creates email messages with the given base URL
 type Templates struct {
@@ -10,6 +13,8 @@ type Templates struct {
 func NewTemplates(baseURL string) *Templates {
 	return &Templates{baseURL: baseURL}
 }
+
+func (t *Templates) AppURL() string { return t.baseURL }
 
 // EmailVerification creates a verification email
 func (t *Templates) EmailVerification(to, token string) Message {
@@ -123,6 +128,71 @@ func (t *Templates) MemberAdded(to, businessName, role, bizURL string) Message {
 		Text: fmt.Sprintf(
 			"You've been added to %s as %s on Bookit. Open the app: %s",
 			businessName, role, bizURL,
+		),
+	}
+}
+
+// BookingConfirmationData holds the fields needed to render a booking confirmation email.
+// Defined here to avoid an import cycle between booking ↔ mail packages.
+type BookingConfirmationData struct {
+	ConsumerEmail   string
+	ServiceName     string
+	StartAt         time.Time
+	DurationMinutes int
+	BookingID       string
+	LocationCity    string
+	AppURL          string
+}
+
+// BookingConfirmation creates a booking confirmation email.
+func (t *Templates) BookingConfirmation(data BookingConfirmationData) Message {
+	dateStr := data.StartAt.UTC().Format("Mon 2 Jan 2006 at 15:04 UTC")
+	return Message{
+		To:      data.ConsumerEmail,
+		Subject: fmt.Sprintf("Your booking is confirmed — %s", data.ServiceName),
+		HTML: fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+    .badge { display: inline-block; padding: 4px 12px; background: #e7f3ff; color: #1069d1; border-radius: 20px; font-size: 14px; font-weight: 600; }
+    .detail { background: #f9f9f9; border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+    .button { display: inline-block; padding: 12px 24px; background: #1069d1; color: #fff; text-decoration: none; border-radius: 6px; }
+    .footer { margin-top: 40px; font-size: 13px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Confirmed</span>
+    <p style="font-size:24px;font-weight:600;margin:16px 0 4px">Your booking is confirmed</p>
+    <div class="detail">
+      <p style="margin:0 0 8px"><strong>Service:</strong> %s</p>
+      <p style="margin:0 0 8px"><strong>Date &amp; time:</strong> %s</p>
+      <p style="margin:0 0 8px"><strong>Duration:</strong> %d min</p>
+      %s
+      <p style="margin:8px 0 0;font-size:12px;color:#888">Booking ID: %s</p>
+    </div>
+    <p><a href="%s" class="button">View my bookings</a></p>
+    <div class="footer">
+      <p>Need to cancel? Open the Bookit app and go to your bookings.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+			data.ServiceName, dateStr, data.DurationMinutes,
+			func() string {
+				if data.LocationCity != "" {
+					return fmt.Sprintf(`<p style="margin:0 0 8px"><strong>Location:</strong> %s</p>`, data.LocationCity)
+				}
+				return ""
+			}(),
+			data.BookingID, data.AppURL),
+		Text: fmt.Sprintf(
+			"Your booking is confirmed!\n\nService: %s\nDate: %s\nDuration: %d min\nBooking ID: %s\n\nView your bookings: %s",
+			data.ServiceName, dateStr, data.DurationMinutes, data.BookingID, data.AppURL,
 		),
 	}
 }
