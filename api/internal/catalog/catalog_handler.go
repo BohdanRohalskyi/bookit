@@ -757,6 +757,38 @@ func toSearchServiceResponse(item ServiceSearchResultItem) SearchServiceResponse
 	}
 }
 
+func (h *CatalogItemHandler) GetServicePublic(c *gin.Context) {
+	svcUUID, ok := h.pathUUID(c, "id")
+	if !ok {
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Service ID must be a valid UUID")
+		return
+	}
+	d, err := h.catalogRepo.GetServiceDetail(c.Request.Context(), svcUUID)
+	if err != nil {
+		if errors.Is(err, ErrServiceNotFound) {
+			errResp(c, http.StatusNotFound, "not-found", "Not Found", "Service not found")
+			return
+		}
+		slog.Error("get service detail", "error", err)
+		errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"id":               d.UUID.String(),
+		"name":             d.Name,
+		"description":      d.Description,
+		"duration_minutes": d.DurationMinutes,
+		"price":            d.Price,
+		"currency":         d.Currency,
+		"business_id":      d.BusinessUUID.String(),
+		"business_name":    d.BusinessName,
+		"category":         d.Category,
+		"city":             d.City,
+		"cover_image_url":  d.CoverImageURL,
+		"created_at":       d.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+	})
+}
+
 func (h *CatalogItemHandler) SearchServices(c *gin.Context) {
 	params := ServiceSearchParams{Page: 1, PerPage: 20}
 

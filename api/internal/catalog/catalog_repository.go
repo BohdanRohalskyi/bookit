@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -373,6 +374,32 @@ func (r *CatalogRepository) SearchServices(ctx context.Context, p ServiceSearchP
 		items = []ServiceSearchResultItem{}
 	}
 	return items, total, rows.Err()
+}
+
+func (r *CatalogRepository) GetServiceDetail(ctx context.Context, serviceUUID uuid.UUID) (ServiceDetail, error) {
+	var d ServiceDetail
+	err := r.db.QueryRow(ctx, `
+		SELECT
+			s.uuid, s.name, s.description, s.duration_minutes, s.price::float8, s.currency,
+			b.uuid, b.name, b.category, b.logo_url,
+			MIN(l.city) AS city,
+			s.created_at
+		FROM services s
+		JOIN businesses b ON b.id = s.business_id AND b.is_active = true
+		LEFT JOIN location_services ls ON ls.service_id = s.id AND ls.is_active = true
+		LEFT JOIN locations l ON l.id = ls.location_id AND l.is_active = true
+		WHERE s.uuid = $1
+		GROUP BY s.uuid, s.name, s.description, s.duration_minutes, s.price, s.currency,
+		         b.uuid, b.name, b.category, b.logo_url, s.created_at
+	`, serviceUUID).Scan(
+		&d.UUID, &d.Name, &d.Description, &d.DurationMinutes, &d.Price, &d.Currency,
+		&d.BusinessUUID, &d.BusinessName, &d.Category, &d.CoverImageURL,
+		&d.City, &d.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ServiceDetail{}, ErrServiceNotFound
+	}
+	return d, err
 }
 
 func (r *CatalogRepository) DeleteService(ctx context.Context, id int64) error {
