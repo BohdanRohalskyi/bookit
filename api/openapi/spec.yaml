@@ -3473,12 +3473,17 @@ components:
       type: object
       required:
         - service_id
+        - location_id
         - date
         - slots
       properties:
         service_id:
           type: string
           format: uuid
+        location_id:
+          type: string
+          format: uuid
+          description: The location where this service is offered. Pass this to BookingCreate.location_id.
         date:
           type: string
           format: date

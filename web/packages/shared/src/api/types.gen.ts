@@ -1544,6 +1544,11 @@ export interface components {
         AvailableSlotsResponse: {
             /** Format: uuid */
             service_id: string;
+            /**
+             * Format: uuid
+             * @description The location where this service is offered. Pass this to BookingCreate.location_id.
+             */
+            location_id: string;
             /** Format: date */
             date: string;
             /** @description Duration used for slot calculation */

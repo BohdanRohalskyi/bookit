@@ -11,6 +11,7 @@ import { RequireAuth } from './components/auth/RequireAuth'
 import { NotFound } from './pages/NotFound'
 import { SearchPage } from './pages/Search'
 import { ServiceDetailPage } from './pages/ServiceDetail'
+import { BookingWizard } from './pages/BookingWizard'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/services/:id" element={<ServiceDetailPage />} />
+        <Route path="/book/:serviceId" element={<BookingWizard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
