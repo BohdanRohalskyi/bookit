@@ -26,6 +26,8 @@ type mockRepo struct {
 	create             func(ctx context.Context, req CreateBookingReq) (*BookingRow, error)
 	getByUUID          func(ctx context.Context, bookingUUID uuid.UUID, consumerID int64) (*BookingRow, error)
 	listByConsumer     func(ctx context.Context, consumerID int64, status *string, page, perPage int) ([]BookingRow, int, error)
+	listByProvider     func(ctx context.Context, providerUserID int64, locationUUID *string, status *string, fromDate *string, toDate *string, page, perPage int) ([]BookingRow, int, error)
+	updateStatus       func(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, toStatus string, reason *string) (*BookingRow, error)
 }
 
 func (m *mockRepo) GetServiceSchedule(ctx context.Context, serviceUUID uuid.UUID, date time.Time) (*ServiceScheduleInfo, error) {
@@ -57,6 +59,18 @@ func (m *mockRepo) ListByConsumer(ctx context.Context, consumerID int64, status 
 		return m.listByConsumer(ctx, consumerID, status, page, perPage)
 	}
 	return []BookingRow{}, 0, nil
+}
+func (m *mockRepo) ListByProvider(ctx context.Context, providerUserID int64, locationUUID *string, status *string, fromDate *string, toDate *string, page, perPage int) ([]BookingRow, int, error) {
+	if m.listByProvider != nil {
+		return m.listByProvider(ctx, providerUserID, locationUUID, status, fromDate, toDate, page, perPage)
+	}
+	return []BookingRow{}, 0, nil
+}
+func (m *mockRepo) UpdateStatus(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, toStatus string, reason *string) (*BookingRow, error) {
+	if m.updateStatus != nil {
+		return m.updateStatus(ctx, bookingUUID, providerUserID, toStatus, reason)
+	}
+	return nil, ErrBookingNotFound
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

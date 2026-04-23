@@ -8,10 +8,17 @@ import (
 )
 
 var (
-	ErrBookingNotFound = errors.New("booking not found")
-	ErrServiceNotFound = errors.New("service not found")
-	ErrSlotTaken       = errors.New("time slot already booked")
+	ErrBookingNotFound   = errors.New("booking not found")
+	ErrServiceNotFound   = errors.New("service not found")
+	ErrSlotTaken         = errors.New("time slot already booked")
+	ErrInvalidTransition = errors.New("status transition not allowed")
 )
+
+// validTransitions defines allowed from→to status moves for providers.
+var validTransitions = map[string]map[string]bool{
+	"pending_payment": {"confirmed": true, "cancelled_by_provider": true},
+	"confirmed":       {"completed": true, "cancelled_by_provider": true},
+}
 
 // ServiceScheduleInfo holds the data needed to compute availability.
 type ServiceScheduleInfo struct {
@@ -34,19 +41,21 @@ type Slot struct {
 
 // BookingRow is the full booking returned from the DB.
 type BookingRow struct {
-	ID           int64
-	UUID         uuid.UUID
-	LocationID   int64
-	LocationUUID uuid.UUID
-	ConsumerID   int64
-	ConsumerUUID uuid.UUID
-	Status       string
-	TotalAmount  float64
-	Currency     string
-	Notes        *string
-	Items        []BookingItemRow
-	CreatedAt    time.Time
-	UpdatedAt    *time.Time
+	ID            int64
+	UUID          uuid.UUID
+	LocationID    int64
+	LocationUUID  uuid.UUID
+	ConsumerID    int64
+	ConsumerUUID  uuid.UUID
+	ConsumerName  string // populated in provider view
+	ConsumerEmail string // populated in provider view
+	Status        string
+	TotalAmount   float64
+	Currency      string
+	Notes         *string
+	Items         []BookingItemRow
+	CreatedAt     time.Time
+	UpdatedAt     *time.Time
 }
 
 // BookingItemRow is a single service slot within a booking.

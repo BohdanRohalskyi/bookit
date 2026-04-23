@@ -19,6 +19,8 @@ type bookingRepository interface {
 	Create(ctx context.Context, req CreateBookingReq) (*BookingRow, error)
 	GetByUUID(ctx context.Context, bookingUUID uuid.UUID, consumerID int64) (*BookingRow, error)
 	ListByConsumer(ctx context.Context, consumerID int64, status *string, page, perPage int) ([]BookingRow, int, error)
+	ListByProvider(ctx context.Context, providerUserID int64, locationUUID *string, status *string, fromDate *string, toDate *string, page, perPage int) ([]BookingRow, int, error)
+	UpdateStatus(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, toStatus string, reason *string) (*BookingRow, error)
 }
 
 // Repository implements bookingRepository against Postgres.
@@ -155,13 +157,45 @@ func (r *Repository) Create(ctx context.Context, req CreateBookingReq) (*Booking
 	return r.GetByUUID(ctx, bookingUUID, req.ConsumerID)
 }
 
+// getByBookingID fetches a booking by its internal int64 id without ownership checks.
+func (r *Repository) getByBookingID(ctx context.Context, id int64) (*BookingRow, error) {
+	var b BookingRow
+	err := r.db.QueryRow(ctx, `
+		SELECT b.id, b.uuid, b.location_id, l.uuid,
+		       b.consumer_id, u.uuid, u.name, u.email,
+		       b.status, b.total_amount::float8, b.currency, b.notes,
+		       b.created_at, b.updated_at
+		FROM bookings b
+		JOIN locations l ON l.id = b.location_id
+		JOIN users u     ON u.id = b.consumer_id
+		WHERE b.id = $1
+	`, id).Scan(
+		&b.ID, &b.UUID, &b.LocationID, &b.LocationUUID,
+		&b.ConsumerID, &b.ConsumerUUID, &b.ConsumerName, &b.ConsumerEmail,
+		&b.Status, &b.TotalAmount, &b.Currency, &b.Notes,
+		&b.CreatedAt, &b.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrBookingNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	items, err := r.getItems(ctx, b.ID)
+	if err != nil {
+		return nil, err
+	}
+	b.Items = items
+	return &b, nil
+}
+
 // GetByUUID fetches a booking with its items. Returns ErrBookingNotFound if
 // the booking does not belong to the given consumer.
 func (r *Repository) GetByUUID(ctx context.Context, bookingUUID uuid.UUID, consumerID int64) (*BookingRow, error) {
 	var b BookingRow
 	err := r.db.QueryRow(ctx, `
 		SELECT b.id, b.uuid, b.location_id, l.uuid,
-		       b.consumer_id, u.uuid,
+		       b.consumer_id, u.uuid, u.name, u.email,
 		       b.status, b.total_amount::float8, b.currency, b.notes,
 		       b.created_at, b.updated_at
 		FROM bookings b
@@ -170,7 +204,7 @@ func (r *Repository) GetByUUID(ctx context.Context, bookingUUID uuid.UUID, consu
 		WHERE b.uuid = $1 AND b.consumer_id = $2
 	`, bookingUUID, consumerID).Scan(
 		&b.ID, &b.UUID, &b.LocationID, &b.LocationUUID,
-		&b.ConsumerID, &b.ConsumerUUID,
+		&b.ConsumerID, &b.ConsumerUUID, &b.ConsumerName, &b.ConsumerEmail,
 		&b.Status, &b.TotalAmount, &b.Currency, &b.Notes,
 		&b.CreatedAt, &b.UpdatedAt,
 	)
@@ -284,6 +318,161 @@ func (r *Repository) getItems(ctx context.Context, bookingID int64) ([]BookingIt
 		items = []BookingItemRow{}
 	}
 	return items, rows.Err()
+}
+
+// ListByProvider returns bookings for all locations belonging to the provider's businesses.
+// Optionally filters by location_id UUID, status, and date range.
+func (r *Repository) ListByProvider(ctx context.Context, providerUserID int64, locationUUID *string, status *string, fromDate *string, toDate *string, page, perPage int) ([]BookingRow, int, error) {
+	args := []any{providerUserID}
+	where := `
+		WHERE p.user_id = $1
+	`
+	if locationUUID != nil {
+		args = append(args, *locationUUID)
+		where += fmt.Sprintf(" AND l.uuid = $%d::uuid", len(args))
+	}
+	if status != nil {
+		args = append(args, *status)
+		where += fmt.Sprintf(" AND b.status = $%d", len(args))
+	}
+	if fromDate != nil {
+		args = append(args, *fromDate)
+		where += fmt.Sprintf(" AND b.created_at::date >= $%d::date", len(args))
+	}
+	if toDate != nil {
+		args = append(args, *toDate)
+		where += fmt.Sprintf(" AND b.created_at::date <= $%d::date", len(args))
+	}
+
+	baseFrom := `
+		FROM bookings b
+		JOIN locations l   ON l.id = b.location_id
+		JOIN businesses bz ON bz.id = l.business_id
+		JOIN providers p   ON p.id = bz.provider_id
+		JOIN users u       ON u.id = b.consumer_id
+	` + where
+
+	var total int
+	if err := r.db.QueryRow(ctx, "SELECT COUNT(*) "+baseFrom, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * perPage
+	dataArgs := append(args, perPage, offset)
+	rows, err := r.db.Query(ctx, `
+		SELECT b.id, b.uuid, b.location_id, l.uuid,
+		       b.consumer_id, u.uuid, u.name, u.email,
+		       b.status, b.total_amount::float8, b.currency, b.notes,
+		       b.created_at, b.updated_at
+		`+baseFrom+fmt.Sprintf(`
+		ORDER BY b.created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, len(dataArgs)-1, len(dataArgs)), dataArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var bookings []BookingRow
+	for rows.Next() {
+		var b BookingRow
+		if err := rows.Scan(
+			&b.ID, &b.UUID, &b.LocationID, &b.LocationUUID,
+			&b.ConsumerID, &b.ConsumerUUID, &b.ConsumerName, &b.ConsumerEmail,
+			&b.Status, &b.TotalAmount, &b.Currency, &b.Notes,
+			&b.CreatedAt, &b.UpdatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		bookings = append(bookings, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	for i, b := range bookings {
+		items, err := r.getItems(ctx, b.ID)
+		if err != nil {
+			return nil, 0, err
+		}
+		bookings[i].Items = items
+	}
+	if bookings == nil {
+		bookings = []BookingRow{}
+	}
+	return bookings, total, nil
+}
+
+// UpdateStatus transitions a booking's status, validates the transition, and logs it.
+// providerUserID must own the business that the booking's location belongs to.
+func (r *Repository) UpdateStatus(ctx context.Context, bookingUUID uuid.UUID, providerUserID int64, toStatus string, reason *string) (*BookingRow, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }() //nolint:errcheck
+
+	// Fetch current status + verify ownership
+	var bookingID int64
+	var fromStatus string
+	err = tx.QueryRow(ctx, `
+		SELECT b.id, b.status
+		FROM bookings b
+		JOIN locations l   ON l.id = b.location_id
+		JOIN businesses bz ON bz.id = l.business_id
+		JOIN providers p   ON p.id = bz.provider_id
+		WHERE b.uuid = $1 AND p.user_id = $2
+		FOR UPDATE
+	`, bookingUUID, providerUserID).Scan(&bookingID, &fromStatus)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrBookingNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate transition
+	if !validTransitions[fromStatus][toStatus] {
+		return nil, ErrInvalidTransition
+	}
+
+	// Update booking status
+	if _, err := tx.Exec(ctx,
+		`UPDATE bookings SET status=$1, updated_at=NOW() WHERE id=$2`,
+		toStatus, bookingID,
+	); err != nil {
+		return nil, err
+	}
+
+	// Update booking_items status where applicable
+	itemStatus := toStatus
+	switch toStatus {
+	case "cancelled_by_provider":
+		itemStatus = "cancelled"
+	case "completed":
+		itemStatus = "completed"
+	default:
+		itemStatus = "confirmed"
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE booking_items SET status=$1 WHERE booking_id=$2 AND status != 'cancelled'`,
+		itemStatus, bookingID,
+	); err != nil {
+		return nil, err
+	}
+
+	// Log status history
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO booking_status_history (booking_id, from_status, to_status, changed_by, reason)
+		VALUES ($1, $2, $3, $4, $5)
+	`, bookingID, fromStatus, toStatus, providerUserID, reason); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return r.getByBookingID(ctx, bookingID)
 }
 
 func isUniqueViolation(err error) bool {

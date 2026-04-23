@@ -10,6 +10,7 @@ import { LocationList } from './pages/LocationList'
 import { LocationWizard } from './pages/LocationWizard'
 import { LocationDetail } from './pages/LocationDetail'
 import { StaffList } from './pages/StaffList'
+import { BookingsList } from './pages/BookingsList'
 import { MyProfile } from './pages/MyProfile'
 import { SpaceGuard } from './components/SpaceGuard'
 import { InviteAccept } from './pages/InviteAccept'
@@ -50,6 +51,9 @@ export default function App() {
 
           {/* Staff management */}
           <Route path="/dashboard/staff" element={<StaffList />} />
+
+          {/* Bookings */}
+          <Route path="/dashboard/bookings" element={<BookingsList />} />
 
           {/* Business-scoped profile */}
           <Route path="/dashboard/profile" element={<MyProfile />} />
