@@ -123,6 +123,7 @@ func (h *Handler) GetAvailableSlots(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"service_id":       info.ServiceUUID.String(),
+		"location_id":      info.LocationUUID.String(),
 		"date":             dateStr,
 		"duration_minutes": info.DurationMinutes,
 		"slots":            slotResp,

@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Clock, Banknote, MapPin, Building2 } from 'lucide-react'
 import { api } from '@bookit/shared/api'
@@ -92,6 +92,7 @@ function Skeleton() {
 
 export function ServiceDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['service', id],
@@ -205,13 +206,11 @@ export function ServiceDetailPage() {
 
             {/* CTA */}
             <button
-              disabled
-              title="Booking coming soon"
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-medium text-white bg-[#1069d1] rounded-xl hover:bg-[#0d56b0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => navigate(`/book/${id}`)}
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-medium text-white bg-[#1069d1] rounded-xl hover:bg-[#0d56b0] transition-colors"
             >
               Book now
             </button>
-            <p className="text-xs text-slate-400 mt-2">Online booking coming soon</p>
           </div>
         </div>
       </div>
