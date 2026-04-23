@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { components } from '@bookit/shared/api'
 
 type ServiceSearchResult = components['schemas']['ServiceSearchResult']
@@ -18,7 +19,8 @@ export function ServiceCard({ service }: { service: ServiceSearchResult }) {
   const badge = CATEGORY_BADGE[service.category]
 
   return (
-    <div className="flex gap-4 p-5 bg-white border border-slate-100 rounded-2xl hover:border-slate-200 hover:shadow-sm transition-all">
+    <Link to={`/services/${service.id}`} className="block">
+    <div className="flex gap-4 p-5 bg-white border border-slate-100 rounded-2xl hover:border-slate-200 hover:shadow-sm transition-all cursor-pointer">
       {/* Cover image */}
       <div className="size-20 shrink-0 rounded-xl bg-slate-100 overflow-hidden">
         {service.cover_image_url ? (
@@ -67,6 +69,7 @@ export function ServiceCard({ service }: { service: ServiceSearchResult }) {
         </div>
       </div>
     </div>
+    </Link>
   )
 }
 

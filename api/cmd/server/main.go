@@ -225,6 +225,7 @@ func run() error {
 
 	// Public catalog endpoints (no auth required)
 	router.GET("/api/v1/services/search", catalogItemHandler.SearchServices)
+	router.GET("/api/v1/services/:id", catalogItemHandler.GetServicePublic)
 
 	// Business-level catalog: equipment, staff roles, services
 	catalogProtected := router.Group("/api/v1")

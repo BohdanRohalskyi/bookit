@@ -124,6 +124,21 @@ type ServiceSearchResultItem struct {
 	CoverImageURL   *string
 }
 
+type ServiceDetail struct {
+	UUID            uuid.UUID
+	Name            string
+	Description     *string
+	DurationMinutes int
+	Price           float64
+	Currency        string
+	BusinessUUID    uuid.UUID
+	BusinessName    string
+	Category        string
+	City            *string
+	CoverImageURL   *string
+	CreatedAt       time.Time
+}
+
 // ─── Location pivots ──────────────────────────────────────────────────────────
 
 type LocationEquipment struct {

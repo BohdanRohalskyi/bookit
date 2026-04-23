@@ -10,6 +10,7 @@ import { DevStatus } from './pages/DevStatus'
 import { RequireAuth } from './components/auth/RequireAuth'
 import { NotFound } from './pages/NotFound'
 import { SearchPage } from './pages/Search'
+import { ServiceDetailPage } from './pages/ServiceDetail'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/services/:id" element={<ServiceDetailPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

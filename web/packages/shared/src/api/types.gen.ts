@@ -644,7 +644,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get a service */
+        /**
+         * Get a service (public)
+         * @description Returns full service detail including business and location info. No authentication required.
+         */
         get: operations["getService"];
         put?: never;
         post?: never;
@@ -1325,6 +1328,26 @@ export interface components {
         ServiceSearchList: {
             data: components["schemas"]["ServiceSearchResult"][];
             pagination: components["schemas"]["Pagination"];
+        };
+        ServiceDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description?: string | null;
+            duration_minutes: number;
+            /** Format: double */
+            price: number;
+            /** @example EUR */
+            currency: string;
+            /** Format: uuid */
+            business_id: string;
+            business_name: string;
+            category: components["schemas"]["BusinessCategory"];
+            city?: string | null;
+            /** Format: uri */
+            cover_image_url?: string | null;
+            /** Format: date-time */
+            created_at?: string;
         };
         StaffRole: {
             /** Format: uuid */
@@ -2958,10 +2981,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Service"];
+                    "application/json": components["schemas"]["ServiceDetail"];
                 };
             };
-            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };

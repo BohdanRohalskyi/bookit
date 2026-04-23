@@ -1350,10 +1350,10 @@ paths:
   /api/v1/services/{id}:
     get:
       tags: [Services]
-      summary: Get a service
+      summary: Get a service (public)
+      description: Returns full service detail including business and location info. No authentication required.
       operationId: getService
-      security:
-        - BearerAuth: []
+      security: []
       parameters:
         - $ref: '#/components/parameters/ServiceId'
       responses:
@@ -1362,9 +1362,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Service'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/ServiceDetail'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -2990,6 +2988,52 @@ components:
             $ref: '#/components/schemas/ServiceSearchResult'
         pagination:
           $ref: '#/components/schemas/Pagination'
+
+    ServiceDetail:
+      type: object
+      required:
+        - id
+        - name
+        - duration_minutes
+        - price
+        - currency
+        - business_id
+        - business_name
+        - category
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        duration_minutes:
+          type: integer
+        price:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: "EUR"
+        business_id:
+          type: string
+          format: uuid
+        business_name:
+          type: string
+        category:
+          $ref: '#/components/schemas/BusinessCategory'
+        city:
+          type: string
+          nullable: true
+        cover_image_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
 
     # ----------------------------------------------------------
     # Staff Roles (business-level catalog — not individual people)
