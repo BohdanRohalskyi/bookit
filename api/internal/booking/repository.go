@@ -42,8 +42,8 @@ func (r *Repository) GetServiceSchedule(ctx context.Context, serviceUUID uuid.UU
 			s.id, s.uuid, s.duration_minutes,
 			l.id, l.uuid,
 			sd.is_open,
-			sd.open_time::text,
-			sd.close_time::text
+			TO_CHAR(sd.open_time, 'HH24:MI'),
+			TO_CHAR(sd.close_time, 'HH24:MI')
 		FROM services s
 		JOIN location_services ls ON ls.service_id = s.id AND ls.is_active = true
 		JOIN locations l           ON l.id = ls.location_id AND l.is_active = true
