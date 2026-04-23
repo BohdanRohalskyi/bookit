@@ -78,25 +78,23 @@ function Hero() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <Link to="/search">
+            <button className="px-7 py-3.5 text-base font-medium text-white bg-[#1069d1] rounded-xl hover:bg-[#0d56b0] transition-colors shadow-sm">
+              Browse services
+            </button>
+          </Link>
           {isAuthenticated ? (
             <Link to="/account">
-              <button className="px-7 py-3.5 text-base font-medium text-white bg-[#1069d1] rounded-xl hover:bg-[#0d56b0] transition-colors shadow-sm">
-                Go to my account
+              <button className="px-7 py-3.5 text-base font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                My account
               </button>
             </Link>
           ) : (
-            <>
-              <Link to="/register">
-                <button className="px-7 py-3.5 text-base font-medium text-white bg-[#1069d1] rounded-xl hover:bg-[#0d56b0] transition-colors shadow-sm">
-                  Book your first appointment
-                </button>
-              </Link>
-              <Link to="/login">
-                <button className="px-7 py-3.5 text-base font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                  Log in
-                </button>
-              </Link>
-            </>
+            <Link to="/register">
+              <button className="px-7 py-3.5 text-base font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                Sign up free
+              </button>
+            </Link>
           )}
         </div>
 
