@@ -382,16 +382,17 @@ export function BookingsList() {
 
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date()))
   const [selected, setSelected] = useState<BookingWithConsumer | null>(null)
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | undefined>(undefined)
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const fromDate = toDateStr(weekStart)
   const toDate   = toDateStr(addDays(weekStart, 6))
 
   const { data, isLoading } = useQuery({
-    queryKey: ['provider-bookings', businessId, fromDate, toDate],
+    queryKey: ['provider-bookings', businessId, fromDate, toDate, statusFilter],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/v1/bookings/provider', {
-        params: { query: { from_date: fromDate, to_date: toDate, per_page: 200 } },
+        params: { query: { from_date: fromDate, to_date: toDate, status: statusFilter, per_page: 200 } },
       })
       if (error) throw error
       return data
@@ -430,10 +431,17 @@ export function BookingsList() {
 
   const goToToday = () => setWeekStart(getMondayOf(new Date()))
 
+  const STATUS_FILTERS: { label: string; value: BookingStatus | undefined; dot: string }[] = [
+    { label: 'All',       value: undefined,              dot: 'bg-[rgba(2,9,5,0.2)]' },
+    { label: 'Confirmed', value: 'confirmed',             dot: 'bg-blue-400' },
+    { label: 'Completed', value: 'completed',             dot: 'bg-emerald-400' },
+    { label: 'Cancelled', value: 'cancelled_by_provider', dot: 'bg-slate-400' },
+  ]
+
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <p className="font-heading font-semibold text-2xl text-[#020905] mr-2">Bookings</p>
 
         <button
@@ -460,8 +468,26 @@ export function BookingsList() {
 
         <p className="text-sm font-medium text-[rgba(2,9,5,0.6)]">{formatMonthYear(weekStart)}</p>
 
+        {/* Status filter pills */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {STATUS_FILTERS.map(f => (
+            <button
+              key={f.label}
+              onClick={() => setStatusFilter(f.value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[6px] border transition-colors ${
+                statusFilter === f.value
+                  ? 'bg-[#1069d1] text-white border-[#1069d1]'
+                  : 'bg-white border-[rgba(2,9,5,0.15)] text-[rgba(2,9,5,0.6)] hover:border-[#1069d1] hover:text-[#1069d1]'
+              }`}
+            >
+              <span className={`size-1.5 rounded-full shrink-0 ${statusFilter === f.value ? 'bg-white/70' : f.dot}`} />
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         {isLoading && (
-          <span className="text-xs text-[rgba(2,9,5,0.3)] ml-auto">Loading…</span>
+          <span className="text-xs text-[rgba(2,9,5,0.3)]">Loading…</span>
         )}
       </div>
 
