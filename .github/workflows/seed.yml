@@ -1,0 +1,91 @@
+name: Seed Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - staging
+      reset_db:
+        description: 'Drop and re-run migrations before seeding (DESTRUCTIVE)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  seed:
+    name: Seed
+    runs-on: ubuntu-latest
+
+    env:
+      GCP_REGION: europe-west3
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: api/go.sum
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Install Cloud SQL Proxy
+        run: |
+          curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.3/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+          ./cloud-sql-proxy ${{ secrets.GCP_PROJECT_ID }}:europe-west3:bookit-db --port 5432 &
+          sleep 5
+
+      - name: Resolve database password
+        id: dbpass
+        run: |
+          DB_PASS=$(gcloud secrets versions access latest --secret=bookit-db-password --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "")
+          if [[ -z "$DB_PASS" ]]; then
+            DB_URL=$(gcloud secrets versions access latest --secret=bookit-database-url-${{ inputs.environment }})
+            DB_PASS=$(echo "$DB_URL" | sed 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/')
+          fi
+          echo "::add-mask::$DB_PASS"
+          echo "pass=$DB_PASS" >> $GITHUB_OUTPUT
+
+      - name: Set database name
+        id: dbname
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            echo "name=bookit_prod" >> $GITHUB_OUTPUT
+          else
+            echo "name=bookit_staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install migrate tool
+        if: inputs.reset_db
+        run: curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xz
+
+      - name: Reset database (drop + migrate)
+        if: inputs.reset_db
+        run: |
+          DB_URL="postgres://bookit:${{ steps.dbpass.outputs.pass }}@localhost:5432/${{ steps.dbname.outputs.name }}?sslmode=disable"
+          ./migrate -path api/migrations -database "$DB_URL" drop -f || true
+          ./migrate -path api/migrations -database "$DB_URL" up
+          echo "Database reset and migrated."
+
+      - name: Run seeder
+        env:
+          DATABASE_URL: "postgres://bookit:${{ steps.dbpass.outputs.pass }}@localhost:5432/${{ steps.dbname.outputs.name }}?sslmode=disable"
+        run: |
+          cd api
+          go run ./cmd/seed
