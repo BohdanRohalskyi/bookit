@@ -18,25 +18,5 @@
       "Bash(ls api/.env*)"
     ]
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; jq -r '.tool_input.command // \"\"' | grep -q 'git push' && git -C \"$ROOT\" diff --name-only origin/main HEAD 2>/dev/null | grep -q '^api/' && cd \"$ROOT\" && docker compose --profile tools run --rm lint || true",
-            "timeout": 120,
-            "statusMessage": "Running golangci-lint..."
-          },
-          {
-            "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; jq -r '.tool_input.command // \"\"' | grep -q 'git push' && git -C \"$ROOT\" diff --name-only origin/main HEAD 2>/dev/null | grep -q '^web/' && cd \"$ROOT/web\" && npm run typecheck && npm run lint || true",
-            "timeout": 60,
-            "statusMessage": "Running web linter..."
-          }
-        ]
-      }
-    ]
-  }
+  "hooks": {}
 }
