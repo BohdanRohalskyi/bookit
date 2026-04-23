@@ -28,6 +28,103 @@ You are implementing a React frontend feature for the Bookit project. Follow the
 
 ---
 
+## TDD Approach — mandatory
+
+**Write tests before implementation. No exceptions.**
+
+```
+Red → Green → Refactor
+```
+
+1. **Red** — write the test first. It must fail because the component doesn't exist yet.
+2. **Green** — write the minimum implementation to make the test pass.
+3. **Refactor** — clean up while keeping tests green.
+
+### Test file locations
+
+| What | File location |
+|------|--------------|
+| Page component | `src/pages/__tests__/MyPage.test.tsx` |
+| App-specific component | `src/components/__tests__/MyComponent.test.tsx` |
+| Shared component | `web/packages/shared/src/components/__tests__/` |
+
+### Standard test setup
+
+```tsx
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import type { Mock } from 'vitest'
+import { MyPage } from '../MyPage'
+import { api } from '@bookit/shared/api'
+import { renderWithProviders } from '../../test/utils'
+
+// Mock react-router-dom navigation
+let mockNavigate = vi.fn()
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return { ...actual, useNavigate: () => mockNavigate }
+})
+
+// Mock the API client
+vi.mock('@bookit/shared/api', () => ({
+  api: { GET: vi.fn(), POST: vi.fn() },
+  API_URL: 'http://localhost:8080',
+}))
+
+const get = () => api.GET as unknown as Mock
+const post = () => api.POST as unknown as Mock
+
+beforeEach(() => {
+  mockNavigate = vi.fn()
+  get().mockReset()
+  post().mockReset()
+})
+```
+
+### Fixture builders
+
+Build typed test data with sensible defaults, accept overrides:
+
+```tsx
+import type { components } from '@bookit/shared/api'
+type MyThing = components['schemas']['MyThing']
+
+function buildMyThing(overrides?: Partial<MyThing>): MyThing {
+  return {
+    id: crypto.randomUUID(),
+    name: 'Test Thing',
+    created_at: '2026-01-01T00:00:00Z',
+    ...overrides,
+  }
+}
+```
+
+### What to test
+
+For every component, test all of these:
+
+| Scenario | What to verify |
+|----------|---------------|
+| Rendering | Required elements are visible |
+| Loading state | Skeleton/spinner shown while API resolves |
+| Success state | Data displayed correctly from API response |
+| Empty state | Empty state message shown when no data |
+| Error state | Error message shown when API fails |
+| User interactions | Clicks, form inputs update state / call API |
+| Navigation | `mockNavigate` called with correct route on success |
+
+### Running tests
+
+```bash
+# Run all tests in a package
+cd web/packages/consumer && npx vitest run
+
+# Run a specific test file
+npx vitest run src/pages/__tests__/MyPage.test.tsx
+```
+
+---
+
 ## Reuse before you create
 
 Before implementing, check whether something already exists in the shared package:
@@ -124,7 +221,11 @@ Note the flag key (`my_feature`) in your PR description — the project owner ac
 
 ## Before finishing
 
-Run `npx tsc --noEmit` in the affected package to confirm zero type errors.
+1. All new components and pages have tests written before implementation (Red → Green → Refactor).
+2. Confirm tests pass: `cd web/packages/<consumer|biz> && npx vitest run`
+3. Confirm zero type errors: `cd web && npm run typecheck`
+
+The pre-push hook runs typecheck and lint automatically on push — no need to run manually.
 
 ## Arguments
 

@@ -44,6 +44,100 @@ api/
 
 ---
 
+## TDD Approach — mandatory
+
+**Write tests before implementation. No exceptions.**
+
+```
+Red → Green → Refactor
+```
+
+1. **Red** — write the test first. It must fail because the code doesn't exist yet.
+2. **Green** — write the minimum implementation to make the test pass.
+3. **Refactor** — clean up while keeping tests green.
+
+### Test types and where they live
+
+| Type | File | What it tests |
+|------|------|---------------|
+| Handler unit test | `internal/<domain>/<handler>_test.go` | HTTP layer — request routing, status codes, response shape |
+| Service unit test | `internal/<domain>/service_test.go` | Business logic with mock repository |
+| Integration test | `internal/<domain>/<name>_test.go` | Repository queries against a real DB (requires `DATABASE_URL`) |
+
+### Mock pattern
+
+Use a struct with function fields — same pattern as `auth/mock_test.go`. Unset fields default to safe zero values so each test only configures what it exercises:
+
+```go
+type mockRepo struct {
+    getByID func(ctx context.Context, id int64) (*MyType, error)
+    create  func(ctx context.Context, req CreateReq) (*MyType, error)
+}
+
+func (m *mockRepo) GetByID(ctx context.Context, id int64) (*MyType, error) {
+    if m.getByID != nil { return m.getByID(ctx, id) }
+    return nil, ErrNotFound // safe default
+}
+```
+
+To make a handler testable, define a narrow interface for the methods it needs (same pattern as `catalogSearcher` in `catalog/catalog_handler.go`) and inject via constructor.
+
+### Handler test pattern
+
+```go
+func init() { gin.SetMode(gin.TestMode) }
+
+func newTestRouter(repo myRepository) *gin.Engine {
+    svc := NewService(repo)
+    h := NewHandler(svc)
+    r := gin.New()
+    r.GET("/api/v1/things/:id", h.GetThing)
+    return r
+}
+
+func do(r *gin.Engine, method, path string, body any) *httptest.ResponseRecorder {
+    b, _ := json.Marshal(body)
+    req := httptest.NewRequestWithContext(context.Background(), method, path, bytes.NewReader(b))
+    req.Header.Set("Content-Type", "application/json")
+    rr := httptest.NewRecorder()
+    r.ServeHTTP(rr, req)
+    return rr
+}
+
+func TestGetThing(t *testing.T) {
+    t.Parallel()
+
+    t.Run("200 returns the thing", func(t *testing.T) {
+        t.Parallel()
+        repo := &mockRepo{
+            getByID: func(_ context.Context, id int64) (*MyType, error) {
+                return &MyType{ID: id, Name: "foo"}, nil
+            },
+        }
+        rr := do(newTestRouter(repo), http.MethodGet, "/api/v1/things/1", nil)
+        assert.Equal(t, http.StatusOK, rr.Code)
+    })
+
+    t.Run("404 when not found", func(t *testing.T) {
+        t.Parallel()
+        rr := do(newTestRouter(&mockRepo{}), http.MethodGet, "/api/v1/things/999", nil)
+        assert.Equal(t, http.StatusNotFound, rr.Code)
+    })
+}
+```
+
+### Running tests
+
+```bash
+# Unit tests (no DB needed)
+cd api && go test ./...
+
+# With DB running
+docker compose up -d db && cd api && go test ./...
+```
+
+---
+
 ## Reuse before you create
 
 Before implementing, check whether something already exists:
@@ -165,16 +259,11 @@ domain/<name>/
 
 ## Before finishing
 
-Confirm clean build and vet:
-```bash
-# Local Go
-cd api && go build ./... && go vet ./...
+1. All new code has tests written before implementation (Red → Green → Refactor).
+2. Confirm tests pass: `cd api && go test ./...`
+3. Confirm clean build and vet: `cd api && go build ./... && go vet ./...`
 
-# Docker (if Go not installed locally)
-docker compose --profile tools run --rm go-tools sh -c "go build ./... && go vet ./..."
-```
-
-Linter runs automatically on push via the pre-push hook.
+The pre-push hook runs `go build`, `go vet`, and `golangci-lint` automatically on push — no need to run manually.
 
 ## Arguments
 
