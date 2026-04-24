@@ -230,4 +230,8 @@ code {
   body {
     @apply bg-background text-foreground;}
   html {
-    @apply font-sans;}}
+    @apply font-sans;}
+  button:not(:disabled), [role="button"]:not(:disabled), a, select, label[for] {
+    cursor: pointer;
+  }
+}
