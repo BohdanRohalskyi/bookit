@@ -7,6 +7,7 @@ import { Calendar, Clock, Star } from 'lucide-react'
 import { Button, Input, Label } from '@bookit/shared'
 import { api, type ApiError } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
+import { useAppSwitch } from '@bookit/shared/hooks'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -61,6 +62,7 @@ function HeroPanel() {
 export function Login() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const { switchTo } = useAppSwitch()
   const [accountType, setAccountType] = useState<AccountType>('customer')
   const [error, setError] = useState<string | null>(null)
 
@@ -87,6 +89,11 @@ export function Login() {
 
     if (result) {
       setAuth(result.user, result.tokens)
+      if (accountType === 'provider') {
+        const bizUrl = import.meta.env.VITE_BIZ_URL || 'https://pt-duo-bookit-biz.web.app'
+        await switchTo(bizUrl)
+        return
+      }
       navigate('/account')
     }
   }
