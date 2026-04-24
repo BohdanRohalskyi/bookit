@@ -21,6 +21,9 @@ type Config struct {
 	BizURL         string   // Biz frontend URL for invite links
 	AllowedOrigins []string // CORS allowed origins
 
+	// Alpha test mode — blocks provider registration and exposes /alpha-access endpoint
+	AlphaTest bool
+
 	// Database settings
 	AutoMigrate bool // Run migrations on startup (local dev only)
 
@@ -52,6 +55,7 @@ func Load() (*Config, error) {
 		AppURL:         getEnv("APP_URL", "http://localhost:5173"),
 		BizURL:         getEnv("BIZ_URL", "http://localhost:5174"),
 		AllowedOrigins: getEnvAsStringSlice("CORS_ALLOWED_ORIGINS"),
+		AlphaTest:      getEnvAsBool("ALPHA_TEST", false),
 		AutoMigrate:    getEnvAsBool("AUTO_MIGRATE", env == "local"),
 		MailProvider:   getEnv("MAIL_PROVIDER", "smtp"),
 		SMTPHost:       getEnv("SMTP_HOST", "localhost"),

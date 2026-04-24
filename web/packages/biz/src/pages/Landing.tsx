@@ -4,6 +4,10 @@ import { Button } from '@bookit/shared'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
 
+const isAlpha = import.meta.env.VITE_ALPHA_TEST === 'true'
+const registerPath = isAlpha ? '/alpha-test' : '/register'
+const registerLabel = isAlpha ? 'Request alpha access' : null
+
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 
 function Navbar() {
@@ -41,9 +45,9 @@ function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/register">
+              <Link to={registerPath}>
                 <button className="px-3 py-1.5 text-base font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors">
-                  Sign up
+                  {registerLabel ?? 'Sign up'}
                 </button>
               </Link>
               <Link to="/login">
@@ -96,9 +100,9 @@ function Hero() {
                 </button>
               ) : (
                 <>
-                  <Link to="/register">
+                  <Link to={registerPath}>
                     <button className="px-4 py-2 text-base font-medium text-white bg-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors">
-                      Get started
+                      {registerLabel ?? 'Get started'}
                     </button>
                   </Link>
                   <button
@@ -444,9 +448,9 @@ function Cta1() {
               </p>
             </div>
             <div className="flex gap-4">
-              <Link to="/register">
+              <Link to={registerPath}>
                 <button className="px-4 py-2 text-base font-medium text-white bg-[#1069d1] border border-[#1069d1] rounded-[6px] hover:bg-[#0d56b0] transition-colors">
-                  Start
+                  {registerLabel ?? 'Start'}
                 </button>
               </Link>
               <button className="px-4 py-2 text-base font-medium text-[#020905] border border-[rgba(2,9,5,0.15)] rounded-[6px] hover:bg-black/5 transition-colors">

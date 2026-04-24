@@ -962,6 +962,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alpha-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit an alpha access request
+         * @description Saves the request and notifies the team by email.
+         */
+        post: operations["submitAlphaAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1523,6 +1543,12 @@ export interface components {
             quantity_active: number;
             /** @default 0 */
             quantity_inactive: number;
+        };
+        AlphaAccessRequest: {
+            /** Format: email */
+            email: string;
+            company_name: string;
+            description: string;
         };
         EquipmentUpdate: {
             name?: string;
@@ -3787,6 +3813,33 @@ export interface operations {
                     "application/json": components["schemas"]["HealthResponse"];
                 };
             };
+        };
+    };
+    submitAlphaAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlphaAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description Request received */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationError"];
         };
     };
 }

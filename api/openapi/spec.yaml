@@ -2135,6 +2135,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
+  # ============================================================
+  # ALPHA ACCESS
+  # ============================================================
+  /api/v1/alpha-access:
+    post:
+      tags: [Alpha]
+      summary: Submit an alpha access request
+      description: Saves the request and notifies the team by email.
+      operationId: submitAlphaAccess
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlphaAccessRequest'
+      responses:
+        '201':
+          description: Request received
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
 # ============================================================
 # COMPONENTS
 # ============================================================
@@ -3478,6 +3508,21 @@ components:
           type: integer
           minimum: 0
           default: 0
+
+    AlphaAccessRequest:
+      type: object
+      required: [email, company_name, description]
+      properties:
+        email:
+          type: string
+          format: email
+        company_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
 
     EquipmentUpdate:
       type: object

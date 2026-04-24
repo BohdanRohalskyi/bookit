@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -18,12 +18,18 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>
 type AccountType = 'customer' | 'provider'
 
+const isAlpha = import.meta.env.VITE_ALPHA_TEST === 'true'
+
 export function Register() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
   const { switchTo } = useAppSwitch()
   const [accountType, setAccountType] = useState<AccountType>('customer')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isAlpha && accountType === 'provider') setAccountType('customer')
+  }, [accountType])
 
   const {
     register,
@@ -80,17 +86,19 @@ export function Register() {
             >
               Customer
             </button>
-            <button
-              type="button"
-              onClick={() => setAccountType('provider')}
-              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
-                accountType === 'provider'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Provider
-            </button>
+            {!isAlpha && (
+              <button
+                type="button"
+                onClick={() => setAccountType('provider')}
+                className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                  accountType === 'provider'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Provider
+              </button>
+            )}
           </div>
 
           <CardTitle className="text-2xl">

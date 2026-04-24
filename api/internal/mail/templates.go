@@ -197,6 +197,48 @@ func (t *Templates) BookingConfirmation(data BookingConfirmationData) Message {
 	}
 }
 
+// AlphaAccessRequest notifies the team about a new alpha access request.
+func (t *Templates) AlphaAccessRequest(to, companyName, email, description string) Message {
+	return Message{
+		To:      to,
+		Subject: fmt.Sprintf("Alpha access request: %s", companyName),
+		HTML: fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+    .field { margin-bottom: 16px; }
+    .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; }
+    .value { font-size: 15px; color: #111; margin-top: 4px; white-space: pre-wrap; }
+    .footer { margin-top: 40px; font-size: 13px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p style="font-size:22px;font-weight:600;margin:0 0 24px">New alpha access request</p>
+    <div class="field">
+      <div class="label">Company</div>
+      <div class="value">%s</div>
+    </div>
+    <div class="field">
+      <div class="label">Email</div>
+      <div class="value">%s</div>
+    </div>
+    <div class="field">
+      <div class="label">Description</div>
+      <div class="value">%s</div>
+    </div>
+    <div class="footer">Sent from Bookit alpha access form.</div>
+  </div>
+</body>
+</html>`, companyName, email, description),
+		Text: fmt.Sprintf("New alpha access request\n\nCompany: %s\nEmail: %s\n\n%s", companyName, email, description),
+	}
+}
+
 // PasswordReset creates a password reset email
 func (t *Templates) PasswordReset(to, token string) Message {
 	link := fmt.Sprintf("%s/reset-password?token=%s", t.baseURL, token)

@@ -40,6 +40,7 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       MAIL_FROM: noreply@bookit.app
+      ALPHA_TEST: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -59,6 +60,7 @@ services:
     environment:
       VITE_API_URL: http://localhost:8080
       VITE_BIZ_URL: http://localhost:5174
+      VITE_ALPHA_TEST: "false"
     depends_on:
       - api
 
@@ -75,6 +77,7 @@ services:
     environment:
       VITE_API_URL: http://localhost:8080
       VITE_CONSUMER_URL: http://localhost:5173
+      VITE_ALPHA_TEST: "false"
     depends_on:
       - api
 

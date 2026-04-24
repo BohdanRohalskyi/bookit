@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/BohdanRohalskyi/bookit/api/internal/alpha"
 	"github.com/BohdanRohalskyi/bookit/api/internal/auth"
 	"github.com/BohdanRohalskyi/bookit/api/internal/booking"
 	"github.com/BohdanRohalskyi/bookit/api/internal/catalog"
@@ -147,10 +148,25 @@ func run() error {
 	// App switch token exchange (no auth required - token is the auth)
 	authGroup.POST("/exchange-app-switch-token", authHandler.ExchangeAppSwitchToken)
 
+	// Alpha access request (always public — needed to collect waitlist even when alpha mode is on)
+	alphaRepo := alpha.NewRepository(db.Pool)
+	alphaSvc := alpha.NewService(alphaRepo, mailProvider, mailTemplates)
+	alphaHandler := alpha.NewHandler(alphaSvc)
+	router.POST("/api/v1/alpha-access", alphaHandler.Submit)
+
 	// Provider endpoints (protected)
 	providersProtected := router.Group("/api/v1/providers")
 	providersProtected.Use(authHandler.AuthMiddleware())
-	{
+	if cfg.AlphaTest {
+		providersProtected.POST("", func(c *gin.Context) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"type":   "https://bookit.app/errors/registration-closed",
+				"title":  "Registration Closed",
+				"status": http.StatusForbidden,
+				"detail": "Business registration is currently closed. Request alpha access instead.",
+			})
+		})
+	} else {
 		providersProtected.POST("", authHandler.CreateProvider)
 	}
 

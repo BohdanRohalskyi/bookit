@@ -9,6 +9,7 @@ import { BusinessForm } from './pages/BusinessForm'
 import { LocationList } from './pages/LocationList'
 import { LocationWizard } from './pages/LocationWizard'
 import { LocationDetail } from './pages/LocationDetail'
+import { AlphaTest } from './pages/AlphaTest'
 import { StaffList } from './pages/StaffList'
 import { EquipmentServices } from './pages/EquipmentServices'
 import { BookingsList } from './pages/BookingsList'
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/invites" element={<InviteAccept />} />
+        <Route path="/alpha-test" element={<AlphaTest />} />
 
         {/* Space picker — requires auth, no space needed */}
         <Route path="/spaces" element={<SpaceGuard />} />

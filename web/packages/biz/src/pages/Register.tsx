@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -15,10 +15,18 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>
 
+const isAlpha = import.meta.env.VITE_ALPHA_TEST === 'true'
+
 export function Register() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isAlpha) navigate('/alpha-test', { replace: true })
+  }, [navigate])
+
+  if (isAlpha) return null
 
   const {
     register,
