@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -26,10 +26,6 @@ export function Register() {
   const { switchTo } = useAppSwitch()
   const [accountType, setAccountType] = useState<AccountType>('customer')
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (isAlpha && accountType === 'provider') setAccountType('customer')
-  }, [accountType])
 
   const {
     register,

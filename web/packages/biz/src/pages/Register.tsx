@@ -22,12 +22,6 @@ export function Register() {
   const setAuth = useAuthStore((state) => state.setAuth)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isAlpha) navigate('/alpha-test', { replace: true })
-  }, [navigate])
-
-  if (isAlpha) return null
-
   const {
     register,
     handleSubmit,
@@ -35,6 +29,12 @@ export function Register() {
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
   })
+
+  useEffect(() => {
+    if (isAlpha) navigate('/alpha-test', { replace: true })
+  }, [navigate])
+
+  if (isAlpha) return null
 
   const onSubmit = async (data: RegisterForm) => {
     setError(null)
