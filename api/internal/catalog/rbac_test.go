@@ -109,10 +109,10 @@ func seedRBACFixture(t *testing.T, db *pgxpool.Pool) rbacFixture {
 
 	t.Cleanup(func() {
 		c := context.Background()
-		db.Exec(c, `DELETE FROM user_role_assignments WHERE user_id = ANY($1)`, []int64{adminUser.ID, scopedAdminUser.ID, staffUser.ID}) //nolint:errcheck
-		db.Exec(c, `DELETE FROM locations WHERE id = ANY($1)`, []int64{loc1.ID, loc2.ID})                                               //nolint:errcheck
-		db.Exec(c, `DELETE FROM businesses WHERE id = $1`, biz.ID)                                                                       //nolint:errcheck
-		db.Exec(c, `DELETE FROM providers WHERE id = $1`, ownerProvider.ID)                                                              //nolint:errcheck
+		db.Exec(c, `DELETE FROM user_role_assignments WHERE user_id = ANY($1)`, []int64{adminUser.ID, scopedAdminUser.ID, staffUser.ID})           //nolint:errcheck
+		db.Exec(c, `DELETE FROM locations WHERE id = ANY($1)`, []int64{loc1.ID, loc2.ID})                                                          //nolint:errcheck
+		db.Exec(c, `DELETE FROM businesses WHERE id = $1`, biz.ID)                                                                                 //nolint:errcheck
+		db.Exec(c, `DELETE FROM providers WHERE id = $1`, ownerProvider.ID)                                                                        //nolint:errcheck
 		db.Exec(c, `DELETE FROM users WHERE id = ANY($1)`, []int64{ownerUser.ID, adminUser.ID, scopedAdminUser.ID, staffUser.ID, strangerUser.ID}) //nolint:errcheck
 	})
 
