@@ -132,10 +132,12 @@ jobs:
             echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> $GITHUB_ENV
             echo "VITE_CONSUMER_URL=https://pt-duo-bookit.web.app" >> $GITHUB_ENV
             echo "VITE_BIZ_URL=https://pt-duo-bookit-biz.web.app" >> $GITHUB_ENV
+            echo "VITE_ALPHA_TEST=true" >> $GITHUB_ENV
           else
             echo "VITE_API_URL=${{ secrets.VITE_API_URL_STAGING }}" >> $GITHUB_ENV
             echo "VITE_CONSUMER_URL=https://bookit-staging.web.app" >> $GITHUB_ENV
             echo "VITE_BIZ_URL=https://bookit-biz-staging.web.app" >> $GITHUB_ENV
+            echo "VITE_ALPHA_TEST=false" >> $GITHUB_ENV
           fi
           echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> $GITHUB_ENV
           echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> $GITHUB_ENV
