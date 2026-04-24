@@ -358,7 +358,8 @@ func (s *seeder) setWeekdaySchedule(locationID int64, openTime, closeTime string
 func (s *seeder) createEquipment(businessID int64, name string) (int64, error) {
 	var id int64
 	err := s.db.QueryRow(s.ctx, `
-		INSERT INTO equipment (business_id, name) VALUES ($1, $2) RETURNING id
+		INSERT INTO equipment (business_id, name, quantity_active, quantity_inactive)
+		VALUES ($1, $2, 2, 0) RETURNING id
 	`, businessID, name).Scan(&id)
 	if err != nil {
 		return 0, err
