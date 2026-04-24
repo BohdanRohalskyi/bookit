@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Calendar, Clock, Banknote, ArrowLeft } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Calendar, Clock, Banknote, ArrowLeft, X } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
 import type { components } from '@bookit/shared/api'
@@ -19,6 +19,8 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   pending_payment:       { label: 'Pending',    className: 'bg-amber-50 text-amber-600 border border-amber-100' },
   no_show:               { label: 'No show',    className: 'bg-red-50 text-red-500 border border-red-100' },
 }
+
+const CANCELLABLE: BookingStatus[] = ['confirmed', 'pending_payment']
 
 const FILTERS: { label: string; status?: BookingStatus }[] = [
   { label: 'All' },
@@ -39,11 +41,78 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
 }
 
+// ─── Cancel confirmation dialog ───────────────────────────────────────────────
+
+function CancelDialog({
+  booking,
+  onConfirm,
+  onClose,
+  isPending,
+}: {
+  booking: Booking
+  onConfirm: () => void
+  onClose: () => void
+  isPending: boolean
+}) {
+  const firstItem = booking.items[0]
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 flex flex-col gap-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <p className="font-heading font-semibold text-lg text-slate-900">Cancel booking?</p>
+            <p className="text-sm text-slate-500">
+              {firstItem?.service?.name ?? 'This booking'} on{' '}
+              {firstItem ? formatDate(firstItem.start_datetime) : ''}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-slate-400 shrink-0"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <p className="text-sm text-slate-600 leading-relaxed">
+          Are you sure you want to cancel this booking? This action cannot be undone.
+        </p>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            Keep booking
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+          >
+            {isPending ? 'Cancelling…' : 'Yes, cancel'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Booking card ─────────────────────────────────────────────────────────────
 
-function BookingCard({ booking }: { booking: Booking }) {
+function BookingCard({
+  booking,
+  onCancelRequest,
+}: {
+  booking: Booking
+  onCancelRequest: (b: Booking) => void
+}) {
   const firstItem = booking.items[0]
   const badge = STATUS_BADGE[booking.status] ?? { label: booking.status, className: 'bg-slate-100 text-slate-500' }
+  const canCancel = (CANCELLABLE as string[]).includes(booking.status)
 
   return (
     <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:border-slate-200 transition-colors">
@@ -77,7 +146,18 @@ function BookingCard({ booking }: { booking: Booking }) {
       )}
 
       {booking.notes && (
-        <p className="text-sm text-slate-400 italic border-t border-slate-50 pt-3">"{booking.notes}"</p>
+        <p className="text-sm text-slate-400 italic border-t border-slate-50 pt-3 mb-4">"{booking.notes}"</p>
+      )}
+
+      {canCancel && (
+        <div className="border-t border-slate-50 pt-4">
+          <button
+            onClick={() => onCancelRequest(booking)}
+            className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
+          >
+            Cancel booking
+          </button>
+        </div>
       )}
     </div>
   )
@@ -106,7 +186,9 @@ function BookingCardSkeleton() {
 export function MyBookings() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthStore()
+  const queryClient = useQueryClient()
   const [activeFilter, setActiveFilter] = useState(0)
+  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/login', { replace: true })
@@ -131,12 +213,34 @@ export function MyBookings() {
     enabled: isAuthenticated,
   })
 
+  const cancelMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { error } = await api.POST('/api/v1/bookings/{id}/cancel', {
+        params: { path: { id: bookingId } },
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      setCancelTarget(null)
+      void queryClient.invalidateQueries({ queryKey: ['my-bookings'] })
+    },
+  })
+
   if (!isAuthenticated) return null
 
   const bookings = data?.data ?? []
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {cancelTarget && (
+        <CancelDialog
+          booking={cancelTarget}
+          onConfirm={() => cancelMutation.mutate(cancelTarget.id)}
+          onClose={() => setCancelTarget(null)}
+          isPending={cancelMutation.isPending}
+        />
+      )}
+
       {/* Navbar */}
       <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
         <div className="max-w-[800px] mx-auto px-6 h-16 flex items-center justify-between">
@@ -195,7 +299,13 @@ export function MyBookings() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {bookings.map(b => <BookingCard key={b.id} booking={b} />)}
+            {bookings.map(b => (
+              <BookingCard
+                key={b.id}
+                booking={b}
+                onCancelRequest={setCancelTarget}
+              />
+            ))}
           </div>
         )}
       </div>

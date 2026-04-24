@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ChevronRight, Calendar, Clock, Star, Shield, Sparkles, Dumbbell, PawPrint } from 'lucide-react'
+import { ChevronRight, Calendar, Clock, Star, Shield, Sparkles, Dumbbell, PawPrint, Search } from 'lucide-react'
 import { useAuthStore } from '@bookit/shared/stores'
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
@@ -13,8 +13,11 @@ function Navbar() {
         <span className="font-heading font-semibold text-lg text-slate-900">Bookit</span>
 
         <div className="hidden md:flex items-center gap-8">
+          <Link to="/search" className="text-sm text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1.5">
+            <Search className="size-3.5" />
+            Browse services
+          </Link>
           <a href="#how-it-works" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">How it works</a>
-          <a href="#categories" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">Services</a>
           <a href="#reviews" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">Reviews</a>
         </div>
 
@@ -122,6 +125,7 @@ const CATEGORIES = [
   {
     icon: Sparkles,
     label: 'Beauty',
+    slug: 'beauty',
     color: 'bg-pink-50 text-pink-500',
     border: 'border-pink-100',
     description: 'Hair, nails, skin & more',
@@ -130,6 +134,7 @@ const CATEGORIES = [
   {
     icon: Dumbbell,
     label: 'Sport',
+    slug: 'sport',
     color: 'bg-amber-50 text-amber-500',
     border: 'border-amber-100',
     description: 'Courts, gyms & personal training',
@@ -138,6 +143,7 @@ const CATEGORIES = [
   {
     icon: PawPrint,
     label: 'Pet care',
+    slug: 'pet_care',
     color: 'bg-emerald-50 text-emerald-500',
     border: 'border-emerald-100',
     description: 'Grooming, vet & walking',
@@ -161,9 +167,10 @@ function Categories() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {CATEGORIES.map((cat) => (
-            <div
+            <Link
               key={cat.label}
-              className={`bg-white border-2 ${cat.border} rounded-2xl p-8 flex flex-col gap-6 hover:shadow-md transition-shadow cursor-pointer group`}
+              to={`/search?category=${cat.slug}`}
+              className={`bg-white border-2 ${cat.border} rounded-2xl p-8 flex flex-col gap-6 hover:shadow-md transition-shadow group`}
             >
               <div className={`size-14 rounded-xl ${cat.color} flex items-center justify-center shrink-0`}>
                 <cat.icon className="size-7" strokeWidth={1.8} />
@@ -180,10 +187,10 @@ function Categories() {
                   </li>
                 ))}
               </ul>
-              <button className="flex items-center gap-1 text-sm font-medium text-[#1069d1] group-hover:gap-2 transition-all mt-auto">
+              <span className="flex items-center gap-1 text-sm font-medium text-[#1069d1] group-hover:gap-2 transition-all mt-auto">
                 Browse {cat.label.toLowerCase()} <ChevronRight className="size-4" />
-              </button>
-            </div>
+              </span>
+            </Link>
           ))}
         </div>
       </div>

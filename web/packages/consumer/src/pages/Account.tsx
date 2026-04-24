@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircle2, TriangleAlert, Phone, Mail, User } from 'lucide-react'
+import { CheckCircle2, TriangleAlert, Phone, Mail, User, CalendarDays, ChevronRight } from 'lucide-react'
 import { api } from '@bookit/shared/api'
 import { useAuthStore } from '@bookit/shared/stores'
 
@@ -196,6 +196,23 @@ export function Account() {
 
             {/* ── Right column ── */}
             <div className="flex flex-col gap-6">
+
+              {/* My bookings quick-access */}
+              <Link
+                to="/bookings"
+                className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex items-center justify-between gap-4 hover:border-[#1069d1] hover:shadow-md transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="size-10 rounded-xl bg-[#e8f0fc] flex items-center justify-center shrink-0">
+                    <CalendarDays className="size-5 text-[#1069d1]" strokeWidth={1.8} />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <p className="font-heading font-semibold text-base text-slate-900">My bookings</p>
+                    <p className="text-sm text-slate-500">View and manage your appointments</p>
+                  </div>
+                </div>
+                <ChevronRight className="size-5 text-slate-400 group-hover:text-[#1069d1] transition-colors shrink-0" />
+              </Link>
 
               {/* Personal information card */}
               <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-8 flex flex-col gap-6">
