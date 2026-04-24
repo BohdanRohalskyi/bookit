@@ -28,7 +28,7 @@ func hashToken(token string) string {
 }
 
 // ListMembers returns active role assignments and non-expired pending invites
-// for a business. Active members include name/photo from business_member_profiles.
+// for a business, including job titles and location name.
 func (r *Repository) ListMembers(ctx context.Context, businessID int64) ([]Member, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT 'active'::text AS status,
@@ -39,13 +39,22 @@ func (r *Repository) ListMembers(ctx context.Context, businessID int64) ([]Membe
 		       bmp.photo_url,
 		       ro.slug AS role,
 		       ura.location_id,
-		       ura.created_at
+		       ura.created_at,
+		       COALESCE(ARRAY_AGG(sr.job_title ORDER BY sr.job_title)
+		                FILTER (WHERE sr.job_title IS NOT NULL), '{}') AS job_titles,
+		       l.name AS location_name
 		FROM user_role_assignments ura
 		JOIN users u  ON u.id  = ura.user_id
 		JOIN roles ro ON ro.id = ura.role_id
 		LEFT JOIN business_member_profiles bmp
 		       ON bmp.user_id = ura.user_id AND bmp.business_id = ura.business_id
+		LEFT JOIN user_staff_role_assignments usra
+		       ON usra.user_id = ura.user_id AND usra.business_id = ura.business_id
+		LEFT JOIN staff_roles sr ON sr.id = usra.staff_role_id
+		LEFT JOIN locations l ON l.id = ura.location_id
 		WHERE ura.business_id = $1
+		GROUP BY ura.id, ura.user_id, u.email, bmp.full_name, u.name,
+		         bmp.photo_url, ro.slug, ura.location_id, ura.created_at, l.name
 
 		UNION ALL
 
@@ -57,12 +66,19 @@ func (r *Repository) ListMembers(ctx context.Context, businessID int64) ([]Membe
 		       NULL::text AS photo_url,
 		       ro.slug AS role,
 		       inv.location_id,
-		       inv.created_at
+		       inv.created_at,
+		       COALESCE(ARRAY_AGG(sr.job_title ORDER BY sr.job_title)
+		                FILTER (WHERE sr.job_title IS NOT NULL), '{}') AS job_titles,
+		       l.name AS location_name
 		FROM invites inv
 		JOIN roles ro ON ro.id = inv.role_id
+		LEFT JOIN staff_roles sr ON sr.id = ANY(inv.staff_role_ids)
+		LEFT JOIN locations l ON l.id = inv.location_id
 		WHERE inv.business_id = $1
 		  AND inv.accepted_at IS NULL
 		  AND inv.expires_at  > NOW()
+		GROUP BY inv.id, inv.email, inv.full_name, ro.slug,
+		         inv.location_id, inv.created_at, l.name
 
 		ORDER BY created_at DESC
 	`, businessID)
@@ -76,7 +92,9 @@ func (r *Repository) ListMembers(ctx context.Context, businessID int64) ([]Membe
 		var m Member
 		var name, photo *string
 		if err := rows.Scan(
-			&m.Status, &m.ID, &m.UserID, &m.Email, &name, &photo, &m.Role, &m.LocationID, &m.CreatedAt,
+			&m.Status, &m.ID, &m.UserID, &m.Email, &name, &photo,
+			&m.Role, &m.LocationID, &m.CreatedAt,
+			&m.JobTitles, &m.LocationName,
 		); err != nil {
 			return nil, err
 		}

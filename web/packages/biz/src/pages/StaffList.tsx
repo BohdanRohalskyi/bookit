@@ -1,25 +1,17 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, UserPlus, Trash2, Loader2, Mail } from 'lucide-react'
+import { Users, UserPlus, Trash2, Loader2, Mail, MapPin, ChevronDown } from 'lucide-react'
 import { listMembers, removeMember, type Member } from '../api/staffApi'
 import { useSpaceStore } from '../stores/spaceStore'
 import { useMyRole } from '../hooks/useMyRole'
 import { InviteStaffModal } from '../components/InviteStaffModal'
 
-const ROLE_LABELS: Record<string, string> = {
-  administrator: 'Administrator',
-  staff: 'Staff',
-}
-
-const ROLE_COLORS: Record<string, string> = {
-  administrator: 'bg-blue-50 text-blue-700 border-blue-200',
-  staff: 'bg-gray-100 text-gray-600 border-gray-200',
-}
-
 export function StaffList() {
   const businessId = useSpaceStore((s) => s.businessId)
   const { isOwner, isAdmin } = useMyRole()
   const [showInvite, setShowInvite] = useState(false)
+  const [jobTitleFilter, setJobTitleFilter] = useState('')
+  const [locationFilter, setLocationFilter] = useState('')
   const queryClient = useQueryClient()
 
   const { data, isLoading, isError } = useQuery({
@@ -34,8 +26,31 @@ export function StaffList() {
   })
 
   const members = data?.data ?? []
-  const active = members.filter((m) => m.status === 'active')
-  const pending = members.filter((m) => m.status === 'pending')
+
+  // Collect unique filter options from all members
+  const allJobTitles = useMemo(() => {
+    const set = new Set<string>()
+    members.forEach((m) => m.job_titles?.forEach((t) => set.add(t)))
+    return Array.from(set).sort()
+  }, [members])
+
+  const allLocations = useMemo(() => {
+    const set = new Set<string>()
+    members.forEach((m) => { if (m.location_name) set.add(m.location_name) })
+    return Array.from(set).sort()
+  }, [members])
+
+  const filtered = useMemo(() => {
+    return members.filter((m) => {
+      const matchesJob = !jobTitleFilter || m.job_titles?.includes(jobTitleFilter)
+      const matchesLoc = !locationFilter || m.location_name === locationFilter
+      return matchesJob && matchesLoc
+    })
+  }, [members, jobTitleFilter, locationFilter])
+
+  const active = filtered.filter((m) => m.status === 'active')
+  const pending = filtered.filter((m) => m.status === 'pending')
+  const hasFilters = !!jobTitleFilter || !!locationFilter
 
   return (
     <div>
@@ -58,6 +73,60 @@ export function StaffList() {
         )}
       </div>
 
+      {/* Filters */}
+      {(allJobTitles.length > 0 || allLocations.length > 0) && (
+        <div className="flex flex-wrap gap-3 mb-5">
+          {allJobTitles.length > 0 && (
+            <div className="relative">
+              <select
+                value={jobTitleFilter}
+                onChange={(e) => setJobTitleFilter(e.target.value)}
+                className={`appearance-none h-8 pl-3 pr-8 text-sm rounded-[6px] border transition-colors focus:outline-none focus:ring-2 focus:ring-[#1069d1]/30 ${
+                  jobTitleFilter
+                    ? 'border-[#1069d1] bg-[#e7f0fa] text-[#1069d1] font-medium'
+                    : 'border-[rgba(2,9,5,0.15)] bg-white text-[rgba(2,9,5,0.6)]'
+                }`}
+              >
+                <option value="">All job titles</option>
+                {allJobTitles.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-[rgba(2,9,5,0.4)] pointer-events-none" />
+            </div>
+          )}
+
+          {allLocations.length > 0 && (
+            <div className="relative">
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className={`appearance-none h-8 pl-3 pr-8 text-sm rounded-[6px] border transition-colors focus:outline-none focus:ring-2 focus:ring-[#1069d1]/30 ${
+                  locationFilter
+                    ? 'border-[#1069d1] bg-[#e7f0fa] text-[#1069d1] font-medium'
+                    : 'border-[rgba(2,9,5,0.15)] bg-white text-[rgba(2,9,5,0.6)]'
+                }`}
+              >
+                <option value="">All locations</option>
+                {allLocations.map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-[rgba(2,9,5,0.4)] pointer-events-none" />
+            </div>
+          )}
+
+          {hasFilters && (
+            <button
+              onClick={() => { setJobTitleFilter(''); setLocationFilter('') }}
+              className="h-8 px-3 text-sm text-[rgba(2,9,5,0.5)] hover:text-[#020905] transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16 text-[rgba(2,9,5,0.4)]">
@@ -72,7 +141,7 @@ export function StaffList() {
         </div>
       )}
 
-      {/* Empty */}
+      {/* Empty — no members at all */}
       {!isLoading && !isError && members.length === 0 && (
         <div className="text-center py-16">
           <Users className="size-10 mx-auto mb-3 text-[rgba(2,9,5,0.15)]" />
@@ -85,6 +154,13 @@ export function StaffList() {
               Invite your first team member
             </button>
           )}
+        </div>
+      )}
+
+      {/* Empty — filters returned nothing */}
+      {!isLoading && !isError && members.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-12 text-sm text-[rgba(2,9,5,0.4)]">
+          No members match the selected filters.
         </div>
       )}
 
@@ -150,6 +226,8 @@ function MemberRow({
     ? member.name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
     : member.email.slice(0, 2).toUpperCase()
 
+  const jobTitles = member.job_titles ?? []
+
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       {/* Avatar */}
@@ -169,14 +247,37 @@ function MemberRow({
         <p className="text-xs text-[rgba(2,9,5,0.5)] truncate">{member.email}</p>
       </div>
 
-      {/* Role badge */}
-      <span
-        className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-          ROLE_COLORS[member.role] ?? 'bg-gray-100 text-gray-600 border-gray-200'
-        }`}
-      >
-        {ROLE_LABELS[member.role] ?? member.role}
-      </span>
+      {/* Location */}
+      {member.location_name && (
+        <div className="hidden sm:flex items-center gap-1 text-xs text-[rgba(2,9,5,0.45)] shrink-0">
+          <MapPin className="size-3 shrink-0" />
+          <span className="max-w-[120px] truncate">{member.location_name}</span>
+        </div>
+      )}
+
+      {/* Job title badges (replaces role badge) */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {jobTitles.length > 0 ? (
+          <>
+            {jobTitles.slice(0, 2).map((t) => (
+              <span
+                key={t}
+                className="text-xs px-2 py-0.5 rounded-full border bg-[#e7f0fa] text-[#1069d1] border-[rgba(16,105,209,0.2)] font-medium"
+              >
+                {t}
+              </span>
+            ))}
+            {jobTitles.length > 2 && (
+              <span className="text-xs text-[rgba(2,9,5,0.4)]">+{jobTitles.length - 2}</span>
+            )}
+          </>
+        ) : (
+          // Fallback to role if no job titles assigned yet
+          <span className="text-xs px-2 py-0.5 rounded-full border bg-gray-100 text-gray-600 border-gray-200 font-medium capitalize">
+            {member.role}
+          </span>
+        )}
+      </div>
 
       {/* Status badge for pending */}
       {member.status === 'pending' && (

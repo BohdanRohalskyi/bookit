@@ -51,8 +51,10 @@ type Member struct {
 	Role       string `json:"role"`
 	LocationID *int64 `json:"location_id,omitempty"`
 	// Status is "active" for confirmed members or "pending" for outstanding invites.
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"created_at"`
+	JobTitles    []string  `json:"job_titles"`
+	LocationName *string   `json:"location_name,omitempty"`
 }
 
 // Invite is the full invite record, returned on preview.

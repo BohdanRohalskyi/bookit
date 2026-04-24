@@ -41,6 +41,8 @@ export interface Member {
   photo_url: string | null
   role: 'administrator' | 'staff'
   location_id: string | null
+  location_name: string | null
+  job_titles: string[]
   status: 'active' | 'pending'
   created_at: string
 }
