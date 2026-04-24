@@ -25,7 +25,7 @@ export function StaffList() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members', businessId] }),
   })
 
-  const members = data?.data ?? []
+  const members = useMemo(() => data?.data ?? [], [data])
 
   // Collect unique filter options from all members
   const allJobTitles = useMemo(() => {
