@@ -1,6 +1,6 @@
 ---
 title: "Staff Business Profiles & Invite Acceptance Flow"
-status: NEW
+status: DONE
 created: 2026-04-17
 author: "bohdan.rohalskyi@paysera.com"
 ---

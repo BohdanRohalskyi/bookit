@@ -1,6 +1,6 @@
 ---
 title: "Booking Management — Admin Panel"
-status: NEW
+status: DONE
 created: 2026-04-21
 author: "bohdan@rohalskyi.com"
 ---
@@ -17,15 +17,13 @@ Extends the admin panel so business owners and super-admins can view, filter, an
 
 ## Phases
 
-### Phase 1: Feature flag — `ADMIN_BOOKING_MANAGEMENT` `[PENDING]`
+### Phase 1: Feature flag — `ADMIN_BOOKING_MANAGEMENT` `[REJECTED]`
 
-Add `FLAGS.ADMIN_BOOKING_MANAGEMENT` to `web/packages/shared/src/features/flags.ts`.
-Gate the admin bookings route and sidebar nav item with `useFeatureFlag(FLAGS.ADMIN_BOOKING_MANAGEMENT)`.
-Flag is activated in Firebase Remote Config by the project owner.
+**Reason:** Removed per user decision — shipping unconditionally, no flag needed.
 
 ---
 
-### Phase 2: OpenAPI spec — admin booking endpoints `[PENDING]`
+### Phase 2: OpenAPI spec — admin booking endpoints `[DONE]`
 
 Add to `api/openapi/spec.yaml`:
 
@@ -42,7 +40,7 @@ Run `oapi-codegen` and `openapi-typescript` after spec update.
 
 ---
 
-### Phase 3: Database — status history `[PENDING]`
+### Phase 3: Database — status history `[DONE]`
 
 Write migration `api/db/migrations/NNNN_booking_status_history.sql`:
 
@@ -63,7 +61,7 @@ Insert a row on every status transition from the Go handler.
 
 ---
 
-### Phase 4: Go — admin booking handlers `[PENDING]`
+### Phase 4: Go — admin booking handlers `[DONE]`
 
 Implement admin endpoints in the Booking domain (`api/internal/booking/`).
 
@@ -80,7 +78,7 @@ Implement admin endpoints in the Booking domain (`api/internal/booking/`).
 
 ---
 
-### Phase 5: Go — consumer notification on status change `[PENDING]`
+### Phase 5: Go — consumer notification on status change `[DONE]`
 
 In the Notification domain, subscribe to `booking.status_changed` and send a transactional email:
 - **Confirmed** → "Your booking is confirmed" template
@@ -89,7 +87,9 @@ In the Notification domain, subscribe to `booking.status_changed` and send a tra
 
 ---
 
-### Phase 6: React — admin bookings list page `[PENDING]`
+### Phase 6: React — admin bookings list page `[CHANGED]`
+
+**Implemented as a calendar view (`BookingsList.tsx`) instead of the planned table+drawer layout. Calendar approach was chosen as the target UI.**
 
 Create `web/src/pages/admin/bookings/` with:
 
@@ -102,7 +102,7 @@ Create `web/src/pages/admin/bookings/` with:
 
 ---
 
-### Phase 7: React — booking detail drawer `[PENDING]`
+### Phase 7: React — booking detail drawer `[DONE]`
 
 Slide-in drawer opened by clicking a table row:
 
@@ -119,7 +119,7 @@ Slide-in drawer opened by clicking a table row:
 
 ---
 
-### Phase 8: Tests `[PENDING]`
+### Phase 8: Tests `[DONE]`
 
 - Go: unit tests for transition matrix validation; integration tests for list filtering (by role, by status, by date), and status transition with history insert
 - React: Vitest + RTL + MSW for `AdminBookingsPage` (list, filters, pagination), `BookingDetailDrawer` (status actions, optimistic update, rollback), role-based button visibility

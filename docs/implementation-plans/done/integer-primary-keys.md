@@ -1,6 +1,6 @@
 ---
 title: "Integer Primary Keys + UUID Public Identifiers"
-status: IN_PROGRESS
+status: DONE
 created: 2026-04-21
 author: "bohdan.rohalskyi@paysera.com"
 ---
@@ -76,7 +76,7 @@ Ordered by dependency (parents before children):
 
 ---
 
-### Phase 2: Database migration `[PENDING]`
+### Phase 2: Database migration `[DONE]`
 
 Write `000016_integer_primary_keys.up.sql`. The migration runs inside a single
 transaction. For each table:

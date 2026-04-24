@@ -1,6 +1,6 @@
 ---
 title: "Equipment & Services Admin Page"
-status: IN_PROGRESS
+status: DONE
 created: 2026-04-24
 author: "bohdan.rohalskyi@paysera.com"
 ---
