@@ -1,6 +1,6 @@
 ---
 title: "RBAC: Admin Catalog Access"
-status: IN_PROGRESS
+status: DONE
 created: 2026-04-21
 author: "bohdan.rohalskyi@paysera.com"
 ---
@@ -124,7 +124,7 @@ No new error codes needed.
 
 ---
 
-### Phase 5: Integration test `[PENDING]`
+### Phase 5: Integration test `[DONE]`
 
 Add table-driven tests in `catalog/catalog_service_test.go` (or a new
 `catalog/rbac_test.go`) covering:
