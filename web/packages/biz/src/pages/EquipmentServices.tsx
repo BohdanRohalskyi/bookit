@@ -83,6 +83,29 @@ function EquipmentDialog({
     quantityInactive: initial?.quantity_inactive ?? 0,
   })
 
+  const isEdit = !!initial
+  const total = form.quantityActive + form.quantityInactive
+
+  function setActive(raw: number) {
+    const next = Math.max(0, raw)
+    if (isEdit) {
+      const clamped = Math.min(next, total)
+      setForm((f) => ({ ...f, quantityActive: clamped, quantityInactive: total - clamped }))
+    } else {
+      setForm((f) => ({ ...f, quantityActive: next }))
+    }
+  }
+
+  function setInactive(raw: number) {
+    const next = Math.max(0, raw)
+    if (isEdit) {
+      const clamped = Math.min(next, total)
+      setForm((f) => ({ ...f, quantityInactive: clamped, quantityActive: total - clamped }))
+    } else {
+      setForm((f) => ({ ...f, quantityInactive: next }))
+    }
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (form.name.trim()) onSave({ ...form, name: form.name.trim() })
@@ -115,8 +138,9 @@ function EquipmentDialog({
             <input
               type="number"
               min={0}
+              max={isEdit ? total : undefined}
               value={form.quantityActive}
-              onChange={(e) => setForm((f) => ({ ...f, quantityActive: Math.max(0, Number(e.target.value)) }))}
+              onChange={(e) => setActive(Number(e.target.value))}
               className={INPUT}
             />
           </div>
@@ -127,8 +151,9 @@ function EquipmentDialog({
             <input
               type="number"
               min={0}
+              max={isEdit ? total : undefined}
               value={form.quantityInactive}
-              onChange={(e) => setForm((f) => ({ ...f, quantityInactive: Math.max(0, Number(e.target.value)) }))}
+              onChange={(e) => setInactive(Number(e.target.value))}
               className={INPUT}
             />
           </div>
