@@ -19,20 +19,26 @@ var (
 // ─── Equipment ────────────────────────────────────────────────────────────────
 
 type Equipment struct {
-	ID         int64
-	UUID       uuid.UUID
-	BusinessID int64
-	Name       string
-	CreatedAt  time.Time
+	ID               int64
+	UUID             uuid.UUID
+	BusinessID       int64
+	Name             string
+	QuantityActive   int
+	QuantityInactive int
+	CreatedAt        time.Time
 }
 
 type EquipmentCreate struct {
-	BusinessID int64
-	Name       string
+	BusinessID       int64
+	Name             string
+	QuantityActive   int
+	QuantityInactive int
 }
 
 type EquipmentUpdateReq struct {
-	Name string
+	Name             *string
+	QuantityActive   *int
+	QuantityInactive *int
 }
 
 // ─── Staff roles ──────────────────────────────────────────────────────────────

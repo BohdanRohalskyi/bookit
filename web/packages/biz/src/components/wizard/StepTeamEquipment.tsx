@@ -85,7 +85,7 @@ function EquipmentSection({ businessId, locationId }: { businessId: string; loca
   const { mutate: createAndAdd, isPending: creating } = useMutation({
     mutationFn: async () => {
       const { data, error } = await api.POST('/api/v1/equipment', {
-        body: { business_id: businessId, name: newName.trim() },
+        body: { business_id: businessId, name: newName.trim(), quantity_active: 0, quantity_inactive: 0 },
       })
       if (error) throw error
       return (data as EquipmentItem).id

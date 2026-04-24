@@ -32,18 +32,29 @@ export async function listEquipment(businessId: string): Promise<Equipment[]> {
   return data?.data ?? []
 }
 
-export async function createEquipment(businessId: string, name: string): Promise<Equipment> {
+export async function createEquipment(
+  businessId: string,
+  name: string,
+  quantityActive = 0,
+  quantityInactive = 0,
+): Promise<Equipment> {
   const { data, error } = await api.POST('/api/v1/equipment', {
-    body: { business_id: businessId, name },
+    body: { business_id: businessId, name, quantity_active: quantityActive, quantity_inactive: quantityInactive },
   })
   if (error) throw error
   return data!
 }
 
-export async function updateEquipment(id: string, name: string): Promise<Equipment> {
+export type EquipmentUpdateBody = {
+  name?: string
+  quantity_active?: number
+  quantity_inactive?: number
+}
+
+export async function updateEquipment(id: string, body: EquipmentUpdateBody): Promise<Equipment> {
   const { data, error } = await api.PATCH('/api/v1/equipment/{id}', {
     params: { path: { id } },
-    body: { name },
+    body,
   })
   if (error) throw error
   return data!

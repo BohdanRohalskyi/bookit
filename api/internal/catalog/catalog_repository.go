@@ -25,16 +25,18 @@ func NewCatalogRepository(db *pgxpool.Pool) *CatalogRepository {
 func (r *CatalogRepository) CreateEquipment(ctx context.Context, req EquipmentCreate) (Equipment, error) {
 	var e Equipment
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO equipment (business_id, name) VALUES ($1, $2)
-		RETURNING id, uuid, business_id, name, created_at
-	`, req.BusinessID, req.Name).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt)
+		INSERT INTO equipment (business_id, name, quantity_active, quantity_inactive)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, uuid, business_id, name, quantity_active, quantity_inactive, created_at
+	`, req.BusinessID, req.Name, req.QuantityActive, req.QuantityInactive).
+		Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.QuantityActive, &e.QuantityInactive, &e.CreatedAt)
 	return e, err
 }
 
 func (r *CatalogRepository) ListEquipmentByBusiness(ctx context.Context, businessID int64) ([]Equipment, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, uuid, business_id, name, created_at FROM equipment
-		WHERE business_id = $1 ORDER BY name
+		SELECT id, uuid, business_id, name, quantity_active, quantity_inactive, created_at
+		FROM equipment WHERE business_id = $1 ORDER BY name
 	`, businessID)
 	if err != nil {
 		return nil, err
@@ -43,7 +45,7 @@ func (r *CatalogRepository) ListEquipmentByBusiness(ctx context.Context, busines
 	var items []Equipment
 	for rows.Next() {
 		var e Equipment
-		if err := rows.Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.QuantityActive, &e.QuantityInactive, &e.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, e)
@@ -65,12 +67,49 @@ func (r *CatalogRepository) DeleteEquipment(ctx context.Context, id int64) error
 	return nil
 }
 
-func (r *CatalogRepository) UpdateEquipment(ctx context.Context, id int64, name string) (Equipment, error) {
+func (r *CatalogRepository) UpdateEquipment(ctx context.Context, id int64, req EquipmentUpdateReq) (Equipment, error) {
+	setClauses := []string{}
+	args := []any{}
+
+	argN := func() string { return fmt.Sprintf("$%d", len(args)) }
+
+	if req.Name != nil {
+		args = append(args, *req.Name)
+		setClauses = append(setClauses, "name = "+argN())
+	}
+	if req.QuantityActive != nil {
+		args = append(args, *req.QuantityActive)
+		setClauses = append(setClauses, "quantity_active = "+argN())
+	}
+	if req.QuantityInactive != nil {
+		args = append(args, *req.QuantityInactive)
+		setClauses = append(setClauses, "quantity_inactive = "+argN())
+	}
+	if len(setClauses) == 0 {
+		return r.getEquipmentByID(ctx, id)
+	}
+
+	args = append(args, id)
+	query := fmt.Sprintf(
+		`UPDATE equipment SET %s WHERE id = $%d
+		 RETURNING id, uuid, business_id, name, quantity_active, quantity_inactive, created_at`,
+		strings.Join(setClauses, ", "), len(args),
+	)
+	var e Equipment
+	err := r.db.QueryRow(ctx, query, args...).
+		Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.QuantityActive, &e.QuantityInactive, &e.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Equipment{}, ErrEquipmentNotFound
+	}
+	return e, err
+}
+
+func (r *CatalogRepository) getEquipmentByID(ctx context.Context, id int64) (Equipment, error) {
 	var e Equipment
 	err := r.db.QueryRow(ctx, `
-		UPDATE equipment SET name = $1 WHERE id = $2
-		RETURNING id, uuid, business_id, name, created_at
-	`, name, id).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt)
+		SELECT id, uuid, business_id, name, quantity_active, quantity_inactive, created_at
+		FROM equipment WHERE id = $1
+	`, id).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.QuantityActive, &e.QuantityInactive, &e.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Equipment{}, ErrEquipmentNotFound
 	}
@@ -80,8 +119,9 @@ func (r *CatalogRepository) UpdateEquipment(ctx context.Context, id int64, name 
 func (r *CatalogRepository) GetEquipmentByUUID(ctx context.Context, u uuid.UUID) (Equipment, error) {
 	var e Equipment
 	err := r.db.QueryRow(ctx, `
-		SELECT id, uuid, business_id, name, created_at FROM equipment WHERE uuid = $1
-	`, u).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt)
+		SELECT id, uuid, business_id, name, quantity_active, quantity_inactive, created_at
+		FROM equipment WHERE uuid = $1
+	`, u).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.QuantityActive, &e.QuantityInactive, &e.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Equipment{}, ErrEquipmentNotFound
 	}

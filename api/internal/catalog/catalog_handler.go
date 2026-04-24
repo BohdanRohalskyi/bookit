@@ -101,18 +101,22 @@ func (h *CatalogItemHandler) catalogErr(c *gin.Context, err error) {
 // ─── Equipment responses ──────────────────────────────────────────────────────
 
 type EquipmentResponse struct {
-	ID         string `json:"id"`
-	BusinessID string `json:"business_id"`
-	Name       string `json:"name"`
-	CreatedAt  string `json:"created_at"`
+	ID               string `json:"id"`
+	BusinessID       string `json:"business_id"`
+	Name             string `json:"name"`
+	QuantityActive   int    `json:"quantity_active"`
+	QuantityInactive int    `json:"quantity_inactive"`
+	CreatedAt        string `json:"created_at"`
 }
 
 func toEquipmentResp(e Equipment) EquipmentResponse {
 	return EquipmentResponse{
-		ID:         e.UUID.String(),
-		BusinessID: e.UUID.String(), // business UUID would require a separate join
-		Name:       e.Name,
-		CreatedAt:  e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		ID:               e.UUID.String(),
+		BusinessID:       e.UUID.String(), // business UUID would require a separate join
+		Name:             e.Name,
+		QuantityActive:   e.QuantityActive,
+		QuantityInactive: e.QuantityInactive,
+		CreatedAt:        e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
 
@@ -148,8 +152,10 @@ func (h *CatalogItemHandler) CreateEquipment(c *gin.Context) {
 		return
 	}
 	var req struct {
-		BusinessID string `json:"business_id" binding:"required,uuid"`
-		Name       string `json:"name"        binding:"required,min=1,max=100"`
+		BusinessID       string `json:"business_id"       binding:"required,uuid"`
+		Name             string `json:"name"              binding:"required,min=1,max=100"`
+		QuantityActive   int    `json:"quantity_active"   binding:"min=0"`
+		QuantityInactive int    `json:"quantity_inactive"  binding:"min=0"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
@@ -161,7 +167,12 @@ func (h *CatalogItemHandler) CreateEquipment(c *gin.Context) {
 		errResp(c, http.StatusNotFound, "not-found", "Not Found", "Business not found")
 		return
 	}
-	e, err := h.service.CreateEquipment(c.Request.Context(), userID, EquipmentCreate{BusinessID: biz.ID, Name: req.Name})
+	e, err := h.service.CreateEquipment(c.Request.Context(), userID, EquipmentCreate{
+		BusinessID:       biz.ID,
+		Name:             req.Name,
+		QuantityActive:   req.QuantityActive,
+		QuantityInactive: req.QuantityInactive,
+	})
 	if err != nil {
 		h.catalogErr(c, err)
 		return
@@ -215,13 +226,31 @@ func (h *CatalogItemHandler) UpdateEquipment(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Name string `json:"name" binding:"required,min=1,max=120"`
+		Name             *string `json:"name"`
+		QuantityActive   *int    `json:"quantity_active"`
+		QuantityInactive *int    `json:"quantity_inactive"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
 		return
 	}
-	updated, err := h.service.UpdateEquipment(c.Request.Context(), userID, e.ID, req.Name)
+	if req.Name != nil && (len(*req.Name) < 1 || len(*req.Name) > 120) {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "name must be between 1 and 120 characters")
+		return
+	}
+	if req.QuantityActive != nil && *req.QuantityActive < 0 {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "quantity_active must be >= 0")
+		return
+	}
+	if req.QuantityInactive != nil && *req.QuantityInactive < 0 {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", "quantity_inactive must be >= 0")
+		return
+	}
+	updated, err := h.service.UpdateEquipment(c.Request.Context(), userID, e.ID, EquipmentUpdateReq{
+		Name:             req.Name,
+		QuantityActive:   req.QuantityActive,
+		QuantityInactive: req.QuantityInactive,
+	})
 	if err != nil {
 		h.catalogErr(c, err)
 		return

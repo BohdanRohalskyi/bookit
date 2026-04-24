@@ -11,6 +11,7 @@ import {
   updateService,
   deleteService,
   type Equipment,
+  type EquipmentUpdateBody,
   type Service,
   type ServiceCreateBody,
 } from '../api/catalogApi'
@@ -63,6 +64,8 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
 
 // ─── Equipment dialogs ────────────────────────────────────────────────────────
 
+type EquipmentFormState = { name: string; quantityActive: number; quantityInactive: number }
+
 function EquipmentDialog({
   initial,
   onSave,
@@ -70,15 +73,19 @@ function EquipmentDialog({
   isPending,
 }: {
   initial?: Equipment
-  onSave: (name: string) => void
+  onSave: (form: EquipmentFormState) => void
   onClose: () => void
   isPending: boolean
 }) {
-  const [name, setName] = useState(initial?.name ?? '')
+  const [form, setForm] = useState<EquipmentFormState>({
+    name: initial?.name ?? '',
+    quantityActive: initial?.quantity_active ?? 0,
+    quantityInactive: initial?.quantity_inactive ?? 0,
+  })
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (name.trim()) onSave(name.trim())
+    if (form.name.trim()) onSave({ ...form, name: form.name.trim() })
   }
 
   return (
@@ -94,15 +101,41 @@ function EquipmentDialog({
             type="text"
             required
             maxLength={120}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="Equipment name"
             className={INPUT}
           />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-[rgba(2,9,5,0.6)] block mb-1.5">
+              Active items
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={form.quantityActive}
+              onChange={(e) => setForm((f) => ({ ...f, quantityActive: Math.max(0, Number(e.target.value)) }))}
+              className={INPUT}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-[rgba(2,9,5,0.6)] block mb-1.5">
+              Inactive items
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={form.quantityInactive}
+              onChange={(e) => setForm((f) => ({ ...f, quantityInactive: Math.max(0, Number(e.target.value)) }))}
+              className={INPUT}
+            />
+          </div>
+        </div>
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={BTN_GHOST}>Cancel</button>
-          <button type="submit" disabled={isPending || !name.trim()} className={`flex-1 ${BTN_PRIMARY}`}>
+          <button type="submit" disabled={isPending || !form.name.trim()} className={`flex-1 ${BTN_PRIMARY}`}>
             {isPending && <Loader2 className="size-3.5 animate-spin" />}
             Save
           </button>
@@ -167,12 +200,12 @@ function EquipmentTab({ businessId }: { businessId: string }) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['equipment', businessId] })
 
   const addMutation = useMutation({
-    mutationFn: (name: string) => createEquipment(businessId, name),
+    mutationFn: (form: EquipmentFormState) => createEquipment(businessId, form.name, form.quantityActive, form.quantityInactive),
     onSuccess: () => { invalidate(); setDialog(null) },
   })
 
   const editMutation = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => updateEquipment(id, name),
+    mutationFn: ({ id, body }: { id: string; body: EquipmentUpdateBody }) => updateEquipment(id, body),
     onSuccess: () => { invalidate(); setDialog(null) },
   })
 
@@ -217,6 +250,14 @@ function EquipmentTab({ businessId }: { businessId: string }) {
           {equipment.map((eq) => (
             <div key={eq.id} className="flex items-center gap-3 px-4 py-3">
               <p className="flex-1 text-sm text-[#020905] font-medium">{eq.name}</p>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs text-[rgba(2,9,5,0.45)]">
+                  <span className="font-medium text-[#020905]">{eq.quantity_active}</span> active
+                </span>
+                <span className="text-xs text-[rgba(2,9,5,0.45)]">
+                  <span className="font-medium text-[#020905]">{eq.quantity_inactive}</span> inactive
+                </span>
+              </div>
               <button
                 title={`Edit ${eq.name}`}
                 onClick={() => setDialog({ edit: eq })}
@@ -239,7 +280,7 @@ function EquipmentTab({ businessId }: { businessId: string }) {
       {/* Add dialog */}
       {dialog === 'add' && (
         <EquipmentDialog
-          onSave={(name) => addMutation.mutate(name)}
+          onSave={(form) => addMutation.mutate(form)}
           onClose={() => setDialog(null)}
           isPending={addMutation.isPending}
         />
@@ -249,7 +290,10 @@ function EquipmentTab({ businessId }: { businessId: string }) {
       {dialog !== null && typeof dialog === 'object' && 'edit' in dialog && (
         <EquipmentDialog
           initial={dialog.edit}
-          onSave={(name) => editMutation.mutate({ id: dialog.edit.id, name })}
+          onSave={(form) => editMutation.mutate({
+            id: dialog.edit.id,
+            body: { name: form.name, quantity_active: form.quantityActive, quantity_inactive: form.quantityInactive },
+          })}
           onClose={() => setDialog(null)}
           isPending={editMutation.isPending}
         />

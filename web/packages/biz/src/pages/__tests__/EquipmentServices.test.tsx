@@ -29,6 +29,8 @@ function buildEquipment(overrides?: Partial<Equipment>): Equipment {
     id: crypto.randomUUID(),
     business_id: BIZ_ID,
     name: 'Treadmill',
+    quantity_active: 2,
+    quantity_inactive: 0,
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   }
@@ -101,6 +103,22 @@ describe('Equipment tab', () => {
     await waitFor(() => expect(screen.getByText(/no equipment yet/i)).toBeInTheDocument())
   })
 
+  test('shows active and inactive quantity for each item', async () => {
+    get().mockImplementation((path: string) => {
+      if (path === '/api/v1/equipment') return Promise.resolve({
+        data: { data: [buildEquipment({ name: 'Barbell', quantity_active: 4, quantity_inactive: 2 })] },
+        error: undefined,
+      })
+      return Promise.resolve({ data: { data: [] }, error: undefined })
+    })
+    renderWithProviders(<EquipmentServices />)
+    await waitFor(() => {
+      expect(screen.getByText('Barbell')).toBeInTheDocument()
+      expect(screen.getByText('4')).toBeInTheDocument()
+      expect(screen.getByText('2')).toBeInTheDocument()
+    })
+  })
+
   test('lists equipment names', async () => {
     get().mockImplementation((path: string) => {
       if (path === '/api/v1/equipment') return Promise.resolve({
@@ -140,9 +158,9 @@ describe('Equipment tab', () => {
     await waitFor(() => expect(post()).toHaveBeenCalledWith('/api/v1/equipment', expect.anything()))
   })
 
-  test('opens edit dialog pre-filled with equipment name', async () => {
+  test('opens edit dialog pre-filled with equipment name and quantities', async () => {
     const user = userEvent.setup()
-    const eq = buildEquipment({ name: 'Kettlebell' })
+    const eq = buildEquipment({ name: 'Kettlebell', quantity_active: 3, quantity_inactive: 1 })
     get().mockImplementation((path: string) => {
       if (path === '/api/v1/equipment') return Promise.resolve({ data: { data: [eq] }, error: undefined })
       return Promise.resolve({ data: { data: [] }, error: undefined })
@@ -150,11 +168,13 @@ describe('Equipment tab', () => {
     renderWithProviders(<EquipmentServices />)
 
     await waitFor(() => screen.getByText('Kettlebell'))
-    const editBtn = screen.getByTitle(`Edit ${eq.name}`)
-    await user.click(editBtn)
+    await user.click(screen.getByTitle(`Edit ${eq.name}`))
 
-    const input = screen.getByPlaceholderText(/equipment name/i) as HTMLInputElement
-    expect(input.value).toBe('Kettlebell')
+    const nameInput = screen.getByPlaceholderText(/equipment name/i) as HTMLInputElement
+    expect(nameInput.value).toBe('Kettlebell')
+    const numberInputs = screen.getAllByRole('spinbutton') as HTMLInputElement[]
+    expect(numberInputs[0].value).toBe('3')
+    expect(numberInputs[1].value).toBe('1')
   })
 
   test('shows delete confirmation dialog', async () => {

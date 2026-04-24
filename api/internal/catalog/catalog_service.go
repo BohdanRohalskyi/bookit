@@ -121,7 +121,7 @@ func (s *CatalogService) ListEquipment(ctx context.Context, userID, businessID i
 	return s.repo.ListEquipmentByBusiness(ctx, businessID)
 }
 
-func (s *CatalogService) UpdateEquipment(ctx context.Context, userID, id int64, name string) (Equipment, error) {
+func (s *CatalogService) UpdateEquipment(ctx context.Context, userID, id int64, req EquipmentUpdateReq) (Equipment, error) {
 	businessID, err := s.repo.GetEquipmentBusinessID(ctx, id)
 	if err != nil {
 		return Equipment{}, err
@@ -129,7 +129,7 @@ func (s *CatalogService) UpdateEquipment(ctx context.Context, userID, id int64, 
 	if err := s.canWriteBusiness(ctx, userID, businessID); err != nil {
 		return Equipment{}, err
 	}
-	return s.repo.UpdateEquipment(ctx, id, name)
+	return s.repo.UpdateEquipment(ctx, id, req)
 }
 
 func (s *CatalogService) DeleteEquipment(ctx context.Context, userID, id int64) error {

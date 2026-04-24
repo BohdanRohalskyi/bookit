@@ -1508,6 +1508,10 @@ export interface components {
             /** Format: uuid */
             business_id: string;
             name: string;
+            /** @description Number of equipment items currently available for use */
+            quantity_active: number;
+            /** @description Number of equipment items out of service (broken, in maintenance, etc.) */
+            quantity_inactive: number;
             /** Format: date-time */
             created_at: string;
         };
@@ -1515,9 +1519,15 @@ export interface components {
             /** Format: uuid */
             business_id: string;
             name: string;
+            /** @default 0 */
+            quantity_active: number;
+            /** @default 0 */
+            quantity_inactive: number;
         };
         EquipmentUpdate: {
-            name: string;
+            name?: string;
+            quantity_active?: number;
+            quantity_inactive?: number;
         };
         EquipmentList: {
             data: components["schemas"]["Equipment"][];

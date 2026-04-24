@@ -25,7 +25,7 @@ const BIZ_ID = 'biz-uuid-1'
 const EQUIP_ID = 'eq-uuid-1'
 const SVC_ID = 'svc-uuid-1'
 
-const equipment = { id: EQUIP_ID, business_id: BIZ_ID, name: 'Treadmill', created_at: '2026-01-01T00:00:00Z' }
+const equipment = { id: EQUIP_ID, business_id: BIZ_ID, name: 'Treadmill', quantity_active: 2, quantity_inactive: 1, created_at: '2026-01-01T00:00:00Z' }
 const service = {
   id: SVC_ID, business_id: BIZ_ID, name: 'Haircut',
   duration_minutes: 30, price: 25, currency: 'EUR',
@@ -66,7 +66,7 @@ describe('createEquipment', () => {
     const result = await createEquipment(BIZ_ID, 'Treadmill')
     expect(result).toEqual(equipment)
     expect(post()).toHaveBeenCalledWith('/api/v1/equipment', expect.objectContaining({
-      body: { business_id: BIZ_ID, name: 'Treadmill' },
+      body: { business_id: BIZ_ID, name: 'Treadmill', quantity_active: 0, quantity_inactive: 0 },
     }))
   })
 
@@ -77,14 +77,21 @@ describe('createEquipment', () => {
 })
 
 describe('updateEquipment', () => {
-  test('patches and returns updated equipment', async () => {
+  test('patches name and returns updated equipment', async () => {
     patch().mockResolvedValue({ data: { ...equipment, name: 'Bike' }, error: undefined })
-    const result = await updateEquipment(EQUIP_ID, 'Bike')
+    const result = await updateEquipment(EQUIP_ID, { name: 'Bike' })
     expect(result.name).toBe('Bike')
     expect(patch()).toHaveBeenCalledWith('/api/v1/equipment/{id}', expect.objectContaining({
       params: { path: { id: EQUIP_ID } },
       body: { name: 'Bike' },
     }))
+  })
+
+  test('patches quantities independently', async () => {
+    patch().mockResolvedValue({ data: { ...equipment, quantity_active: 5, quantity_inactive: 2 }, error: undefined })
+    const result = await updateEquipment(EQUIP_ID, { quantity_active: 5, quantity_inactive: 2 })
+    expect(result.quantity_active).toBe(5)
+    expect(result.quantity_inactive).toBe(2)
   })
 })
 

@@ -3433,6 +3433,8 @@ components:
         - id
         - business_id
         - name
+        - quantity_active
+        - quantity_inactive
         - created_at
       properties:
         id:
@@ -3443,6 +3445,14 @@ components:
           format: uuid
         name:
           type: string
+        quantity_active:
+          type: integer
+          minimum: 0
+          description: Number of equipment items currently available for use
+        quantity_inactive:
+          type: integer
+          minimum: 0
+          description: Number of equipment items out of service (broken, in maintenance, etc.)
         created_at:
           type: string
           format: date-time
@@ -3460,16 +3470,28 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+        quantity_active:
+          type: integer
+          minimum: 0
+          default: 0
+        quantity_inactive:
+          type: integer
+          minimum: 0
+          default: 0
 
     EquipmentUpdate:
       type: object
-      required:
-        - name
       properties:
         name:
           type: string
           minLength: 1
           maxLength: 120
+        quantity_active:
+          type: integer
+          minimum: 0
+        quantity_inactive:
+          type: integer
+          minimum: 0
 
     EquipmentList:
       type: object
