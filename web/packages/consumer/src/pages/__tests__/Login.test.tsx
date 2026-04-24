@@ -40,7 +40,7 @@ describe('Login rendering', () => {
 
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 })
 
@@ -51,7 +51,7 @@ describe('Login validation', () => {
     const user = userEvent.setup()
     renderWithProviders(<Login />)
 
-    await user.click(screen.getByRole('button', { name: /login/i }))
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Invalid email address')).toBeInTheDocument()
@@ -71,7 +71,7 @@ describe('Login API', () => {
 
     await user.type(screen.getByLabelText('Email'), 'test@example.com')
     await user.type(screen.getByLabelText('Password'), 'password123')
-    await user.click(screen.getByRole('button', { name: /login/i }))
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() => {
       expect(post()).toHaveBeenCalledWith(
@@ -90,7 +90,7 @@ describe('Login API', () => {
 
     await user.type(screen.getByLabelText('Email'), 'test@example.com')
     await user.type(screen.getByLabelText('Password'), 'wrongpassword')
-    await user.click(screen.getByRole('button', { name: /login/i }))
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Invalid credentials')).toBeInTheDocument()
@@ -106,7 +106,7 @@ describe('Login API', () => {
 
     await user.type(screen.getByLabelText('Email'), 'test@example.com')
     await user.type(screen.getByLabelText('Password'), 'password123')
-    await user.click(screen.getByRole('button', { name: /login/i }))
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/account')
