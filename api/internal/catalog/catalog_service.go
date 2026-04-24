@@ -121,12 +121,33 @@ func (s *CatalogService) ListEquipment(ctx context.Context, userID, businessID i
 	return s.repo.ListEquipmentByBusiness(ctx, businessID)
 }
 
+func (s *CatalogService) UpdateEquipment(ctx context.Context, userID, id int64, name string) (Equipment, error) {
+	businessID, err := s.repo.GetEquipmentBusinessID(ctx, id)
+	if err != nil {
+		return Equipment{}, err
+	}
+	if err := s.canWriteBusiness(ctx, userID, businessID); err != nil {
+		return Equipment{}, err
+	}
+	return s.repo.UpdateEquipment(ctx, id, name)
+}
+
 func (s *CatalogService) DeleteEquipment(ctx context.Context, userID, id int64) error {
 	businessID, err := s.repo.GetEquipmentBusinessID(ctx, id)
 	if err != nil {
 		return err
 	}
-	return s.ownsBusinessID(ctx, userID, businessID)
+	if err := s.ownsBusinessID(ctx, userID, businessID); err != nil {
+		return err
+	}
+	inUse, err := s.repo.IsEquipmentInUse(ctx, id)
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return ErrEquipmentInUse
+	}
+	return nil
 }
 
 func (s *CatalogService) DeleteEquipmentExec(ctx context.Context, id int64) error {
@@ -174,6 +195,17 @@ func (s *CatalogService) ListServices(ctx context.Context, userID, businessID in
 		return nil, err
 	}
 	return s.repo.ListServicesByBusiness(ctx, businessID)
+}
+
+func (s *CatalogService) UpdateService(ctx context.Context, userID, id int64, req ServiceItemUpdate) (ServiceItem, error) {
+	businessID, err := s.repo.GetServiceBusinessID(ctx, id)
+	if err != nil {
+		return ServiceItem{}, err
+	}
+	if err := s.canWriteBusiness(ctx, userID, businessID); err != nil {
+		return ServiceItem{}, err
+	}
+	return s.repo.UpdateService(ctx, id, req)
 }
 
 func (s *CatalogService) DeleteService(ctx context.Context, userID, id int64) error {

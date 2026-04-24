@@ -655,7 +655,8 @@ export interface paths {
         delete: operations["deleteService"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update a service */
+        patch: operations["updateService"];
         trace?: never;
     };
     "/api/v1/staff-roles": {
@@ -765,7 +766,8 @@ export interface paths {
         delete: operations["deleteEquipment"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update equipment */
+        patch: operations["updateEquipment"];
         trace?: never;
     };
     "/api/v1/bookings": {
@@ -1301,6 +1303,19 @@ export interface components {
             /** Format: date-time */
             updated_at?: string;
         };
+        ServiceUpdate: {
+            name?: string;
+            description?: string | null;
+            duration_minutes?: number;
+            /** Format: double */
+            price?: number;
+            currency?: string;
+            equipment_requirements?: {
+                /** Format: uuid */
+                equipment_id: string;
+                quantity_needed: number;
+            }[];
+        };
         ServiceCreate: {
             /** Format: uuid */
             business_id: string;
@@ -1499,6 +1514,9 @@ export interface components {
         EquipmentCreate: {
             /** Format: uuid */
             business_id: string;
+            name: string;
+        };
+        EquipmentUpdate: {
             name: string;
         };
         EquipmentList: {
@@ -3057,6 +3075,36 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    updateService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ServiceId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Service updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listStaffRoles: {
         parameters: {
             query: {
@@ -3331,6 +3379,36 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["ProviderRequired"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateEquipment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["EquipmentId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EquipmentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Equipment updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Equipment"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["ProviderRequired"];
             404: components["responses"]["NotFound"];

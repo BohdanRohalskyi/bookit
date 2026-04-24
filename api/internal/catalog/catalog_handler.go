@@ -89,6 +89,9 @@ func (h *CatalogItemHandler) catalogErr(c *gin.Context, err error) {
 		errResp(c, http.StatusNotFound, "not-found", "Not Found", err.Error())
 	case errors.Is(err, ErrNotProvider), errors.Is(err, ErrNotOwner), errors.Is(err, ErrLocationNotOwner):
 		errResp(c, http.StatusForbidden, "forbidden", "Forbidden", "You do not own this resource")
+	case errors.Is(err, ErrEquipmentInUse):
+		errResp(c, http.StatusConflict, "equipment-in-use", "Equipment In Use",
+			"This equipment is referenced by one or more services and cannot be deleted.")
 	default:
 		slog.Error("catalog operation", "error", err)
 		errResp(c, http.StatusInternalServerError, "internal-error", "Internal Error", "An unexpected error occurred")
@@ -193,6 +196,37 @@ func (h *CatalogItemHandler) DeleteEquipment(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h *CatalogItemHandler) UpdateEquipment(c *gin.Context) {
+	userID, ok := h.uid(c)
+	if !ok {
+		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
+		return
+	}
+	equipUUID, ok := h.pathUUID(c, "id")
+	if !ok {
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Equipment ID must be a valid UUID")
+		return
+	}
+	e, err := h.catalogRepo.GetEquipmentByUUID(c.Request.Context(), equipUUID)
+	if err != nil {
+		h.catalogErr(c, err)
+		return
+	}
+	var req struct {
+		Name string `json:"name" binding:"required,min=1,max=120"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
+		return
+	}
+	updated, err := h.service.UpdateEquipment(c.Request.Context(), userID, e.ID, req.Name)
+	if err != nil {
+		h.catalogErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, toEquipmentResp(updated))
 }
 
 // ─── Staff role responses ─────────────────────────────────────────────────────
@@ -479,6 +513,67 @@ func (h *CatalogItemHandler) DeleteService(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h *CatalogItemHandler) UpdateService(c *gin.Context) {
+	userID, ok := h.uid(c)
+	if !ok {
+		errResp(c, http.StatusUnauthorized, "unauthorized", "Unauthorized", "Authentication required")
+		return
+	}
+	svcUUID, ok := h.pathUUID(c, "id")
+	if !ok {
+		errResp(c, http.StatusBadRequest, "invalid-id", "Invalid ID", "Service ID must be a valid UUID")
+		return
+	}
+	existing, err := h.catalogRepo.GetServiceByUUID(c.Request.Context(), svcUUID)
+	if err != nil {
+		h.catalogErr(c, err)
+		return
+	}
+	var req struct {
+		Name            *string  `json:"name"`
+		Description     *string  `json:"description"`
+		DurationMinutes *int     `json:"duration_minutes"`
+		Price           *float64 `json:"price"`
+		Currency        *string  `json:"currency"`
+		EquipmentReqs   *[]struct {
+			EquipmentID    string `json:"equipment_id"`
+			QuantityNeeded int    `json:"quantity_needed"`
+		} `json:"equipment_requirements"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		errResp(c, http.StatusBadRequest, "validation-error", "Validation Error", err.Error())
+		return
+	}
+	update := ServiceItemUpdate{
+		Name:            req.Name,
+		Description:     req.Description,
+		DurationMinutes: req.DurationMinutes,
+		Price:           req.Price,
+		Currency:        req.Currency,
+	}
+	if req.EquipmentReqs != nil {
+		var eqs []ServiceCreateReqItem
+		for _, e := range *req.EquipmentReqs {
+			equipUUID, err := uuid.Parse(e.EquipmentID)
+			if err != nil {
+				continue
+			}
+			var equipID int64
+			if err := h.catalogRepo.db.QueryRow(c.Request.Context(), `SELECT id FROM equipment WHERE uuid = $1`, equipUUID).Scan(&equipID); err != nil {
+				continue
+			}
+			eqs = append(eqs, ServiceCreateReqItem{EquipmentID: equipID, QuantityNeeded: e.QuantityNeeded})
+		}
+		update.EquipmentReqs = &eqs
+	}
+	updated, err := h.service.UpdateService(c.Request.Context(), userID, existing.ID, update)
+	if err != nil {
+		h.catalogErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, toServiceResp(updated))
 }
 
 // ─── Location pivot handlers ──────────────────────────────────────────────────

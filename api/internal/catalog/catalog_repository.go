@@ -65,6 +65,38 @@ func (r *CatalogRepository) DeleteEquipment(ctx context.Context, id int64) error
 	return nil
 }
 
+func (r *CatalogRepository) UpdateEquipment(ctx context.Context, id int64, name string) (Equipment, error) {
+	var e Equipment
+	err := r.db.QueryRow(ctx, `
+		UPDATE equipment SET name = $1 WHERE id = $2
+		RETURNING id, uuid, business_id, name, created_at
+	`, name, id).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Equipment{}, ErrEquipmentNotFound
+	}
+	return e, err
+}
+
+func (r *CatalogRepository) GetEquipmentByUUID(ctx context.Context, u uuid.UUID) (Equipment, error) {
+	var e Equipment
+	err := r.db.QueryRow(ctx, `
+		SELECT id, uuid, business_id, name, created_at FROM equipment WHERE uuid = $1
+	`, u).Scan(&e.ID, &e.UUID, &e.BusinessID, &e.Name, &e.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Equipment{}, ErrEquipmentNotFound
+	}
+	return e, err
+}
+
+func (r *CatalogRepository) IsEquipmentInUse(ctx context.Context, equipmentID int64) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM service_equipment_requirements WHERE equipment_id = $1)`,
+		equipmentID,
+	).Scan(&exists)
+	return exists, err
+}
+
 func (r *CatalogRepository) GetEquipmentBusinessID(ctx context.Context, id int64) (int64, error) {
 	var bID int64
 	err := r.db.QueryRow(ctx, `SELECT business_id FROM equipment WHERE id = $1`, id).Scan(&bID)
@@ -420,6 +452,83 @@ func (r *CatalogRepository) GetServiceBusinessID(ctx context.Context, id int64) 
 		return 0, ErrServiceNotFound
 	}
 	return bID, err
+}
+
+func (r *CatalogRepository) GetServiceByUUID(ctx context.Context, u uuid.UUID) (ServiceItem, error) {
+	var id int64
+	err := r.db.QueryRow(ctx, `SELECT id FROM services WHERE uuid = $1`, u).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ServiceItem{}, ErrServiceNotFound
+	}
+	if err != nil {
+		return ServiceItem{}, err
+	}
+	return r.getServiceWithRequirements(ctx, id)
+}
+
+func (r *CatalogRepository) UpdateService(ctx context.Context, id int64, req ServiceItemUpdate) (ServiceItem, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return ServiceItem{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }() //nolint:errcheck
+
+	// Build dynamic SET clause.
+	setClauses := []string{"updated_at = NOW()"}
+	args := []any{}
+	argN := func() string { return fmt.Sprintf("$%d", len(args)) }
+
+	if req.Name != nil {
+		args = append(args, *req.Name)
+		setClauses = append(setClauses, "name = "+argN())
+	}
+	if req.Description != nil {
+		args = append(args, *req.Description)
+		setClauses = append(setClauses, "description = "+argN())
+	}
+	if req.DurationMinutes != nil {
+		args = append(args, *req.DurationMinutes)
+		setClauses = append(setClauses, "duration_minutes = "+argN())
+	}
+	if req.Price != nil {
+		args = append(args, *req.Price)
+		setClauses = append(setClauses, "price = "+argN())
+	}
+	if req.Currency != nil {
+		args = append(args, *req.Currency)
+		setClauses = append(setClauses, "currency = "+argN())
+	}
+
+	args = append(args, id)
+	idArg := argN()
+
+	query := fmt.Sprintf("UPDATE services SET %s WHERE id = %s", strings.Join(setClauses, ", "), idArg)
+	res, err := tx.Exec(ctx, query, args...)
+	if err != nil {
+		return ServiceItem{}, err
+	}
+	if res.RowsAffected() == 0 {
+		return ServiceItem{}, ErrServiceNotFound
+	}
+
+	if req.EquipmentReqs != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM service_equipment_requirements WHERE service_id = $1`, id); err != nil {
+			return ServiceItem{}, err
+		}
+		for _, e := range *req.EquipmentReqs {
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO service_equipment_requirements (service_id, equipment_id, quantity_needed)
+				VALUES ($1,$2,$3)
+			`, id, e.EquipmentID, e.QuantityNeeded); err != nil {
+				return ServiceItem{}, fmt.Errorf("equipment req: %w", err)
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return ServiceItem{}, err
+	}
+	return r.getServiceWithRequirements(ctx, id)
 }
 
 // ─── Location equipment pivot ─────────────────────────────────────────────────

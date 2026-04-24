@@ -1366,6 +1366,36 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+    patch:
+      tags: [Services]
+      summary: Update a service
+      operationId: updateService
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ServiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdate'
+      responses:
+        '200':
+          description: Service updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       tags: [Services]
       summary: Delete a service
@@ -1645,6 +1675,36 @@ paths:
                 $ref: '#/components/schemas/Equipment'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Equipment]
+      summary: Update equipment
+      operationId: updateEquipment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EquipmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentUpdate'
+      responses:
+        '200':
+          description: Equipment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ProviderRequired'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -2918,6 +2978,41 @@ components:
           type: string
           format: date-time
 
+    ServiceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        duration_minutes:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          format: double
+          minimum: 0
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        equipment_requirements:
+          type: array
+          items:
+            type: object
+            required: [equipment_id, quantity_needed]
+            properties:
+              equipment_id:
+                type: string
+                format: uuid
+              quantity_needed:
+                type: integer
+                minimum: 1
+
     ServiceCreate:
       type: object
       required:
@@ -3365,6 +3460,16 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+
+    EquipmentUpdate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
 
     EquipmentList:
       type: object

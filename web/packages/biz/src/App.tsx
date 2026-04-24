@@ -10,6 +10,7 @@ import { LocationList } from './pages/LocationList'
 import { LocationWizard } from './pages/LocationWizard'
 import { LocationDetail } from './pages/LocationDetail'
 import { StaffList } from './pages/StaffList'
+import { EquipmentServices } from './pages/EquipmentServices'
 import { BookingsList } from './pages/BookingsList'
 import { MyProfile } from './pages/MyProfile'
 import { SpaceGuard } from './components/SpaceGuard'
@@ -51,6 +52,9 @@ export default function App() {
 
           {/* Staff management */}
           <Route path="/dashboard/staff" element={<StaffList />} />
+
+          {/* Catalog — equipment & services */}
+          <Route path="/dashboard/catalog" element={<EquipmentServices />} />
 
           {/* Bookings */}
           <Route path="/dashboard/bookings" element={<BookingsList />} />

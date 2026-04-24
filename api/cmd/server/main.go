@@ -234,12 +234,14 @@ func run() error {
 	{
 		catalogProtected.GET("/equipment", catalogItemHandler.ListEquipment)
 		catalogProtected.POST("/equipment", catalogItemHandler.CreateEquipment)
+		catalogProtected.PATCH("/equipment/:id", catalogItemHandler.UpdateEquipment)
 		catalogProtected.DELETE("/equipment/:id", catalogItemHandler.DeleteEquipment)
 		catalogProtected.GET("/staff-roles", catalogItemHandler.ListStaffRoles)
 		catalogProtected.POST("/staff-roles", catalogItemHandler.CreateStaffRole)
 		catalogProtected.DELETE("/staff-roles/:id", catalogItemHandler.DeleteStaffRole)
 		catalogProtected.GET("/services", catalogItemHandler.ListServices)
 		catalogProtected.POST("/services", catalogItemHandler.CreateService)
+		catalogProtected.PATCH("/services/:id", catalogItemHandler.UpdateService)
 		catalogProtected.DELETE("/services/:id", catalogItemHandler.DeleteService)
 	}
 

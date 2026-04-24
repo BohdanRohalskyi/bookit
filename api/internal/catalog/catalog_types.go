@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrEquipmentNotFound    = errors.New("equipment not found")
+	ErrEquipmentInUse       = errors.New("equipment is referenced by one or more services")
 	ErrStaffRoleNotFound    = errors.New("staff role not found")
 	ErrStaffRoleProtected   = errors.New("staff role is system-managed and cannot be deleted")
 	ErrServiceNotFound      = errors.New("service not found")
@@ -28,6 +29,10 @@ type Equipment struct {
 type EquipmentCreate struct {
 	BusinessID int64
 	Name       string
+}
+
+type EquipmentUpdateReq struct {
+	Name string
 }
 
 // ─── Staff roles ──────────────────────────────────────────────────────────────
@@ -97,6 +102,15 @@ type ServiceItemCreate struct {
 	Currency        string
 	EquipmentReqs   []ServiceCreateReqItem
 	StaffReqs       []ServiceCreateReqItem
+}
+
+type ServiceItemUpdate struct {
+	Name            *string
+	Description     *string
+	DurationMinutes *int
+	Price           *float64
+	Currency        *string
+	EquipmentReqs   *[]ServiceCreateReqItem // nil = no change; non-nil = replace
 }
 
 // ─── Service search ───────────────────────────────────────────────────────────

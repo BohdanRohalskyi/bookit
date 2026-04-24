@@ -15,6 +15,7 @@ import {
   Settings,
   LogOut,
   ArrowUpRight,
+  Package,
 } from 'lucide-react'
 import { useAuthStore } from '@bookit/shared/stores'
 import { useAppSwitch } from '@bookit/shared/hooks'
@@ -51,6 +52,7 @@ const navItems: NavItem[] = [
   { icon: PlusCircle,      label: 'Add Business',       path: '/dashboard/businesses/new', end: false, showTo: 'owner' },
   { icon: MapPin,          label: 'Locations',          path: '/dashboard/locations',   end: true,  showTo: 'all' },
   { icon: Users,           label: 'Team',               path: '/dashboard/staff',       end: true,  showTo: 'admin' },
+  { icon: Package,         label: 'Catalog',            path: '/dashboard/catalog',     end: true,  showTo: 'admin' },
   { icon: UserCircle,      label: 'My Profile',         path: '/dashboard/profile',     end: true,  showTo: 'all' },
   { icon: CalendarCheck,   label: 'Bookings',          path: '/dashboard/bookings',    end: true,  showTo: 'owner' },
   { icon: CreditCard,      label: 'Payment',                                                         showTo: 'owner' },
